@@ -17,14 +17,15 @@
 package javabyte;
 
 import javabyte.name.Names;
+import javabyte.signature.Signatures;
 import javabyte.type.Access;
 import lombok.SneakyThrows;
 import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.File;
 import java.util.Random;
+import java.util.function.IntSupplier;
 import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -65,9 +66,36 @@ final class Tests {
         val exampleType = example.load(getClass().getClassLoader());
         val exampleInstance = (Supplier<?>) exampleType.getConstructor().newInstance();
 
-        example.writeClass(new File("Example.class"));
-
         assertEquals(value, exampleInstance.get());
     }
+
+    @Test
+    @SneakyThrows
+    void unbox() {
+        val value = random.nextInt();
+
+        val example = Javabyte.make("generated.Example");
+
+        example.addInterface(IntSupplier.class);
+
+        example.setAccess(Access.PUBLIC);
+        example.setFinal(true);
+
+        val getMethod = example.addMethod("getAsInt", int.class);
+        getMethod.setAccess(Access.PUBLIC);
+        getMethod.setOverrides(IntSupplier.class, "getAsInt");
+
+        val getCode = getMethod.getBytecode();
+        getCode.pushString(String.valueOf(value));
+        getCode.invokeStatic(Integer.class, "valueOf", Signatures.methodSignature(Integer.class, String.class));
+        getCode.callUnbox();
+        getCode.callReturn();
+
+        val exampleType = example.load(getClass().getClassLoader());
+        val exampleInstance = (IntSupplier) exampleType.getConstructor().newInstance();
+
+        assertEquals(value, exampleInstance.getAsInt());
+    }
+
 
 }
