@@ -1,0 +1,38 @@
+plugins {
+    id 'java'
+}
+
+group 'io.github.whilein'
+version '0.1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.ow2.asm:asm:9.2'
+
+    compileOnly 'org.projectlombok:lombok:1.18.20'
+    annotationProcessor 'org.projectlombok:lombok:1.18.20'
+
+    testCompileOnly 'org.projectlombok:lombok:1.18.20'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.20'
+
+    compileOnly 'org.jetbrains:annotations:21.0.1'
+    testCompileOnly 'org.jetbrains:annotations:21.0.1'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.0'
+}
+
+tasks {
+    compileJava {
+        options.encoding = 'utf-8'
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+
+    test {
+        useJUnitPlatform()
+    }
+}
