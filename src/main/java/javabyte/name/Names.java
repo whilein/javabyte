@@ -102,31 +102,32 @@ public class Names {
     }
 
     public @NotNull Name of(final @NonNull Type type) {
-        return _of(type);
+        return _fromType(type);
     }
 
     public @NotNull Name @NotNull [] of(final @NotNull Type @NonNull ... types) {
-        return _of(types);
+        return _fromArray(types);
     }
 
     public @NotNull ExactName exact(final @NonNull String name) {
-        return _exact(name);
-    }
-
-    public @NotNull ExactName @NotNull [] exact(final @NotNull String @NonNull [] names) {
-        return _exactArray(names, false);
-    }
-
-    public @NotNull ExactName @NotNull [] exact(final @NotNull Class<?> @NonNull [] types) {
-        return _exactArray(types);
+        return _fromName(name);
     }
 
     public @NotNull ExactName ofInternal(final @NonNull String internalName) {
         return _getCacheOrInit(internalName, true);
     }
 
+    public @NotNull ExactName @NotNull [] exact(final @NotNull String @NonNull [] names) {
+        return _fromArray(names, false);
+    }
+
+    public @NotNull ExactName @NotNull [] exact(final @NotNull Class<?> @NonNull [] types) {
+        return _fromArray(types);
+    }
+
+
     public @NotNull ExactName @NotNull [] ofInternal(final @NonNull String @NotNull [] internalNames) {
-        return _exactArray(internalNames, true);
+        return _fromArray(internalNames, true);
     }
 
     public @NotNull VariableName variable(
@@ -184,7 +185,7 @@ public class Names {
     }
 
     private ExactName _putCache(final int primitive, final Class<?> type) {
-        val name = _exact(type.getName(), primitive, "\\.");
+        val name = _fromName(type.getName(), primitive, "\\.");
 
         CACHE.put(type.getName(), name);
         CACHE_INTERNAL.put(type.getName().replace('.', '/'), name);
@@ -196,36 +197,18 @@ public class Names {
         val cache = internal ? CACHE_INTERNAL.get(type) : CACHE.get(type);
         if (cache != null) return cache;
 
-        return _exact(type, -1, internal ? "/" : "\\.");
+        return _fromName(type, -1, internal ? "/" : "\\.");
     }
 
-    private ExactName _exact(final String name, final int primitive, final String separator) {
+    private ExactName _fromName(final String name, final int primitive, final String separator) {
         return new ExactNameImpl(primitive, name.split(separator));
     }
 
-    private ExactName _exact(final String name) {
-        return _exact(name, -1, "\\.");
+    private ExactName _fromName(final String name) {
+        return _fromName(name, -1, "\\.");
     }
 
-    private ExactName[] _exactArray(final String[] names, final boolean internal) {
-        val exactNames = new ExactName[names.length];
-
-        for (int i = 0, j = names.length; i < j; i++)
-            exactNames[i] = Names._getCacheOrInit(names[i], internal);
-
-        return exactNames;
-    }
-
-    private ExactName[] _exactArray(final Class<?>[] types) {
-        val exactNames = new ExactName[types.length];
-
-        for (int i = 0, j = types.length; i < j; i++)
-            exactNames[i] = Names._getCacheOrInit(types[i].getName(), false);
-
-        return exactNames;
-    }
-
-    private Name _of(final Type type) {
+    private Name _fromType(final Type type) {
         if (type instanceof Class<?>) {
             return _getCacheOrInit(((Class<?>) type).getName(), false);
         } else if (type instanceof ParameterizedType) {
@@ -234,8 +217,8 @@ public class Names {
             val rawType = parameterized.getRawType();
             val parameterTypes = parameterized.getActualTypeArguments();
 
-            val raw = _of(rawType);
-            val parameters = _of(parameterTypes);
+            val raw = _fromType(rawType);
+            val parameters = _fromArray(parameterTypes);
 
             return new ParameterizedNameImpl((ExactName) raw, parameters);
         } else if (type instanceof WildcardType) {
@@ -243,15 +226,15 @@ public class Names {
             val upperTypes = wildcard.getUpperBounds();
             val lowerTypes = wildcard.getLowerBounds();
 
-            val upper = upperTypes.length != 0 ? _of(upperTypes) : null;
-            val lower = lowerTypes.length != 0 ? _of(lowerTypes) : null;
+            val upper = upperTypes.length != 0 ? _fromArray(upperTypes) : null;
+            val lower = lowerTypes.length != 0 ? _fromArray(lowerTypes) : null;
 
             return new WildcardNameImpl(upper, lower);
         } else if (type instanceof TypeVariable<?>) {
             val variable = (TypeVariable<?>) type;
 
             val boundTypes = variable.getBounds();
-            val bounds = _of(boundTypes);
+            val bounds = _fromArray(boundTypes);
 
             return new VariableNameImpl(variable.getName(), bounds);
         } else {
@@ -259,13 +242,31 @@ public class Names {
         }
     }
 
-    private Name[] _of(final Type... types) {
+    private Name[] _fromArray(final Type... types) {
         val names = new Name[types.length];
 
         for (int i = 0, j = names.length; i < j; i++)
-            names[i] = _of(types[i]);
+            names[i] = _fromType(types[i]);
 
         return names;
+    }
+
+    private ExactName[] _fromArray(final String[] names, final boolean internal) {
+        val exactNames = new ExactName[names.length];
+
+        for (int i = 0, j = names.length; i < j; i++)
+            exactNames[i] = Names._getCacheOrInit(names[i], internal);
+
+        return exactNames;
+    }
+
+    private ExactName[] _fromArray(final Class<?>[] types) {
+        val exactNames = new ExactName[types.length];
+
+        for (int i = 0, j = types.length; i < j; i++)
+            exactNames[i] = Names._getCacheOrInit(types[i].getName(), false);
+
+        return exactNames;
     }
 
     @Getter
@@ -798,7 +799,7 @@ public class Names {
                 throw new IllegalStateException("You should specify at least one parameter");
             }
 
-            return new ParameterizedNameImpl(this, _of(parameters));
+            return new ParameterizedNameImpl(this, _fromArray(parameters));
         }
     }
 
