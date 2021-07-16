@@ -40,6 +40,10 @@ public interface Bytecode {
     void invokeVirtual(@NotNull Type owner, @NotNull String name, @NotNull MethodSignature descriptor);
     void invokeVirtual(@NotNull String owner, @NotNull String name, @NotNull MethodSignature descriptor);
 
+    void invokeStatic(@NotNull Name owner, @NotNull String name, @NotNull MethodSignature descriptor);
+    void invokeStatic(@NotNull Type owner, @NotNull String name, @NotNull MethodSignature descriptor);
+    void invokeStatic(@NotNull String owner, @NotNull String name, @NotNull MethodSignature descriptor);
+
     void pushString(@NotNull String string);
     void pushInt(int value);
     void pushNull();

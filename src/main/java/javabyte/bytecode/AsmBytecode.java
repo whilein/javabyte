@@ -90,6 +90,33 @@ public final class AsmBytecode implements Bytecode {
     }
 
     @Override
+    public void invokeStatic(
+            final @NonNull Name owner,
+            final @NonNull String name,
+            final @NonNull MethodSignature signature
+    ) {
+        _invoke(INVOKESTATIC, owner, name, signature);
+    }
+
+    @Override
+    public void invokeStatic(
+            final @NonNull Type owner,
+            final @NonNull String name,
+            final @NonNull MethodSignature signature
+    ) {
+        _invoke(INVOKESTATIC, Names.of(owner), name, signature);
+    }
+
+    @Override
+    public void invokeStatic(
+            final @NonNull String owner,
+            final @NonNull String name,
+            final @NonNull MethodSignature signature
+    ) {
+        _invoke(INVOKESTATIC, Names.exact(owner), name, signature);
+    }
+
+    @Override
     public void invokeVirtual(
             final @NonNull Name owner,
             final @NonNull String name,
