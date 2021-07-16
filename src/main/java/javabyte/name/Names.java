@@ -86,11 +86,27 @@ public class Names {
             DOUBLE_OBJ
     };
 
+    private final ExactName[] PRIMITIVES = {
+            VOID, BOOL,
+            BYTE, CHAR,
+            SHORT, INT,
+            LONG, FLOAT,
+            DOUBLE
+    };
+
     public final WildcardName WILDCARD_ANY
             = new WildcardNameImpl(null, null);
 
     public @NotNull ExactName getWrapper(final int primitive) {
         return WRAPPERS[primitive];
+    }
+
+    public @NotNull ExactName getPrimitive(final @NonNull Name wrapper) {
+        for (int i = 0, j = WRAPPERS.length; i < j; i++)
+            if (WRAPPERS[i].equals(wrapper))
+                return PRIMITIVES[i];
+
+        throw new IllegalStateException(wrapper + " isn't wrapper");
     }
 
     public @NotNull ExactName getWrapper(final @NonNull Name primitive) {

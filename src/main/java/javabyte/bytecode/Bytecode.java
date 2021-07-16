@@ -44,6 +44,9 @@ public interface Bytecode {
     void pushInt(int value);
     void pushNull();
 
+    void callBox();
+    void callUnbox();
+
     void callReturn();
 
     void compile(

@@ -177,7 +177,7 @@ public final class AsmBytecode implements Bytecode {
     }
 
     @Override
-    public void pushBox() {
+    public void callBox() {
         inst(compile -> {
             val stack = compile.popStack();
 
@@ -196,7 +196,7 @@ public final class AsmBytecode implements Bytecode {
     }
 
     @Override
-    public void pushUnbox() {
+    public void callUnbox() {
         inst(compile -> {
             val stack = compile.popStack();
 
@@ -251,8 +251,6 @@ public final class AsmBytecode implements Bytecode {
             if (compile.executable.getReturnType().equals(Names.VOID)) {
                 compile.mv.visitInsn(RETURN);
             } else {
-                compile.tryBoxOrUnbox();
-
                 val stack = compile.popStack();
                 compile.mv.visitInsn(stack.getType().getOpcode(IRETURN));
             }
@@ -315,94 +313,6 @@ public final class AsmBytecode implements Bytecode {
             stackSize -= name.getSize();
 
             return name;
-        }
-
-        private boolean tryBoxOrUnbox() {
-            val actualToReturn = stack.getFirst();
-            val expectToReturn = executable.getReturnType();
-
-            // all fine
-            if (actualToReturn.equals(expectToReturn))
-                return false;
-
-            if (actualToReturn.isPrimitive() && !expectToReturn.isPrimitive()) {
-                // box actual to wrapper return type
-
-                // get wrapper of primitive
-                val wrapper = Names.getWrapper(actualToReturn);
-
-                // flag if wrapper isn't boolean and expect to return number or object
-                val numberFlag = actualToReturn.getPrimitive() != Names.BOOL_TYPE
-                        && (expectToReturn.equals(Names.NUMBER) || expectToReturn.equals(Names.OBJECT));
-
-                // check if expect isn't wrapper and not flag
-                if (!expectToReturn.equals(wrapper) && !numberFlag) {
-                    return false;
-                }
-
-                popStack();
-
-                mv.visitMethodInsn(INVOKESTATIC, wrapper.getInternalName(), "valueOf",
-                        "(" + actualToReturn.getDescriptor() + ")" + wrapper.getDescriptor(),
-                        false);
-
-                pushStack(wrapper);
-
-                return true;
-            } else if (!actualToReturn.isPrimitive() && expectToReturn.isPrimitive()) {
-                // unbox actual to primitive return type
-
-                // get wrapper of primitive
-                val wrapper = Names.getWrapper(expectToReturn);
-
-                // check if actual isn't wrapper
-                if (!actualToReturn.equals(wrapper)) {
-                    return false;
-                }
-
-                popStack();
-
-                final String methodName;
-
-                switch (expectToReturn.getPrimitive()) {
-                    case Names.BOOL_TYPE:
-                        methodName = "booleanValue";
-                        break;
-                    case Names.BYTE_TYPE:
-                        methodName = "byteValue";
-                        break;
-                    case Names.CHAR_TYPE:
-                        methodName = "charValue";
-                        break;
-                    case Names.SHORT_TYPE:
-                        methodName = "shortValue";
-                        break;
-                    case Names.INT_TYPE:
-                        methodName = "intValue";
-                        break;
-                    case Names.LONG_TYPE:
-                        methodName = "longValue";
-                        break;
-                    case Names.FLOAT_TYPE:
-                        methodName = "floatValue";
-                        break;
-                    case Names.DOUBLE_TYPE:
-                        methodName = "doubleValue";
-                        break;
-                    default:
-                        throw new IllegalStateException("Unsupported primitive type: " + expectToReturn);
-                }
-
-                mv.visitMethodInsn(INVOKEVIRTUAL, wrapper.getInternalName(), methodName,
-                        "()" + actualToReturn.getDescriptor(),
-                        false);
-
-                pushStack(expectToReturn);
-
-                return true;
-            }
-
-            return false;
         }
 
     }
