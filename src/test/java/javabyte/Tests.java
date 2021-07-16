@@ -19,6 +19,8 @@ package javabyte;
 import javabyte.name.Names;
 import javabyte.signature.Signatures;
 import javabyte.type.Access;
+import javabyte.type.Field;
+import javabyte.type.Invoke;
 import lombok.SneakyThrows;
 import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,7 +49,7 @@ final class Tests {
     void box() {
         val value = random.nextInt();
 
-        val example = Javabyte.make("generated.Example");
+        val example = Javabyte.make("gen_" + Math.abs(value) + ".Example");
 
         example.addInterface(Names.exact(Supplier.class).parameterized(Integer.class));
 
@@ -64,7 +66,7 @@ final class Tests {
         getCode.callReturn();
 
         val exampleType = example.load(getClass().getClassLoader());
-        val exampleInstance = (Supplier<?>) exampleType.getConstructor().newInstance();
+        val exampleInstance = (Supplier<?>) exampleType.getDeclaredConstructor().newInstance();
 
         assertEquals(value, exampleInstance.get());
     }
@@ -74,7 +76,7 @@ final class Tests {
     void unbox() {
         val value = random.nextInt();
 
-        val example = Javabyte.make("generated.Example");
+        val example = Javabyte.make("gen_" + Math.abs(value) + ".Example");
 
         example.addInterface(IntSupplier.class);
 
@@ -87,15 +89,67 @@ final class Tests {
 
         val getCode = getMethod.getBytecode();
         getCode.pushString(String.valueOf(value));
-        getCode.invokeStatic(Integer.class, "valueOf", Signatures.methodSignature(Integer.class, String.class));
+
+        getCode.invoke(Invoke.STATIC, Integer.class, "valueOf",
+                Signatures.methodSignature(Integer.class, String.class));
+
         getCode.callUnbox();
         getCode.callReturn();
 
         val exampleType = example.load(getClass().getClassLoader());
-        val exampleInstance = (IntSupplier) exampleType.getConstructor().newInstance();
+        val exampleInstance = (IntSupplier) exampleType.getDeclaredConstructor().newInstance();
 
         assertEquals(value, exampleInstance.getAsInt());
     }
 
+    @Test
+    @SneakyThrows
+    void constructorAndFields() {
+        val value = random.nextInt();
+
+        val example = Javabyte.make("gen_" + Math.abs(value) + ".Example");
+
+        example.addInterface(IntSupplier.class);
+
+        example.setAccess(Access.PUBLIC);
+        example.setFinal(true);
+
+        {
+            val field = example.addField("value", int.class);
+            field.setAccess(Access.PRIVATE);
+            field.setFinal(true);
+        }
+
+        {
+            val constructor = example.addConstructor();
+            constructor.setAccess(Access.PUBLIC);
+            constructor.addParameter(int.class);
+
+            val constructorCode = constructor.getBytecode();
+            constructorCode.pushThis();
+            constructorCode.invokeSuper(Invoke.SPECIAL, "<init>", Signatures.methodSignature(void.class));
+
+            constructorCode.pushThis();
+            constructorCode.pushLocal(1);
+            constructorCode.fieldOwn(Field.PUT, "value", int.class);
+            constructorCode.callReturn();
+        }
+
+        {
+            val getMethod = example.addMethod("getAsInt", int.class);
+            getMethod.setAccess(Access.PUBLIC);
+            getMethod.setOverrides(IntSupplier.class, "getAsInt");
+
+            val getCode = getMethod.getBytecode();
+            getCode.pushThis();
+            getCode.fieldOwn(Field.GET, "value", int.class);
+            getCode.callReturn();
+        }
+
+        val exampleType = example.load(getClass().getClassLoader());
+        val exampleInstance = (IntSupplier) exampleType.getDeclaredConstructor(int.class).newInstance(value);
+
+        assertEquals(value, exampleInstance.getAsInt());
+    }
 
 }
