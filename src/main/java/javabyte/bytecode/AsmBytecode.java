@@ -156,8 +156,12 @@ public final class AsmBytecode implements Bytecode {
         inst(compile -> {
             if (value >= 0 && value <= 5) {
                 compile.mv.visitInsn(ICONST_0 + value);
-            } else {
+            } else if (value >= Byte.MIN_VALUE && value <= Byte.MAX_VALUE){
                 compile.mv.visitIntInsn(BIPUSH, value);
+            } else if (value >= Short.MIN_VALUE && value <= Short.MAX_VALUE){
+                compile.mv.visitIntInsn(SIPUSH, value);
+            } else {
+                compile.mv.visitLdcInsn(value);
             }
 
             compile.pushStack(Names.INT);
@@ -169,6 +173,75 @@ public final class AsmBytecode implements Bytecode {
         inst(compile -> {
             compile.mv.visitInsn(ACONST_NULL);
             compile.pushStack(Names.OBJECT);
+        });
+    }
+
+    @Override
+    public void pushBox() {
+        inst(compile -> {
+            val stack = compile.popStack();
+
+            if (!stack.isPrimitive()) {
+                throw new IllegalStateException("Stack item should be a primitive!");
+            }
+
+            val wrapper = Names.getWrapper(stack);
+
+            compile.mv.visitMethodInsn(INVOKESTATIC, wrapper.getInternalName(), "valueOf",
+                    "(" + stack.getDescriptor() + ")" + wrapper.getDescriptor(),
+                    false);
+
+            compile.pushStack(wrapper);
+        });
+    }
+
+    @Override
+    public void pushUnbox() {
+        inst(compile -> {
+            val stack = compile.popStack();
+
+            if (stack.isPrimitive()) {
+                throw new IllegalStateException("Stack item should not be a primitive!");
+            }
+
+            final String methodName;
+
+            val primitive = Names.getPrimitive(stack);
+
+            switch (primitive.getPrimitive()) {
+                case Names.BOOL_TYPE:
+                    methodName = "booleanValue";
+                    break;
+                case Names.BYTE_TYPE:
+                    methodName = "byteValue";
+                    break;
+                case Names.CHAR_TYPE:
+                    methodName = "charValue";
+                    break;
+                case Names.SHORT_TYPE:
+                    methodName = "shortValue";
+                    break;
+                case Names.INT_TYPE:
+                    methodName = "intValue";
+                    break;
+                case Names.LONG_TYPE:
+                    methodName = "longValue";
+                    break;
+                case Names.FLOAT_TYPE:
+                    methodName = "floatValue";
+                    break;
+                case Names.DOUBLE_TYPE:
+                    methodName = "doubleValue";
+                    break;
+                default:
+                    throw new IllegalStateException("Unsupported type: " + stack);
+            }
+
+            compile.mv.visitMethodInsn(INVOKEVIRTUAL, stack.getInternalName(), methodName,
+                    "()" + primitive.getDescriptor(),
+                    false);
+
+            compile.pushStack(primitive);
         });
     }
 
