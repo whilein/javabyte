@@ -26,7 +26,7 @@ import javabyte.name.VariableName;
 import javabyte.signature.MethodSignature;
 import javabyte.signature.Signatures;
 import javabyte.type.Access;
-import javabyte.type.Invoke;
+import javabyte.type.MethodOpcode;
 import javabyte.type.Version;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -230,9 +230,13 @@ public class Javabyte {
                 emptyConstructor.setAccess(Access.PUBLIC);
 
                 val emptyConstructorCode = emptyConstructor.getBytecode();
-                emptyConstructorCode.pushThis();
-                emptyConstructorCode.invokeSuper(Invoke.SPECIAL, "<init>",
-                        Signatures.methodSignature(Names.VOID));
+                emptyConstructorCode.loadLocal(0);
+
+                emptyConstructorCode.methodInsn("<init>")
+                        .inSuper()
+                        .opcode(MethodOpcode.SPECIAL)
+                        .descriptor(void.class);
+
                 emptyConstructorCode.callReturn();
 
                 addExecutable(cw, emptyConstructor);
@@ -269,8 +273,11 @@ public class Javabyte {
                     bridge.setModifiers(executable.getAccess().getOpcode() | Opcodes.ACC_BRIDGE | Opcodes.ACC_SYNTHETIC);
 
                     val code = bridge.getBytecode();
-                    code.pushThis();
-                    code.invokeOwn(Invoke.VIRTUAL, executable.getName(), executable.getSignature());
+                    code.loadLocal(0);
+                    code.methodInsn(executable.getName())
+                            .inCurrent()
+                            .opcode(MethodOpcode.VIRTUAL)
+                            .descriptor(executable.getReturnType());
                     code.callReturn();
 
                     addExecutable(writer, bridge);

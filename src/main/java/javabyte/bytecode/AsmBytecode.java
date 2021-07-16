@@ -20,8 +20,9 @@ import javabyte.make.MakeExecutable;
 import javabyte.name.Name;
 import javabyte.name.Names;
 import javabyte.signature.MethodSignature;
-import javabyte.type.Field;
-import javabyte.type.Invoke;
+import javabyte.signature.Signatures;
+import javabyte.type.FieldOpcode;
+import javabyte.type.MethodOpcode;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.jetbrains.annotations.NotNull;
@@ -32,6 +33,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import static org.objectweb.asm.Opcodes.*;
 
@@ -52,158 +54,36 @@ public final class AsmBytecode implements Bytecode {
         instructions.add(instruction);
     }
 
-    private void _invoke(final Compile compile, final Invoke invoke,
-                         final Name owner, final String name,
-                         final MethodSignature descriptor) {
-        compile.mv.visitMethodInsn(invoke.getOpcode(), owner.getInternalName(), name, descriptor.getDescriptor(),
-                invoke.getOpcode() == INVOKEINTERFACE);
-
-        for (int i = 0, j = descriptor.getParameterTypes().length; i < j; i++) {
-            compile.popStack();
-        }
-
-        if (!descriptor.getReturnType().equals(Names.VOID))
-            compile.pushStack(descriptor.getReturnType());
-    }
-
-    private void _invoke(final Invoke invoke, final Name owner, final String name, final MethodSignature descriptor) {
-        insn(compile -> _invoke(compile, invoke, owner, name, descriptor));
-    }
-
-    private void pushLocal(final Compile compile, final int index) {
-        val local = compile.locals.get(index);
-        val localName = local.name;
-        val localType = localName.getType();
-
-        compile.mv.visitVarInsn(localType.getOpcode(ILOAD), local.offset);
-        compile.pushStack(localName);
-    }
-
     @Override
-    public void pushLocal(final int index) {
-        insn(compile -> pushLocal(compile, index));
-    }
-
-    @Override
-    public void pushThis() {
+    public void loadLocal(final int index) {
         insn(compile -> {
-            if (compile.executable.isStatic()) {
-                throw new IllegalStateException("Cannot push this because method is static");
-            }
+            val local = compile.locals.get(index);
+            val localName = local.name;
+            val localType = localName.getType();
 
-            pushLocal(compile, 0);
+            compile.mv.visitVarInsn(localType.getOpcode(ILOAD), local.offset);
+            compile.pushStack(localName);
         });
     }
 
     @Override
-    public void invokeOwn(
-            final @NonNull Invoke invoke,
-            final @NonNull String name,
-            final @NonNull MethodSignature descriptor
-    ) {
-        insn(compile -> _invoke(compile, invoke, compile.executable.getDeclaringClass().getName(),
-                name, descriptor));
-    }
+    public @NotNull FieldInsn fieldInsn(@NotNull final String name) {
+        val field = new FieldInsnImpl(name);
+        insn(field);
 
-
-    @Override
-    public void invokeSuper(
-            final @NonNull Invoke invoke,
-            final @NonNull String name,
-            final @NonNull MethodSignature descriptor
-    ) {
-        insn(compile -> _invoke(compile, invoke, compile.executable.getDeclaringClass().getSuperName(),
-                name, descriptor));
+        return field;
     }
 
     @Override
-    public void invoke(
-            final @NonNull Invoke invoke,
-            final @NonNull Name owner,
-            final @NonNull String name,
-            final @NonNull MethodSignature signature
-    ) {
-        _invoke(invoke, owner, name, signature);
+    public @NotNull MethodInsn methodInsn(@NotNull final String name) {
+        val method = new MethodInsnImpl(name);
+        insn(method);
+
+        return method;
     }
 
     @Override
-    public void invoke(
-            final @NonNull Invoke invoke,
-            final @NonNull Type owner,
-            final @NonNull String name,
-            final @NonNull MethodSignature signature
-    ) {
-        _invoke(invoke, Names.of(owner), name, signature);
-    }
-
-    @Override
-    public void fieldOwn(final @NonNull Field field, final @NonNull String name, final @NonNull Type type) {
-        insn(compile -> _field(compile, field.getOpcode(), compile.executable.getDeclaringClass().getName(),
-                name, Names.of(type)));
-    }
-
-    @Override
-    public void fieldOwn(final @NonNull Field field, final @NonNull String name, final @NonNull Name type) {
-        insn(compile -> _field(compile, field.getOpcode(), compile.executable.getDeclaringClass().getName(),
-                name, type));
-    }
-
-    private void _field(final Compile compile, final int opcode, final Name owner, final String name, final Name type) {
-        if (opcode == PUTFIELD || opcode == PUTSTATIC) {
-            compile.popStack();
-        }
-
-        compile.popStack();
-        compile.mv.visitFieldInsn(opcode, owner.getInternalName(), name, type.getDescriptor());
-        compile.pushStack(type);
-    }
-
-    private void _field(final int opcode, final Name owner, final String name, final Name type) {
-        insn(compile -> _field(compile, opcode, owner, name, type));
-    }
-
-    @Override
-    public void field(
-            final @NonNull Field field,
-            final @NonNull Name owner,
-            final @NonNull String name,
-            final @NonNull Name type
-    ) {
-        _field(field.getOpcode(), owner, name, type);
-    }
-
-    @Override
-    public void field(
-            final @NonNull Field field,
-            final @NonNull Type owner,
-            final @NonNull String name,
-            final @NonNull Name type
-    ) {
-        _field(field.getOpcode(), Names.of(owner), name, type);
-    }
-
-    @Override
-    public void field(
-            final @NonNull Field field,
-            final @NonNull Type owner,
-            final @NonNull String name,
-            final @NonNull Type type
-    ) {
-        _field(field.getOpcode(), Names.of(owner), name, Names.of(type));
-    }
-
-    @Override
-    public void field(
-            final @NonNull Field field,
-            final @NonNull Name owner,
-            final @NonNull String name,
-            final @NonNull Type type
-    ) {
-        _field(field.getOpcode(), owner, name, Names.of(type));
-    }
-
-    @Override
-    public void pushString(final @NotNull String value) {
+    public void loadString(final @NotNull String value) {
         insn(compile -> {
             compile.mv.visitLdcInsn(value);
             compile.pushStack(Names.STRING);
@@ -211,7 +91,7 @@ public final class AsmBytecode implements Bytecode {
     }
 
     @Override
-    public void pushInt(final int value) {
+    public void loadInt(final int value) {
         insn(compile -> {
             if (value >= 0 && value <= 5) {
                 compile.mv.visitInsn(ICONST_0 + value);
@@ -228,7 +108,7 @@ public final class AsmBytecode implements Bytecode {
     }
 
     @Override
-    public void pushNull() {
+    public void loadNull() {
         insn(compile -> {
             compile.mv.visitInsn(ACONST_NULL);
             compile.pushStack(Names.OBJECT);
@@ -343,6 +223,158 @@ public final class AsmBytecode implements Bytecode {
         }
 
         visitor.visitMaxs(compile.maxStackSize, compile.maxLocalSize);
+    }
+
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+    private static final class FieldInsnImpl implements FieldInsn, Consumer<Compile> {
+        final String name;
+        Function<Compile, Name> owner;
+        FieldOpcode opcode;
+        Name descriptor;
+
+        @Override
+        public void accept(final @NonNull Compile compile) {
+            if (opcode == null) {
+                throw new IllegalStateException("You should to specify opcode using MethodInsn#opcode method!");
+            }
+
+            if (owner == null) {
+                throw new IllegalStateException("You should to specify owner using MethodInsn#in method!");
+            }
+
+            if (descriptor == null) {
+                throw new IllegalStateException("You should to specify descriptor using MethodInsn#descriptor method!");
+            }
+
+            if (opcode == FieldOpcode.PUT || opcode == FieldOpcode.PUT_STATIC) {
+                compile.popStack();
+            }
+
+            compile.popStack();
+            compile.mv.visitFieldInsn(opcode.getOpcode(), owner.apply(compile).getInternalName(),
+                    name, descriptor.getDescriptor());
+            compile.pushStack(descriptor);
+        }
+
+        @Override
+        public @NotNull FieldInsn opcode(@NotNull final FieldOpcode opcode) {
+            this.opcode = opcode;
+            return this;
+        }
+
+        @Override
+        public @NotNull FieldInsn descriptor(@NotNull final Name descriptor) {
+            this.descriptor = descriptor;
+            return this;
+        }
+
+        @Override
+        public @NotNull FieldInsn descriptor(@NotNull final Type type) {
+            return descriptor(Names.of(type));
+        }
+
+        @Override
+        public @NotNull FieldInsn in(@NotNull final Type owner) {
+            return in(Names.of(owner));
+        }
+
+        @Override
+        public @NotNull FieldInsn in(@NotNull final Name owner) {
+            this.owner = __ -> owner;
+
+            return this;
+        }
+
+        @Override
+        public @NotNull FieldInsn inCurrent() {
+            this.owner = compile -> compile.executable.getDeclaringClass().getName();
+
+            return this;
+        }
+
+    }
+
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+    private static final class MethodInsnImpl implements MethodInsn, Consumer<Compile> {
+        final String name;
+        Function<Compile, Name> owner;
+        MethodOpcode opcode;
+        MethodSignature descriptor;
+
+        @Override
+        public void accept(final @NonNull Compile compile) {
+            if (opcode == null) {
+                throw new IllegalStateException("You should to specify opcode using MethodInsn#opcode method!");
+            }
+
+            if (owner == null) {
+                throw new IllegalStateException("You should to specify owner using MethodInsn#in method!");
+            }
+
+            if (descriptor == null) {
+                throw new IllegalStateException("You should to specify descriptor using MethodInsn#descriptor method!");
+            }
+
+            compile.mv.visitMethodInsn(opcode.getOpcode(), owner.apply(compile).getInternalName(),
+                    name, descriptor.getDescriptor(), opcode == MethodOpcode.INTERFACE);
+
+            for (int i = 0, j = descriptor.getParameterTypes().length; i < j; i++) {
+                compile.popStack();
+            }
+
+            if (!descriptor.getReturnType().equals(Names.VOID))
+                compile.pushStack(descriptor.getReturnType());
+        }
+
+        @Override
+        public @NotNull MethodInsn opcode(@NotNull final MethodOpcode opcode) {
+            this.opcode = opcode;
+            return this;
+        }
+
+        @Override
+        public @NotNull MethodInsn descriptor(@NotNull final MethodSignature signature) {
+            this.descriptor = signature;
+            return this;
+        }
+
+        @Override
+        public @NotNull MethodInsn descriptor(@NotNull final Type returnType, final @NotNull Type @NotNull ... parameters) {
+            return descriptor(Signatures.methodSignature(returnType, parameters));
+        }
+
+        @Override
+        public @NotNull MethodInsn descriptor(@NotNull final Name returnType, final @NotNull Name @NotNull ... parameters) {
+            return descriptor(Signatures.methodSignature(returnType, parameters));
+        }
+
+        @Override
+        public @NotNull MethodInsn in(@NotNull final Type owner) {
+            return in(Names.of(owner));
+        }
+
+        @Override
+        public @NotNull MethodInsn in(@NotNull final Name owner) {
+            this.owner = __ -> owner;
+
+            return this;
+        }
+
+        @Override
+        public @NotNull MethodInsn inCurrent() {
+            this.owner = compile -> compile.executable.getDeclaringClass().getName();
+
+            return this;
+        }
+
+        @Override
+        public @NotNull MethodInsn inSuper() {
+            this.owner = compile -> compile.executable.getDeclaringClass().getSuperName();
+
+            return this;
+        }
     }
 
     @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)

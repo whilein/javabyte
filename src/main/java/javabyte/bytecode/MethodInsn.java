@@ -16,35 +16,28 @@
 
 package javabyte.bytecode;
 
-import javabyte.make.MakeExecutable;
+import javabyte.name.Name;
+import javabyte.signature.MethodSignature;
+import javabyte.type.MethodOpcode;
 import org.jetbrains.annotations.NotNull;
-import org.objectweb.asm.MethodVisitor;
+
+import java.lang.reflect.Type;
 
 /**
  * @author whilein
  */
-public interface Bytecode {
+public interface MethodInsn {
 
-    void loadLocal(int index);
+    @NotNull MethodInsn opcode(@NotNull MethodOpcode opcode);
 
-    @NotNull FieldInsn fieldInsn(@NotNull String name);
-    @NotNull MethodInsn methodInsn(@NotNull String name);
+    @NotNull MethodInsn descriptor(@NotNull MethodSignature signature);
+    @NotNull MethodInsn descriptor(@NotNull Type returnType, @NotNull Type @NotNull ... parameters);
+    @NotNull MethodInsn descriptor(@NotNull Name returnType, @NotNull Name @NotNull ... parameters);
 
-    void loadString(@NotNull String string);
+    @NotNull MethodInsn in(@NotNull Type owner);
+    @NotNull MethodInsn in(@NotNull Name owner);
 
-    void loadInt(int value);
-
-    void loadNull();
-
-    void callBox();
-
-    void callUnbox();
-
-    void callReturn();
-
-    void compile(
-            @NotNull MakeExecutable executable,
-            @NotNull MethodVisitor visitor
-    );
+    @NotNull MethodInsn inCurrent();
+    @NotNull MethodInsn inSuper();
 
 }

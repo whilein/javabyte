@@ -14,18 +14,27 @@
  *    limitations under the License.
  */
 
-package javabyte.type;
+package javabyte.bytecode;
 
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
+import javabyte.name.Name;
+import javabyte.type.FieldOpcode;
+import org.jetbrains.annotations.NotNull;
 
-@Getter
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-public enum Field {
-    GET_STATIC(178), PUT_STATIC(179), GET(180), PUT(181);
+import java.lang.reflect.Type;
 
-    int opcode;
+/**
+ * @author whilein
+ */
+public interface FieldInsn {
+
+    @NotNull FieldInsn opcode(@NotNull FieldOpcode opcode);
+
+    @NotNull FieldInsn descriptor(@NotNull Type type);
+    @NotNull FieldInsn descriptor(@NotNull Name type);
+
+    @NotNull FieldInsn in(@NotNull Type owner);
+    @NotNull FieldInsn in(@NotNull Name owner);
+
+    @NotNull FieldInsn inCurrent();
+
 }

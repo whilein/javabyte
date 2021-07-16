@@ -17,10 +17,9 @@
 package javabyte;
 
 import javabyte.name.Names;
-import javabyte.signature.Signatures;
 import javabyte.type.Access;
-import javabyte.type.Field;
-import javabyte.type.Invoke;
+import javabyte.type.FieldOpcode;
+import javabyte.type.MethodOpcode;
 import lombok.SneakyThrows;
 import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
@@ -61,7 +60,7 @@ final class Tests {
         getMethod.setOverrides(Supplier.class, "get");
 
         val getCode = getMethod.getBytecode();
-        getCode.pushInt(value);
+        getCode.loadInt(value);
         getCode.callBox();
         getCode.callReturn();
 
@@ -88,10 +87,12 @@ final class Tests {
         getMethod.setOverrides(IntSupplier.class, "getAsInt");
 
         val getCode = getMethod.getBytecode();
-        getCode.pushString(String.valueOf(value));
+        getCode.loadString(String.valueOf(value));
 
-        getCode.invoke(Invoke.STATIC, Integer.class, "valueOf",
-                Signatures.methodSignature(Integer.class, String.class));
+        getCode.methodInsn("valueOf")
+                .in(Integer.class)
+                .opcode(MethodOpcode.STATIC)
+                .descriptor(Integer.class, String.class);
 
         getCode.callUnbox();
         getCode.callReturn();
@@ -126,12 +127,21 @@ final class Tests {
             constructor.addParameter(int.class);
 
             val constructorCode = constructor.getBytecode();
-            constructorCode.pushThis();
-            constructorCode.invokeSuper(Invoke.SPECIAL, "<init>", Signatures.methodSignature(void.class));
+            constructorCode.loadLocal(0);
 
-            constructorCode.pushThis();
-            constructorCode.pushLocal(1);
-            constructorCode.fieldOwn(Field.PUT, "value", int.class);
+            constructorCode.methodInsn("<init>")
+                    .inSuper()
+                    .opcode(MethodOpcode.SPECIAL)
+                    .descriptor(void.class);
+
+            constructorCode.loadLocal(0);
+            constructorCode.loadLocal(1);
+
+            constructorCode.fieldInsn("value")
+                    .inCurrent()
+                    .opcode(FieldOpcode.PUT)
+                    .descriptor(int.class);
+
             constructorCode.callReturn();
         }
 
@@ -141,8 +151,13 @@ final class Tests {
             getMethod.setOverrides(IntSupplier.class, "getAsInt");
 
             val getCode = getMethod.getBytecode();
-            getCode.pushThis();
-            getCode.fieldOwn(Field.GET, "value", int.class);
+            getCode.loadLocal(0);
+
+            getCode.fieldInsn("value")
+                    .inCurrent()
+                    .opcode(FieldOpcode.GET)
+                    .descriptor(int.class);
+
             getCode.callReturn();
         }
 
