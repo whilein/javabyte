@@ -40,33 +40,25 @@ public interface MakeClass extends MakeElement {
 
     @NotNull MakeMethod addMethod(@NotNull String name, @NotNull Name returns);
     @NotNull MakeMethod addMethod(@NotNull String name, @NotNull Type returns);
-    @NotNull MakeMethod addMethod(@NotNull String name, @NotNull String returns);
 
     @NotNull MakeMethod addVoidMethod(@NotNull String name);
 
     @NotNull MakeField addField(@NotNull String name, @NotNull Name type);
     @NotNull MakeField addField(@NotNull String name, @NotNull Type type);
-    @NotNull MakeField addField(@NotNull String name, @NotNull String type);
 
     @NotNull Version getVersion();
     @NotNull ExactName getName();
 
     void setSuperName(@NotNull Type type);
-    void setSuperName(@NotNull String typeName);
-
     void setSuperName(@NotNull Name name);
 
     @NotNull Name getSuperName();
 
-    void addInterface(@NotNull String name);
     void addInterface(@NotNull Name name);
     void addInterface(@NotNull Type type);
 
     void setInterfaces(@NotNull Name @NotNull ... interfaces);
     void setInterfaces(@NotNull Collection<@NotNull Name> interfaces);
-
-    void setInterfaceNames(@NotNull String @NotNull ... interfaceNames);
-    void setInterfaceNames(@NotNull Collection<@NotNull String> interfaceNames);
 
     void setInterfaceTypes(@NotNull Type @NotNull ... interfaces);
     void setInterfaceTypes(@NotNull Collection<@NotNull Type> interfaces);

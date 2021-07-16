@@ -26,6 +26,7 @@ import javabyte.name.VariableName;
 import javabyte.signature.MethodSignature;
 import javabyte.signature.Signatures;
 import javabyte.type.Access;
+import javabyte.type.Invoke;
 import javabyte.type.Version;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -67,13 +68,13 @@ public class Javabyte {
             final @NonNull Version version,
             final @NonNull String name
     ) {
-        return _make(version, Names.exact(name));
+        return _make(version, Names.of(name));
     }
 
     public @NotNull MakeClass make(
             final @NonNull String name
     ) {
-        return _make(Version.V1_8, Names.exact(name));
+        return _make(Version.V1_8, Names.of(name));
     }
 
     public @NotNull MakeClass make(
@@ -230,7 +231,8 @@ public class Javabyte {
 
                 val emptyConstructorCode = emptyConstructor.getBytecode();
                 emptyConstructorCode.pushThis();
-                emptyConstructorCode.invokeSpecial(superName, "<init>", Signatures.methodSignature(Names.VOID));
+                emptyConstructorCode.invokeSuper(Invoke.SPECIAL, "<init>",
+                        Signatures.methodSignature(Names.VOID));
                 emptyConstructorCode.callReturn();
 
                 addExecutable(cw, emptyConstructor);
@@ -268,7 +270,7 @@ public class Javabyte {
 
                     val code = bridge.getBytecode();
                     code.pushThis();
-                    code.invokeVirtual(name, executable.getName(), executable.getSignature());
+                    code.invokeOwn(Invoke.VIRTUAL, executable.getName(), executable.getSignature());
                     code.callReturn();
 
                     addExecutable(writer, bridge);
@@ -324,11 +326,6 @@ public class Javabyte {
         }
 
         @Override
-        public @NotNull MakeMethod addMethod(final @NonNull String name, final @NonNull String returns) {
-            return _addExecutable(_initMethod(name, Names.exact(returns)));
-        }
-
-        @Override
         public @NotNull MakeMethod addVoidMethod(final @NonNull String name) {
             return _addExecutable(_initMethod(name, Names.VOID));
         }
@@ -351,28 +348,13 @@ public class Javabyte {
         }
 
         @Override
-        public @NotNull MakeField addField(final @NonNull String name, final @NonNull String type) {
-            return _addField(name, Names.exact(type));
-        }
-
-        @Override
         public void setSuperName(final @NonNull Type type) {
             this.superName = Names.of(type);
         }
 
         @Override
-        public void setSuperName(final @NonNull String typeName) {
-            this.superName = Names.exact(typeName);
-        }
-
-        @Override
         public void setSuperName(final @NonNull Name name) {
             this.superName = name;
-        }
-
-        @Override
-        public void addInterface(final @NonNull String name) {
-            this.interfaces.add(Names.exact(name));
         }
 
         @Override
@@ -395,16 +377,6 @@ public class Javabyte {
         public void setInterfaces(final @NonNull Collection<@NotNull Name> interfaces) {
             this.interfaces.clear();
             this.interfaces.addAll(interfaces);
-        }
-
-        @Override
-        public void setInterfaceNames(final @NotNull String @NotNull ... interfaceNames) {
-            _setInterfaces(Arrays.stream(interfaceNames).map(Names::exact).collect(Collectors.toList()));
-        }
-
-        @Override
-        public void setInterfaceNames(final @NonNull Collection<@NotNull String> interfaceNames) {
-            _setInterfaces(interfaceNames.stream().map(Names::exact).collect(Collectors.toList()));
         }
 
         @Override
@@ -629,11 +601,6 @@ public class Javabyte {
         }
 
         @Override
-        public final void addException(final @NonNull String name) {
-            exceptions.add(Names.exact(name));
-        }
-
-        @Override
         public final void setExceptionTypes(final @NonNull Collection<@NotNull Class<?>> types) {
             _setExceptions(types.stream().map(Names::exact).collect(Collectors.toList()));
         }
@@ -641,16 +608,6 @@ public class Javabyte {
         @Override
         public final void setExceptionTypes(final @NotNull Class<?> @NotNull ... types) {
             _setExceptions(Arrays.stream(types).map(Names::exact).collect(Collectors.toList()));
-        }
-
-        @Override
-        public final void setExceptionNames(final @NonNull Collection<@NotNull String> names) {
-            _setExceptions(names.stream().map(Names::exact).collect(Collectors.toList()));
-        }
-
-        @Override
-        public final void setExceptionNames(final @NotNull String @NotNull ... names) {
-            _setExceptions(Arrays.stream(names).map(Names::exact).collect(Collectors.toList()));
         }
 
         @Override
@@ -685,12 +642,12 @@ public class Javabyte {
 
         @Override
         public final void addParameter(final @NonNull String name) {
-            parameters.add(Names.exact(name));
+            parameters.add(Names.of(name));
         }
 
         @Override
         public final void addParameter(final int i, final @NonNull String name) {
-            parameters.add(i, Names.exact(name));
+            parameters.add(i, Names.of(name));
         }
 
         @Override
@@ -701,16 +658,6 @@ public class Javabyte {
         @Override
         public final void setParameterTypes(final @NotNull Type @NonNull ... types) {
             this._setParameters(Arrays.stream(types).map(Names::of).collect(Collectors.toList()));
-        }
-
-        @Override
-        public final void setParameterNames(final @NonNull Collection<@NotNull String> names) {
-            this._setParameters(names.stream().map(Names::exact).collect(Collectors.toList()));
-        }
-
-        @Override
-        public final void setParameterNames(final @NotNull String @NonNull ... names) {
-            this._setParameters(Arrays.stream(names).map(Names::exact).collect(Collectors.toList()));
         }
 
         @Override

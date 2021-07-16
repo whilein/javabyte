@@ -20,16 +20,17 @@ import javabyte.make.MakeExecutable;
 import javabyte.name.Name;
 import javabyte.name.Names;
 import javabyte.signature.MethodSignature;
+import javabyte.type.Field;
+import javabyte.type.Invoke;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.jetbrains.annotations.NotNull;
 import org.objectweb.asm.MethodVisitor;
 
 import java.lang.reflect.Type;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 
 import static org.objectweb.asm.Opcodes.*;
@@ -47,40 +48,45 @@ public final class AsmBytecode implements Bytecode {
 
     final List<Consumer<Compile>> instructions;
 
-    private void inst(final Consumer<Compile> instruction) {
+    private void insn(final Consumer<Compile> instruction) {
         instructions.add(instruction);
     }
 
-    private void _invoke(final int opcode, final Name owner, final String name, final MethodSignature descriptor) {
-        inst(compile -> {
-            compile.mv.visitMethodInsn(opcode, owner.getInternalName(), name, descriptor.getDescriptor(),
-                    opcode == INVOKEINTERFACE);
+    private void _invoke(final Compile compile, final Invoke invoke,
+                         final Name owner, final String name,
+                         final MethodSignature descriptor) {
+        compile.mv.visitMethodInsn(invoke.getOpcode(), owner.getInternalName(), name, descriptor.getDescriptor(),
+                invoke.getOpcode() == INVOKEINTERFACE);
 
-            for (int i = 0, j = descriptor.getParameterTypes().length; i < j; i++) {
-                compile.popStack();
-            }
+        for (int i = 0, j = descriptor.getParameterTypes().length; i < j; i++) {
+            compile.popStack();
+        }
 
-            if (!descriptor.getReturnType().equals(Names.VOID))
-                compile.pushStack(descriptor.getReturnType());
-        });
+        if (!descriptor.getReturnType().equals(Names.VOID))
+            compile.pushStack(descriptor.getReturnType());
+    }
+
+    private void _invoke(final Invoke invoke, final Name owner, final String name, final MethodSignature descriptor) {
+        insn(compile -> _invoke(compile, invoke, owner, name, descriptor));
     }
 
     private void pushLocal(final Compile compile, final int index) {
-        val param = compile.locals.get(index);
-        val paramType = param.getType();
+        val local = compile.locals.get(index);
+        val localName = local.name;
+        val localType = localName.getType();
 
-        compile.mv.visitVarInsn(paramType.getOpcode(ILOAD), index);
-        compile.pushStack(param);
+        compile.mv.visitVarInsn(localType.getOpcode(ILOAD), local.offset);
+        compile.pushStack(localName);
     }
 
     @Override
     public void pushLocal(final int index) {
-        inst(compile -> pushLocal(compile, index));
+        insn(compile -> pushLocal(compile, index));
     }
 
     @Override
     public void pushThis() {
-        inst(compile -> {
+        insn(compile -> {
             if (compile.executable.isStatic()) {
                 throw new IllegalStateException("Cannot push this because method is static");
             }
@@ -90,89 +96,115 @@ public final class AsmBytecode implements Bytecode {
     }
 
     @Override
-    public void invokeStatic(
+    public void invokeOwn(
+            final @NonNull Invoke invoke,
+            final @NonNull String name,
+            final @NonNull MethodSignature descriptor
+    ) {
+        insn(compile -> _invoke(compile, invoke, compile.executable.getDeclaringClass().getName(),
+                name, descriptor));
+    }
+
+
+    @Override
+    public void invokeSuper(
+            final @NonNull Invoke invoke,
+            final @NonNull String name,
+            final @NonNull MethodSignature descriptor
+    ) {
+        insn(compile -> _invoke(compile, invoke, compile.executable.getDeclaringClass().getSuperName(),
+                name, descriptor));
+    }
+
+    @Override
+    public void invoke(
+            final @NonNull Invoke invoke,
             final @NonNull Name owner,
             final @NonNull String name,
             final @NonNull MethodSignature signature
     ) {
-        _invoke(INVOKESTATIC, owner, name, signature);
+        _invoke(invoke, owner, name, signature);
     }
 
     @Override
-    public void invokeStatic(
+    public void invoke(
+            final @NonNull Invoke invoke,
             final @NonNull Type owner,
             final @NonNull String name,
             final @NonNull MethodSignature signature
     ) {
-        _invoke(INVOKESTATIC, Names.of(owner), name, signature);
+        _invoke(invoke, Names.of(owner), name, signature);
     }
 
     @Override
-    public void invokeStatic(
-            final @NonNull String owner,
-            final @NonNull String name,
-            final @NonNull MethodSignature signature
-    ) {
-        _invoke(INVOKESTATIC, Names.exact(owner), name, signature);
+    public void fieldOwn(final @NonNull Field field, final @NonNull String name, final @NonNull Type type) {
+        insn(compile -> _field(compile, field.getOpcode(), compile.executable.getDeclaringClass().getName(),
+                name, Names.of(type)));
     }
 
     @Override
-    public void invokeVirtual(
+    public void fieldOwn(final @NonNull Field field, final @NonNull String name, final @NonNull Name type) {
+        insn(compile -> _field(compile, field.getOpcode(), compile.executable.getDeclaringClass().getName(),
+                name, type));
+    }
+
+    private void _field(final Compile compile, final int opcode, final Name owner, final String name, final Name type) {
+        if (opcode == PUTFIELD || opcode == PUTSTATIC) {
+            compile.popStack();
+        }
+
+        compile.popStack();
+        compile.mv.visitFieldInsn(opcode, owner.getInternalName(), name, type.getDescriptor());
+        compile.pushStack(type);
+    }
+
+    private void _field(final int opcode, final Name owner, final String name, final Name type) {
+        insn(compile -> _field(compile, opcode, owner, name, type));
+    }
+
+    @Override
+    public void field(
+            final @NonNull Field field,
             final @NonNull Name owner,
             final @NonNull String name,
-            final @NonNull MethodSignature signature
+            final @NonNull Name type
     ) {
-        _invoke(INVOKEVIRTUAL, owner, name, signature);
+        _field(field.getOpcode(), owner, name, type);
     }
 
     @Override
-    public void invokeVirtual(
+    public void field(
+            final @NonNull Field field,
             final @NonNull Type owner,
             final @NonNull String name,
-            final @NonNull MethodSignature signature
+            final @NonNull Name type
     ) {
-        _invoke(INVOKEVIRTUAL, Names.of(owner), name, signature);
+        _field(field.getOpcode(), Names.of(owner), name, type);
     }
 
     @Override
-    public void invokeVirtual(
-            final @NonNull String owner,
+    public void field(
+            final @NonNull Field field,
+            final @NonNull Type owner,
             final @NonNull String name,
-            final @NonNull MethodSignature signature
+            final @NonNull Type type
     ) {
-        _invoke(INVOKEVIRTUAL, Names.exact(owner), name, signature);
+        _field(field.getOpcode(), Names.of(owner), name, Names.of(type));
     }
 
     @Override
-    public void invokeSpecial(
+    public void field(
+            final @NonNull Field field,
             final @NonNull Name owner,
             final @NonNull String name,
-            final @NonNull MethodSignature signature
+            final @NonNull Type type
     ) {
-        _invoke(INVOKESPECIAL, owner, name, signature);
-    }
-
-    @Override
-    public void invokeSpecial(
-            final @NonNull Type owner,
-            final @NonNull String name,
-            final @NonNull MethodSignature signature
-    ) {
-        _invoke(INVOKESPECIAL, Names.of(owner), name, signature);
-    }
-
-    @Override
-    public void invokeSpecial(
-            final @NonNull String owner,
-            final @NonNull String name,
-            final @NonNull MethodSignature signature
-    ) {
-        _invoke(INVOKESPECIAL, Names.exact(owner), name, signature);
+        _field(field.getOpcode(), owner, name, Names.of(type));
     }
 
     @Override
     public void pushString(final @NotNull String value) {
-        inst(compile -> {
+        insn(compile -> {
             compile.mv.visitLdcInsn(value);
             compile.pushStack(Names.STRING);
         });
@@ -180,12 +212,12 @@ public final class AsmBytecode implements Bytecode {
 
     @Override
     public void pushInt(final int value) {
-        inst(compile -> {
+        insn(compile -> {
             if (value >= 0 && value <= 5) {
                 compile.mv.visitInsn(ICONST_0 + value);
-            } else if (value >= Byte.MIN_VALUE && value <= Byte.MAX_VALUE){
+            } else if (value >= Byte.MIN_VALUE && value <= Byte.MAX_VALUE) {
                 compile.mv.visitIntInsn(BIPUSH, value);
-            } else if (value >= Short.MIN_VALUE && value <= Short.MAX_VALUE){
+            } else if (value >= Short.MIN_VALUE && value <= Short.MAX_VALUE) {
                 compile.mv.visitIntInsn(SIPUSH, value);
             } else {
                 compile.mv.visitLdcInsn(value);
@@ -197,7 +229,7 @@ public final class AsmBytecode implements Bytecode {
 
     @Override
     public void pushNull() {
-        inst(compile -> {
+        insn(compile -> {
             compile.mv.visitInsn(ACONST_NULL);
             compile.pushStack(Names.OBJECT);
         });
@@ -205,7 +237,7 @@ public final class AsmBytecode implements Bytecode {
 
     @Override
     public void callBox() {
-        inst(compile -> {
+        insn(compile -> {
             val stack = compile.popStack();
 
             if (!stack.isPrimitive()) {
@@ -224,7 +256,7 @@ public final class AsmBytecode implements Bytecode {
 
     @Override
     public void callUnbox() {
-        inst(compile -> {
+        insn(compile -> {
             val stack = compile.popStack();
 
             if (stack.isPrimitive()) {
@@ -274,7 +306,7 @@ public final class AsmBytecode implements Bytecode {
 
     @Override
     public void callReturn() {
-        inst(compile -> {
+        insn(compile -> {
             if (compile.executable.getReturnType().equals(Names.VOID)) {
                 compile.mv.visitInsn(RETURN);
             } else {
@@ -289,18 +321,17 @@ public final class AsmBytecode implements Bytecode {
             final @NonNull MakeExecutable executable,
             final @NonNull MethodVisitor visitor
     ) {
-        val locals = new HashMap<Integer, Name>();
+        val locals = new ArrayList<Local>();
 
-        int offset = 0;
         int localSize = 0;
 
         if (!executable.isStatic()) {
-            locals.put(offset++, executable.getDeclaringClass().getName());
+            locals.add(new Local(executable.getDeclaringClass().getName(), localSize));
             localSize++;
         }
 
         for (val parameter : executable.getParameters()) {
-            locals.put(offset++, parameter);
+            locals.add(new Local(parameter, localSize));
             localSize += parameter.getSize();
         }
 
@@ -312,6 +343,13 @@ public final class AsmBytecode implements Bytecode {
         }
 
         visitor.visitMaxs(compile.maxStackSize, compile.maxLocalSize);
+    }
+
+    @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+    private static final class Local {
+        Name name;
+        int offset;
     }
 
     @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -326,7 +364,7 @@ public final class AsmBytecode implements Bytecode {
         final MethodVisitor mv;
 
         final LinkedList<Name> stack;
-        final Map<Integer, Name> locals;
+        final List<Local> locals;
 
         private void pushStack(final Name name) {
             this.stack.push(name);

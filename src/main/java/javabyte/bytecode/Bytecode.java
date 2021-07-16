@@ -19,6 +19,8 @@ package javabyte.bytecode;
 import javabyte.make.MakeExecutable;
 import javabyte.name.Name;
 import javabyte.signature.MethodSignature;
+import javabyte.type.Field;
+import javabyte.type.Invoke;
 import org.jetbrains.annotations.NotNull;
 import org.objectweb.asm.MethodVisitor;
 
@@ -30,25 +32,44 @@ import java.lang.reflect.Type;
 public interface Bytecode {
 
     void pushLocal(int index);
+
     void pushThis();
 
-    void invokeSpecial(@NotNull Name owner, @NotNull String name, @NotNull MethodSignature descriptor);
-    void invokeSpecial(@NotNull Type owner, @NotNull String name, @NotNull MethodSignature descriptor);
-    void invokeSpecial(@NotNull String owner, @NotNull String name, @NotNull MethodSignature descriptor);
+    void invoke(@NotNull Invoke action, @NotNull Name owner,
+                @NotNull String name, @NotNull MethodSignature descriptor);
 
-    void invokeVirtual(@NotNull Name owner, @NotNull String name, @NotNull MethodSignature descriptor);
-    void invokeVirtual(@NotNull Type owner, @NotNull String name, @NotNull MethodSignature descriptor);
-    void invokeVirtual(@NotNull String owner, @NotNull String name, @NotNull MethodSignature descriptor);
+    void invoke(@NotNull Invoke action, @NotNull Type owner,
+                @NotNull String name, @NotNull MethodSignature descriptor);
 
-    void invokeStatic(@NotNull Name owner, @NotNull String name, @NotNull MethodSignature descriptor);
-    void invokeStatic(@NotNull Type owner, @NotNull String name, @NotNull MethodSignature descriptor);
-    void invokeStatic(@NotNull String owner, @NotNull String name, @NotNull MethodSignature descriptor);
+    void invokeOwn(@NotNull Invoke action, @NotNull String name,
+                   @NotNull MethodSignature descriptor);
+
+    void invokeSuper(@NotNull Invoke action, @NotNull String name,
+                     @NotNull MethodSignature descriptor);
+
+    void fieldOwn(@NotNull Field action, @NotNull String name, @NotNull Name type);
+
+    void fieldOwn(@NotNull Field action, @NotNull String name, @NotNull Type type);
+
+    void field(@NotNull Field action, @NotNull Name owner, @NotNull String name, @NotNull Name type);
+
+    void field(@NotNull Field action, @NotNull Name owner, @NotNull String name, @NotNull Type type);
+
+    void field(@NotNull Field action, @NotNull Type owner, @NotNull String name, @NotNull Name type);
+
+    void field(@NotNull Field action, @NotNull Type owner, @NotNull String name, @NotNull Type type);
+
+    // TODO void fieldOwn(@NotNull String name);
+    // TODO void fieldOwn(@NotNull String name);
 
     void pushString(@NotNull String string);
+
     void pushInt(int value);
+
     void pushNull();
 
     void callBox();
+
     void callUnbox();
 
     void callReturn();

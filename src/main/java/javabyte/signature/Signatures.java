@@ -76,13 +76,6 @@ public class Signatures {
         return _methodSignature(Names.of(returnType), Names.of(parameters));
     }
 
-    public static @NotNull MethodSignature methodSignature(
-            final @NonNull String returnType,
-            final @NotNull String @NonNull ... parameters
-    ) {
-        return _methodSignature(Names.exact(returnType), Names.exact(parameters));
-    }
-
     public static @NotNull ClassSignature classSignature(
             final @NotNull VariableName @NonNull [] variables,
             final @NonNull Name superName,

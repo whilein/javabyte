@@ -125,7 +125,7 @@ public class Names {
         return _fromArray(types);
     }
 
-    public @NotNull ExactName exact(final @NonNull String name) {
+    public @NotNull ExactName of(final @NonNull String name) {
         return _fromName(name);
     }
 
@@ -133,7 +133,7 @@ public class Names {
         return _getCacheOrInit(internalName, true);
     }
 
-    public @NotNull ExactName @NotNull [] exact(final @NotNull String @NonNull [] names) {
+    public @NotNull ExactName @NotNull [] of(final @NotNull String @NonNull [] names) {
         return _fromArray(names, false);
     }
 

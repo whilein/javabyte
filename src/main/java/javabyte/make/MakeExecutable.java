@@ -41,13 +41,9 @@ public interface MakeExecutable extends MakeClassElement {
 
     void addException(@NotNull Class<?> type);
     void addException(@NotNull ExactName name);
-    void addException(@NotNull String name);
 
     void setExceptionTypes(@NotNull Collection<@NotNull Class<?>> types);
     void setExceptionTypes(@NotNull Class<?> @NotNull ... types);
-
-    void setExceptionNames(@NotNull Collection<@NotNull String> names);
-    void setExceptionNames(@NotNull String @NotNull ... names);
 
     void setExceptions(@NotNull Collection<@NotNull ExactName> names);
     void setExceptions(@NotNull ExactName @NotNull ... names);
@@ -63,9 +59,6 @@ public interface MakeExecutable extends MakeClassElement {
 
     void setParameterTypes(@NotNull Collection<@NotNull Type> types);
     void setParameterTypes(@NotNull Type @NotNull ... types);
-
-    void setParameterNames(@NotNull Collection<@NotNull String> names);
-    void setParameterNames(@NotNull String @NotNull ... names);
 
     void setParameters(@NotNull Collection<@NotNull Name> names);
     void setParameters(@NotNull Name @NotNull ... names);
