@@ -151,6 +151,7 @@ public final class AsmBytecode implements Bytecode {
                 switch (stack.getPrimitive()) {
                     case BYTE_TYPE:
                     case SHORT_TYPE:
+                    case CHAR_TYPE:
                     case INT_TYPE:
                         switch (to.getPrimitive()) {
                             case FLOAT_TYPE:
