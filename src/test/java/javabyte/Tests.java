@@ -24,6 +24,8 @@ import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.Random;
 import java.util.function.Consumer;
 
@@ -43,10 +45,9 @@ final class Tests {
 
     @SneakyThrows
     private MultifunctionalInterface<?> makeInterface(
-            final Object suffix,
             final Consumer<MakeClass> init
     ) {
-        val impl = Javabyte.make("gen.MultifunctionInterfaceImpl" + suffix);
+        val impl = Javabyte.make("gen.MultifunctionInterfaceImpl");
 
         impl.addInterface(MultifunctionalInterface.class);
 
@@ -55,7 +56,9 @@ final class Tests {
 
         init.accept(impl);
 
-        return (MultifunctionalInterface<?>) impl.load(getClass().getClassLoader())
+        val classLoader = new URLClassLoader(new URL[0], getClass().getClassLoader());
+
+        return (MultifunctionalInterface<?>) impl.load(classLoader)
                 .getDeclaredConstructor().newInstance();
     }
 
@@ -64,7 +67,7 @@ final class Tests {
         val x = random.nextInt(10000) - 5000;
         val y = random.nextInt(10000) - 5000;
 
-        val result = makeInterface(random.nextInt(), impl -> {
+        val result = makeInterface(impl -> {
             val method = impl.addMethod("calc", int.class);
             method.setParameterTypes(int.class, int.class);
 
@@ -87,7 +90,7 @@ final class Tests {
     void castLongToByte() {
         val value = random.nextLong();
 
-        val result = makeInterface(random.nextInt(), impl -> {
+        val result = makeInterface(impl -> {
             val method = impl.addMethod("castLongToByte", byte.class);
             method.addParameter(long.class);
 
@@ -107,7 +110,7 @@ final class Tests {
     void box() {
         val value = random.nextInt();
 
-        val result = makeInterface(value, impl -> {
+        val result = makeInterface(impl -> {
             val method = impl.addMethod("box", Integer.class);
             method.addParameter(int.class);
 
@@ -127,7 +130,7 @@ final class Tests {
     void unbox() {
         val value = random.nextInt();
 
-        val result = makeInterface(value, impl -> {
+        val result = makeInterface(impl -> {
             val method = impl.addMethod("unbox", int.class);
             method.addParameter(Integer.class);
             method.setAccess(Access.PUBLIC);
