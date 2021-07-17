@@ -60,12 +60,12 @@ final class Tests {
     }
 
     @Test
-    void sum() {
+    void calc() {
         val x = random.nextInt(10000) - 5000;
         val y = random.nextInt(10000) - 5000;
 
         val result = makeInterface(random.nextInt(), impl -> {
-            val method = impl.addMethod("sum", int.class);
+            val method = impl.addMethod("calc", int.class);
             method.setParameterTypes(int.class, int.class);
 
             method.setAccess(Access.PUBLIC);
@@ -80,7 +80,7 @@ final class Tests {
             code.callReturn();
         });
 
-        assertEquals((x + y) * 100, result.sum(x, y));
+        assertEquals((x + y) * 100, result.calc(x, y));
     }
 
     @Test

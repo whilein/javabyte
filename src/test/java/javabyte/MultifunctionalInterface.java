@@ -33,7 +33,7 @@ public interface MultifunctionalInterface<T> {
         return 0;
     }
 
-    default int sum(final int a, final int b) {
+    default int calc(final int a, final int b) {
         return 0;
     }
 
