@@ -18,7 +18,6 @@ package javabyte.bytecode;
 
 import javabyte.make.MakeExecutable;
 import javabyte.name.Name;
-import javabyte.name.Names;
 import javabyte.signature.MethodSignature;
 import javabyte.signature.Signatures;
 import javabyte.type.FieldOpcode;
@@ -30,11 +29,13 @@ import org.objectweb.asm.MethodVisitor;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import static javabyte.name.Names.*;
 import static org.objectweb.asm.Opcodes.*;
 
 /**
@@ -67,16 +68,16 @@ public final class AsmBytecode implements Bytecode {
     }
 
     @Override
-    public @NotNull FieldInsn fieldInsn(@NotNull final String name) {
-        val field = new FieldInsnImpl(name);
+    public @NotNull FieldInsn fieldInsn(final @NonNull FieldOpcode opcode, final @NonNull String name) {
+        val field = new FieldInsnImpl(name, opcode);
         insn(field);
 
         return field;
     }
 
     @Override
-    public @NotNull MethodInsn methodInsn(@NotNull final String name) {
-        val method = new MethodInsnImpl(name);
+    public @NotNull MethodInsn methodInsn(final @NonNull MethodOpcode opcode, final @NonNull String name) {
+        val method = new MethodInsnImpl(name, opcode);
         insn(method);
 
         return method;
@@ -86,7 +87,7 @@ public final class AsmBytecode implements Bytecode {
     public void loadString(final @NotNull String value) {
         insn(compile -> {
             compile.mv.visitLdcInsn(value);
-            compile.pushStack(Names.STRING);
+            compile.pushStack(STRING);
         });
     }
 
@@ -103,7 +104,7 @@ public final class AsmBytecode implements Bytecode {
                 compile.mv.visitLdcInsn(value);
             }
 
-            compile.pushStack(Names.INT);
+            compile.pushStack(INT);
         });
     }
 
@@ -111,7 +112,7 @@ public final class AsmBytecode implements Bytecode {
     public void loadNull() {
         insn(compile -> {
             compile.mv.visitInsn(ACONST_NULL);
-            compile.pushStack(Names.OBJECT);
+            compile.pushStack(OBJECT);
         });
     }
 
@@ -124,7 +125,7 @@ public final class AsmBytecode implements Bytecode {
                 throw new IllegalStateException("Stack item should be a primitive!");
             }
 
-            val wrapper = Names.getWrapper(stack);
+            val wrapper = getWrapper(stack);
 
             compile.mv.visitMethodInsn(INVOKESTATIC, wrapper.getInternalName(), "valueOf",
                     "(" + stack.getDescriptor() + ")" + wrapper.getDescriptor(),
@@ -132,6 +133,127 @@ public final class AsmBytecode implements Bytecode {
 
             compile.pushStack(wrapper);
         });
+    }
+
+    private void _callCast(final Name to) {
+        insn(compile -> {
+            val mv = compile.mv;
+            val stack = compile.popStack();
+
+            if (stack.equals(to)) {
+                compile.pushStack(stack);
+                return;
+            }
+
+            if (stack.isPrimitive() && to.isPrimitive()
+                    && stack.getPrimitive() != BOOL_TYPE
+                    && to.getPrimitive() != BOOL_TYPE) {
+                switch (stack.getPrimitive()) {
+                    case BYTE_TYPE:
+                    case SHORT_TYPE:
+                    case INT_TYPE:
+                        switch (to.getPrimitive()) {
+                            case FLOAT_TYPE:
+                                mv.visitInsn(I2F);
+                                break;
+                            case DOUBLE_TYPE:
+                                mv.visitInsn(I2D);
+                                break;
+                            case LONG_TYPE:
+                                mv.visitInsn(I2L);
+                                break;
+                        }
+                    case FLOAT_TYPE:
+                        switch (to.getPrimitive()) {
+                            case BYTE_TYPE:
+                                mv.visitInsn(F2I);
+                                mv.visitInsn(I2B);
+                                break;
+                            case CHAR_TYPE:
+                                mv.visitInsn(F2I);
+                                mv.visitInsn(I2C);
+                                break;
+                            case SHORT_TYPE:
+                                mv.visitInsn(F2I);
+                                mv.visitInsn(I2S);
+                                break;
+                            case INT_TYPE:
+                                mv.visitInsn(F2I);
+                                break;
+                            case DOUBLE_TYPE:
+                                mv.visitInsn(F2D);
+                                break;
+                            case LONG_TYPE:
+                                mv.visitInsn(F2L);
+                                break;
+                        }
+                    case DOUBLE_TYPE:
+                        switch (to.getPrimitive()) {
+                            case BYTE_TYPE:
+                                mv.visitInsn(D2I);
+                                mv.visitInsn(I2B);
+                                break;
+                            case CHAR_TYPE:
+                                mv.visitInsn(D2I);
+                                mv.visitInsn(I2C);
+                                break;
+                            case SHORT_TYPE:
+                                mv.visitInsn(D2I);
+                                mv.visitInsn(I2S);
+                                break;
+                            case INT_TYPE:
+                                mv.visitInsn(D2I);
+                                break;
+                            case FLOAT_TYPE:
+                                mv.visitInsn(D2F);
+                                break;
+                            case LONG_TYPE:
+                                mv.visitInsn(D2L);
+                                break;
+                        }
+                    case LONG_TYPE:
+                        switch (to.getPrimitive()) {
+                            case BYTE_TYPE:
+                                mv.visitInsn(L2I);
+                                mv.visitInsn(I2B);
+                                break;
+                            case CHAR_TYPE:
+                                mv.visitInsn(L2I);
+                                mv.visitInsn(I2C);
+                                break;
+                            case SHORT_TYPE:
+                                mv.visitInsn(L2I);
+                                mv.visitInsn(I2S);
+                                break;
+                            case INT_TYPE:
+                                mv.visitInsn(L2I);
+                                break;
+                            case FLOAT_TYPE:
+                                mv.visitInsn(L2F);
+                                break;
+                            case DOUBLE_TYPE:
+                                mv.visitInsn(L2D);
+                                break;
+                        }
+                }
+            } else if (!stack.isPrimitive() && !to.isPrimitive()) {
+                compile.mv.visitTypeInsn(CHECKCAST, to.getInternalName());
+            } else {
+                throw new IllegalStateException("Cannot cast " + stack + " to " + to);
+            }
+
+            compile.pushStack(to);
+        });
+    }
+
+    @Override
+    public void callCast(@NotNull final Type to) {
+        _callCast(of(to));
+    }
+
+    @Override
+    public void callCast(@NotNull final Name to) {
+        _callCast(to);
     }
 
     @Override
@@ -145,31 +267,31 @@ public final class AsmBytecode implements Bytecode {
 
             final String methodName;
 
-            val primitive = Names.getPrimitive(stack);
+            val primitive = getPrimitive(stack);
 
             switch (primitive.getPrimitive()) {
-                case Names.BOOL_TYPE:
+                case BOOL_TYPE:
                     methodName = "booleanValue";
                     break;
-                case Names.BYTE_TYPE:
+                case BYTE_TYPE:
                     methodName = "byteValue";
                     break;
-                case Names.CHAR_TYPE:
+                case CHAR_TYPE:
                     methodName = "charValue";
                     break;
-                case Names.SHORT_TYPE:
+                case SHORT_TYPE:
                     methodName = "shortValue";
                     break;
-                case Names.INT_TYPE:
+                case INT_TYPE:
                     methodName = "intValue";
                     break;
-                case Names.LONG_TYPE:
+                case LONG_TYPE:
                     methodName = "longValue";
                     break;
-                case Names.FLOAT_TYPE:
+                case FLOAT_TYPE:
                     methodName = "floatValue";
                     break;
-                case Names.DOUBLE_TYPE:
+                case DOUBLE_TYPE:
                     methodName = "doubleValue";
                     break;
                 default:
@@ -187,7 +309,7 @@ public final class AsmBytecode implements Bytecode {
     @Override
     public void callReturn() {
         insn(compile -> {
-            if (compile.executable.getReturnType().equals(Names.VOID)) {
+            if (compile.executable.getReturnType().equals(VOID)) {
                 compile.mv.visitInsn(RETURN);
             } else {
                 val stack = compile.popStack();
@@ -229,22 +351,19 @@ public final class AsmBytecode implements Bytecode {
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     private static final class FieldInsnImpl implements FieldInsn, Consumer<Compile> {
         final String name;
+        final FieldOpcode opcode;
+
         Function<Compile, Name> owner;
-        FieldOpcode opcode;
         Name descriptor;
 
         @Override
         public void accept(final @NonNull Compile compile) {
-            if (opcode == null) {
-                throw new IllegalStateException("You should to specify opcode using MethodInsn#opcode method!");
-            }
-
             if (owner == null) {
-                throw new IllegalStateException("You should to specify owner using MethodInsn#in method!");
+                throw new IllegalStateException("You should to specify owner using FieldInsn#in method!");
             }
 
             if (descriptor == null) {
-                throw new IllegalStateException("You should to specify descriptor using MethodInsn#descriptor method!");
+                throw new IllegalStateException("You should to specify descriptor using FieldInsn#descriptor method!");
             }
 
             if (opcode == FieldOpcode.PUT || opcode == FieldOpcode.PUT_STATIC) {
@@ -258,29 +377,23 @@ public final class AsmBytecode implements Bytecode {
         }
 
         @Override
-        public @NotNull FieldInsn opcode(@NotNull final FieldOpcode opcode) {
-            this.opcode = opcode;
-            return this;
-        }
-
-        @Override
-        public @NotNull FieldInsn descriptor(@NotNull final Name descriptor) {
+        public @NotNull FieldInsn descriptor(final @NonNull Name descriptor) {
             this.descriptor = descriptor;
             return this;
         }
 
         @Override
-        public @NotNull FieldInsn descriptor(@NotNull final Type type) {
-            return descriptor(Names.of(type));
+        public @NotNull FieldInsn descriptor(final @NonNull Type type) {
+            return descriptor(of(type));
         }
 
         @Override
-        public @NotNull FieldInsn in(@NotNull final Type owner) {
-            return in(Names.of(owner));
+        public @NotNull FieldInsn in(final @NonNull Type owner) {
+            return in(of(owner));
         }
 
         @Override
-        public @NotNull FieldInsn in(@NotNull final Name owner) {
+        public @NotNull FieldInsn in(final @NonNull Name owner) {
             this.owner = __ -> owner;
 
             return this;
@@ -299,16 +412,13 @@ public final class AsmBytecode implements Bytecode {
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     private static final class MethodInsnImpl implements MethodInsn, Consumer<Compile> {
         final String name;
+        final MethodOpcode opcode;
+
         Function<Compile, Name> owner;
-        MethodOpcode opcode;
         MethodSignature descriptor;
 
         @Override
         public void accept(final @NonNull Compile compile) {
-            if (opcode == null) {
-                throw new IllegalStateException("You should to specify opcode using MethodInsn#opcode method!");
-            }
-
             if (owner == null) {
                 throw new IllegalStateException("You should to specify owner using MethodInsn#in method!");
             }
@@ -317,6 +427,8 @@ public final class AsmBytecode implements Bytecode {
                 throw new IllegalStateException("You should to specify descriptor using MethodInsn#descriptor method!");
             }
 
+            compile.requireStack(descriptor.getParameterTypes());
+
             compile.mv.visitMethodInsn(opcode.getOpcode(), owner.apply(compile).getInternalName(),
                     name, descriptor.getDescriptor(), opcode == MethodOpcode.INTERFACE);
 
@@ -324,39 +436,33 @@ public final class AsmBytecode implements Bytecode {
                 compile.popStack();
             }
 
-            if (!descriptor.getReturnType().equals(Names.VOID))
+            if (!descriptor.getReturnType().equals(VOID))
                 compile.pushStack(descriptor.getReturnType());
         }
 
         @Override
-        public @NotNull MethodInsn opcode(@NotNull final MethodOpcode opcode) {
-            this.opcode = opcode;
-            return this;
-        }
-
-        @Override
-        public @NotNull MethodInsn descriptor(@NotNull final MethodSignature signature) {
+        public @NotNull MethodInsn descriptor(final @NonNull MethodSignature signature) {
             this.descriptor = signature;
             return this;
         }
 
         @Override
-        public @NotNull MethodInsn descriptor(@NotNull final Type returnType, final @NotNull Type @NotNull ... parameters) {
+        public @NotNull MethodInsn descriptor(final @NonNull Type returnType, final @NotNull Type @NotNull ... parameters) {
             return descriptor(Signatures.methodSignature(returnType, parameters));
         }
 
         @Override
-        public @NotNull MethodInsn descriptor(@NotNull final Name returnType, final @NotNull Name @NotNull ... parameters) {
+        public @NotNull MethodInsn descriptor(final @NonNull Name returnType, final @NotNull Name @NotNull ... parameters) {
             return descriptor(Signatures.methodSignature(returnType, parameters));
         }
 
         @Override
-        public @NotNull MethodInsn in(@NotNull final Type owner) {
-            return in(Names.of(owner));
+        public @NotNull MethodInsn in(final @NonNull Type owner) {
+            return in(of(owner));
         }
 
         @Override
-        public @NotNull MethodInsn in(@NotNull final Name owner) {
+        public @NotNull MethodInsn in(final @NonNull Name owner) {
             this.owner = __ -> owner;
 
             return this;
@@ -398,6 +504,13 @@ public final class AsmBytecode implements Bytecode {
         final LinkedList<Name> stack;
         final List<Local> locals;
 
+        private void requireStack(final Name... params) {
+            if (stack.size() < params.length) {
+                throw new IllegalStateException("Not enough stack elements, required: "
+                        + Arrays.toString(params) + ", but found: " + stack);
+            }
+        }
+
         private void pushStack(final Name name) {
             this.stack.push(name);
             this.stackSize += name.getSize();
@@ -406,6 +519,10 @@ public final class AsmBytecode implements Bytecode {
         }
 
         private Name popStack() {
+            if (stack.isEmpty()) {
+                throw new IllegalStateException("No more elements in the stack");
+            }
+
             val name = stack.pop();
             stackSize -= name.getSize();
 

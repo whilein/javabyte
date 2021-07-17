@@ -16,18 +16,15 @@
 
 package javabyte;
 
-import javabyte.name.Names;
+import javabyte.make.MakeClass;
 import javabyte.type.Access;
-import javabyte.type.FieldOpcode;
-import javabyte.type.MethodOpcode;
 import lombok.SneakyThrows;
 import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Random;
-import java.util.function.IntSupplier;
-import java.util.function.Supplier;
+import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -43,128 +40,81 @@ final class Tests {
         random = new Random();
     }
 
-    @Test
     @SneakyThrows
+    private MultifunctionalInterface<?> makeInterface(
+            final Object suffix,
+            final Consumer<MakeClass> init
+    ) {
+        val impl = Javabyte.make("gen.MultifunctionInterfaceImpl" + suffix);
+
+        impl.addInterface(MultifunctionalInterface.class);
+
+        impl.setAccess(Access.PUBLIC);
+        impl.setFinal(true);
+
+        init.accept(impl);
+
+        return (MultifunctionalInterface<?>) impl.load(getClass().getClassLoader())
+                .getDeclaredConstructor().newInstance();
+    }
+
+    @Test
+    void castLongToByte() {
+        val value = random.nextLong();
+
+        val result = makeInterface(random.nextInt(), impl -> {
+            val method = impl.addMethod("castLongToByte", byte.class);
+            method.addParameter(long.class);
+
+            method.setAccess(Access.PUBLIC);
+            method.setOverrides(MultifunctionalInterface.class);
+
+            val code = method.getBytecode();
+            code.loadLocal(1);
+            code.callCast(byte.class);
+            code.callReturn();
+        });
+
+        assertEquals((byte) value, result.castLongToByte(value));
+    }
+
+    @Test
     void box() {
         val value = random.nextInt();
 
-        val example = Javabyte.make("gen_" + Math.abs(value) + ".Example");
+        val result = makeInterface(value, impl -> {
+            val method = impl.addMethod("box", Integer.class);
+            method.addParameter(int.class);
 
-        example.addInterface(Names.exact(Supplier.class).parameterized(Integer.class));
+            method.setAccess(Access.PUBLIC);
+            method.setOverrides(MultifunctionalInterface.class);
 
-        example.setAccess(Access.PUBLIC);
-        example.setFinal(true);
+            val code = method.getBytecode();
+            code.loadLocal(1);
+            code.callBox();
+            code.callReturn();
+        });
 
-        val getMethod = example.addMethod("get", Integer.class);
-        getMethod.setAccess(Access.PUBLIC);
-        getMethod.setOverrides(Supplier.class, "get");
-
-        val getCode = getMethod.getBytecode();
-        getCode.loadInt(value);
-        getCode.callBox();
-        getCode.callReturn();
-
-        val exampleType = example.load(getClass().getClassLoader());
-        val exampleInstance = (Supplier<?>) exampleType.getDeclaredConstructor().newInstance();
-
-        assertEquals(value, exampleInstance.get());
+        assertEquals(value, result.box(value));
     }
 
     @Test
-    @SneakyThrows
     void unbox() {
         val value = random.nextInt();
 
-        val example = Javabyte.make("gen_" + Math.abs(value) + ".Example");
+        val result = makeInterface(value, impl -> {
+            val method = impl.addMethod("unbox", int.class);
+            method.addParameter(Integer.class);
+            method.setAccess(Access.PUBLIC);
+            method.setOverrides(MultifunctionalInterface.class);
 
-        example.addInterface(IntSupplier.class);
+            val code = method.getBytecode();
+            code.loadLocal(1);
+            code.callUnbox();
+            code.callReturn();
+        });
 
-        example.setAccess(Access.PUBLIC);
-        example.setFinal(true);
-
-        val getMethod = example.addMethod("getAsInt", int.class);
-        getMethod.setAccess(Access.PUBLIC);
-        getMethod.setOverrides(IntSupplier.class, "getAsInt");
-
-        val getCode = getMethod.getBytecode();
-        getCode.loadString(String.valueOf(value));
-
-        getCode.methodInsn("valueOf")
-                .in(Integer.class)
-                .opcode(MethodOpcode.STATIC)
-                .descriptor(Integer.class, String.class);
-
-        getCode.callUnbox();
-        getCode.callReturn();
-
-        val exampleType = example.load(getClass().getClassLoader());
-        val exampleInstance = (IntSupplier) exampleType.getDeclaredConstructor().newInstance();
-
-        assertEquals(value, exampleInstance.getAsInt());
-    }
-
-    @Test
-    @SneakyThrows
-    void constructorAndFields() {
-        val value = random.nextInt();
-
-        val example = Javabyte.make("gen_" + Math.abs(value) + ".Example");
-
-        example.addInterface(IntSupplier.class);
-
-        example.setAccess(Access.PUBLIC);
-        example.setFinal(true);
-
-        {
-            val field = example.addField("value", int.class);
-            field.setAccess(Access.PRIVATE);
-            field.setFinal(true);
-        }
-
-        {
-            val constructor = example.addConstructor();
-            constructor.setAccess(Access.PUBLIC);
-            constructor.addParameter(int.class);
-
-            val constructorCode = constructor.getBytecode();
-            constructorCode.loadLocal(0);
-
-            constructorCode.methodInsn("<init>")
-                    .inSuper()
-                    .opcode(MethodOpcode.SPECIAL)
-                    .descriptor(void.class);
-
-            constructorCode.loadLocal(0);
-            constructorCode.loadLocal(1);
-
-            constructorCode.fieldInsn("value")
-                    .inCurrent()
-                    .opcode(FieldOpcode.PUT)
-                    .descriptor(int.class);
-
-            constructorCode.callReturn();
-        }
-
-        {
-            val getMethod = example.addMethod("getAsInt", int.class);
-            getMethod.setAccess(Access.PUBLIC);
-            getMethod.setOverrides(IntSupplier.class, "getAsInt");
-
-            val getCode = getMethod.getBytecode();
-            getCode.loadLocal(0);
-
-            getCode.fieldInsn("value")
-                    .inCurrent()
-                    .opcode(FieldOpcode.GET)
-                    .descriptor(int.class);
-
-            getCode.callReturn();
-        }
-
-        val exampleType = example.load(getClass().getClassLoader());
-        val exampleInstance = (IntSupplier) exampleType.getDeclaredConstructor(int.class).newInstance(value);
-
-        assertEquals(value, exampleInstance.getAsInt());
+        assertEquals(value, result.unbox(value));
     }
 
 }

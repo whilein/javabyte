@@ -17,7 +17,6 @@
 package javabyte.bytecode;
 
 import javabyte.name.Name;
-import javabyte.type.FieldOpcode;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Type;
@@ -26,8 +25,6 @@ import java.lang.reflect.Type;
  * @author whilein
  */
 public interface FieldInsn {
-
-    @NotNull FieldInsn opcode(@NotNull FieldOpcode opcode);
 
     @NotNull FieldInsn descriptor(@NotNull Type type);
     @NotNull FieldInsn descriptor(@NotNull Name type);

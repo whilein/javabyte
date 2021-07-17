@@ -17,8 +17,13 @@
 package javabyte.bytecode;
 
 import javabyte.make.MakeExecutable;
+import javabyte.name.Name;
+import javabyte.type.FieldOpcode;
+import javabyte.type.MethodOpcode;
 import org.jetbrains.annotations.NotNull;
 import org.objectweb.asm.MethodVisitor;
+
+import java.lang.reflect.Type;
 
 /**
  * @author whilein
@@ -27,8 +32,8 @@ public interface Bytecode {
 
     void loadLocal(int index);
 
-    @NotNull FieldInsn fieldInsn(@NotNull String name);
-    @NotNull MethodInsn methodInsn(@NotNull String name);
+    @NotNull FieldInsn fieldInsn(@NotNull FieldOpcode opcode, @NotNull String name);
+    @NotNull MethodInsn methodInsn(@NotNull MethodOpcode opcode, @NotNull String name);
 
     void loadString(@NotNull String string);
 
@@ -37,6 +42,9 @@ public interface Bytecode {
     void loadNull();
 
     void callBox();
+
+    void callCast(@NotNull Type to);
+    void callCast(@NotNull Name to);
 
     void callUnbox();
 

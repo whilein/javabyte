@@ -25,20 +25,17 @@ import org.jetbrains.annotations.NotNull;
 public interface MakeMethod extends MakeExecutable {
 
     void setOverrides(
-            @NotNull Class<?> type,
-            @NotNull String name
+            @NotNull Class<?> type
     );
 
     void setOverrides(
             @NotNull Class<?> type,
-            @NotNull String name,
             @NotNull Class<?> returnType,
             @NotNull Class<?> @NotNull ... parameterTypes
     );
 
     void setOverrides(
             @NotNull Class<?> type,
-            @NotNull String name,
             @NotNull Name returnType,
             @NotNull Name @NotNull ... parameterTypes
     );

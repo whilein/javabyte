@@ -14,27 +14,31 @@
  *    limitations under the License.
  */
 
-package javabyte.bytecode;
-
-import javabyte.name.Name;
-import javabyte.signature.MethodSignature;
-import org.jetbrains.annotations.NotNull;
-
-import java.lang.reflect.Type;
+package javabyte;
 
 /**
  * @author whilein
  */
-public interface MethodInsn {
+public interface MultifunctionalInterface<T> {
 
-    @NotNull MethodInsn descriptor(@NotNull MethodSignature signature);
-    @NotNull MethodInsn descriptor(@NotNull Type returnType, @NotNull Type @NotNull ... parameters);
-    @NotNull MethodInsn descriptor(@NotNull Name returnType, @NotNull Name @NotNull ... parameters);
+    default Integer box(final int value) {
+        return null;
+    }
 
-    @NotNull MethodInsn in(@NotNull Type owner);
-    @NotNull MethodInsn in(@NotNull Name owner);
+    default int unbox(final Integer value) {
+        return 0;
+    }
 
-    @NotNull MethodInsn inCurrent();
-    @NotNull MethodInsn inSuper();
+    default String castToString(final Object value) {
+        return null;
+    }
+
+    default int castToInt(final Object value) {
+        return 0;
+    }
+
+    default byte castLongToByte(final long value) {
+        return 0;
+    }
 
 }

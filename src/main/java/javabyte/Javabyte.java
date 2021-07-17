@@ -232,9 +232,8 @@ public class Javabyte {
                 val emptyConstructorCode = emptyConstructor.getBytecode();
                 emptyConstructorCode.loadLocal(0);
 
-                emptyConstructorCode.methodInsn("<init>")
+                emptyConstructorCode.methodInsn(MethodOpcode.SPECIAL, "<init>")
                         .inSuper()
-                        .opcode(MethodOpcode.SPECIAL)
                         .descriptor(void.class);
 
                 emptyConstructorCode.callReturn();
@@ -274,9 +273,8 @@ public class Javabyte {
 
                     val code = bridge.getBytecode();
                     code.loadLocal(0);
-                    code.methodInsn(executable.getName())
+                    code.methodInsn(MethodOpcode.VIRTUAL, executable.getName())
                             .inCurrent()
-                            .opcode(MethodOpcode.VIRTUAL)
                             .descriptor(executable.getReturnType());
                     code.callReturn();
 
@@ -497,8 +495,7 @@ public class Javabyte {
 
         @Override
         public void setOverrides(
-                final @NonNull Class<?> type,
-                final @NonNull String name
+                final @NonNull Class<?> type
         ) {
             val methods = Arrays.stream(type.getDeclaredMethods())
                     .filter(method -> method.getName().equals(name))
@@ -517,45 +514,41 @@ public class Javabyte {
             }
 
             val method = methods.get(0);
-            _setOverrides(type, name, method.getReturnType(), method.getParameterTypes());
+            _setOverrides(type, method.getReturnType(), method.getParameterTypes());
         }
 
         public void _setOverrides(
                 final Class<?> type,
-                final String name,
                 final Name returnType,
                 final Name... parameterTypes
         ) {
-            this.overrides = new Overrides(type, name, returnType, parameterTypes);
+            this.overrides = new Overrides(type, returnType, parameterTypes);
         }
 
         private void _setOverrides(
                 final Class<?> type,
-                final String name,
                 final Class<?> returnType,
                 final Class<?>... parameterTypes
         ) {
-            _setOverrides(type, name, Names.exact(returnType), Names.exact(parameterTypes));
+            _setOverrides(type, Names.exact(returnType), Names.exact(parameterTypes));
         }
 
         @Override
         public void setOverrides(
                 final @NonNull Class<?> type,
-                final @NonNull String name,
                 final @NonNull Class<?> returnType,
                 final @NotNull Class<?> @NotNull ... parameterTypes
         ) {
-            _setOverrides(type, name, returnType, parameterTypes);
+            _setOverrides(type, returnType, parameterTypes);
         }
 
         @Override
         public void setOverrides(
                 final @NonNull Class<?> type,
-                final @NonNull String name,
                 final @NonNull Name returnType,
                 final @NotNull Name @NotNull ... parameterTypes
         ) {
-            _setOverrides(type, name, returnType, parameterTypes);
+            _setOverrides(type, returnType, parameterTypes);
         }
 
         private boolean shouldMakeBridge() {
@@ -693,7 +686,6 @@ public class Javabyte {
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     private static final class Overrides {
         Class<?> type;
-        String name;
         Name returnType;
         Name[] parameterTypes;
     }
