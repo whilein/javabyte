@@ -274,7 +274,7 @@ public class Javabyte {
                     val code = bridge.getBytecode();
                     code.loadLocal(0);
                     code.methodInsn(MethodOpcode.VIRTUAL, executable.getName())
-                            .inCurrent()
+                            .in(overrides.type)
                             .descriptor(executable.getReturnType());
                     code.callReturn();
 
