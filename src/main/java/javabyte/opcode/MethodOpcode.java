@@ -14,27 +14,18 @@
  *    limitations under the License.
  */
 
-package javabyte;
+package javabyte.opcode;
 
-/**
- * @author whilein
- */
-public interface MultifunctionalInterface<T> {
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 
-    default Integer box(final int value) {
-        return null;
-    }
+@Getter
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+public enum MethodOpcode {
+    VIRTUAL(182), SPECIAL(183), STATIC(184), INTERFACE(185);
 
-    default int unbox(final Integer value) {
-        return 0;
-    }
-
-    default byte castLongToByte(final long value) {
-        return 0;
-    }
-
-    default int sum(final int a, final int b) {
-        return 0;
-    }
-
+    int opcode;
 }

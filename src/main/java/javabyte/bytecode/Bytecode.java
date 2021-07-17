@@ -18,8 +18,9 @@ package javabyte.bytecode;
 
 import javabyte.make.MakeExecutable;
 import javabyte.name.Name;
-import javabyte.type.FieldOpcode;
-import javabyte.type.MethodOpcode;
+import javabyte.opcode.FieldOpcode;
+import javabyte.opcode.MathOpcode;
+import javabyte.opcode.MethodOpcode;
 import org.jetbrains.annotations.NotNull;
 import org.objectweb.asm.MethodVisitor;
 
@@ -38,10 +39,14 @@ public interface Bytecode {
     void loadString(@NotNull String string);
 
     void loadInt(int value);
+    void loadFloat(float value);
+    void loadDouble(double value);
+    void loadLong(long value);
 
     void loadNull();
 
     void callBox();
+    void callMath(@NotNull MathOpcode opcode);
 
     void callCast(@NotNull Type to);
     void callCast(@NotNull Name to);

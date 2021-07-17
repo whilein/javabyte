@@ -14,7 +14,7 @@
  *    limitations under the License.
  */
 
-package javabyte.type;
+package javabyte.opcode;
 
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -24,8 +24,8 @@ import lombok.experimental.FieldDefaults;
 @Getter
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-public enum MethodOpcode {
-    VIRTUAL(182), SPECIAL(183), STATIC(184), INTERFACE(185);
+public enum FieldOpcode {
+    GET_STATIC(178), PUT_STATIC(179), GET(180), PUT(181);
 
     int opcode;
 }

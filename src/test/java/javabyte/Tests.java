@@ -17,6 +17,7 @@
 package javabyte;
 
 import javabyte.make.MakeClass;
+import javabyte.opcode.MathOpcode;
 import javabyte.type.Access;
 import lombok.SneakyThrows;
 import lombok.val;
@@ -56,6 +57,30 @@ final class Tests {
 
         return (MultifunctionalInterface<?>) impl.load(getClass().getClassLoader())
                 .getDeclaredConstructor().newInstance();
+    }
+
+    @Test
+    void sum() {
+        val x = random.nextInt(10000) - 5000;
+        val y = random.nextInt(10000) - 5000;
+
+        val result = makeInterface(random.nextInt(), impl -> {
+            val method = impl.addMethod("sum", int.class);
+            method.setParameterTypes(int.class, int.class);
+
+            method.setAccess(Access.PUBLIC);
+            method.setOverrides(MultifunctionalInterface.class);
+
+            val code = method.getBytecode();
+            code.loadLocal(1);
+            code.loadLocal(2);
+            code.callMath(MathOpcode.IADD);
+            code.loadInt(100);
+            code.callMath(MathOpcode.IMUL);
+            code.callReturn();
+        });
+
+        assertEquals((x + y) * 100, result.sum(x, y));
     }
 
     @Test

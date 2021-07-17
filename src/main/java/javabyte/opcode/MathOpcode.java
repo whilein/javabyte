@@ -14,18 +14,25 @@
  *    limitations under the License.
  */
 
-package javabyte.type;
+package javabyte.opcode;
 
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
+/**
+ * @author whilein
+ */
 @Getter
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-public enum FieldOpcode {
-    GET_STATIC(178), PUT_STATIC(179), GET(180), PUT(181);
+public enum MathOpcode {
+    IADD(96), ISUB(100), IMUL(104), IDIV(108), IREM(112), INEG(116),
+    LADD(97), LSUB(101), LMUL(105), LDIV(109), LREM(113), LNEG(117),
+    FADD(98), FSUB(102), FMUL(106), FDIV(110), FREM(114), FNEG(118),
+    DADD(99), DSUB(103), DMUL(107), DDIV(111), DREM(115), DNEG(119);
 
     int opcode;
+
 }
