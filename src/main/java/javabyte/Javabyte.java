@@ -16,7 +16,7 @@
 
 package javabyte;
 
-import javabyte.bytecode.AsmBytecode;
+import javabyte.bytecode.Asm;
 import javabyte.bytecode.Bytecode;
 import javabyte.make.*;
 import javabyte.name.ExactName;
@@ -288,13 +288,13 @@ public class Javabyte {
         }
 
         private MakeConstructorImpl _initConstructor(final boolean isStatic) {
-            return new MakeConstructorImpl(AsmBytecode.create(), this,
+            return new MakeConstructorImpl(Asm.bytecode(), this,
                     isStatic ? "<clinit>" : "<init>", Names.VOID,
                     new ArrayList<>(), new ArrayList<>(), isStatic);
         }
 
         private MakeMethodImpl _initMethod(final String name, final Name returns) {
-            return new MakeMethodImpl(AsmBytecode.create(), this,
+            return new MakeMethodImpl(Asm.bytecode(), this,
                     name, returns, new ArrayList<>(), new ArrayList<>());
         }
 

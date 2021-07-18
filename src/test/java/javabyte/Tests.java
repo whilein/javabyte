@@ -24,6 +24,7 @@ import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Random;
@@ -56,6 +57,8 @@ final class Tests {
 
         init.accept(impl);
 
+        impl.writeClass(new File("MultifunctionInterfaceImpl.class"));
+
         val classLoader = new URLClassLoader(new URL[0], getClass().getClassLoader());
 
         return (MultifunctionalInterface<?>) impl.load(classLoader)
@@ -84,6 +87,74 @@ final class Tests {
         });
 
         assertEquals((x + y) * 100, result.calc(x, y));
+    }
+
+    @Test
+    void switchCaseInts_0() {
+        val result = makeInterface(impl -> {
+            val method = impl.addMethod("switchCaseInts", String.class);
+            method.addParameter(int.class);
+
+            method.setAccess(Access.PUBLIC);
+            method.setOverrides(MultifunctionalInterface.class);
+
+            val code = method.getBytecode();
+            code.loadLocal(1);
+
+            val switchCase = code.intsSwitchCaseInsn();
+
+            for (int i = 0; i < 100; i++) {
+                val branch = switchCase.branch(i);
+                branch.loadString(String.valueOf(i) + (char) ('A' + i));
+                branch.callReturn();
+            }
+
+            val defaultBranch = switchCase.defaultBranch();
+            defaultBranch.loadString("Default");
+            defaultBranch.callReturn();
+        });
+
+        for (int i = 0; i < 100; i++) {
+            assertEquals(String.valueOf(i) + (char) ('A' + i), result.switchCaseInts(i));
+        }
+
+        assertEquals("Default", result.switchCaseInts(100));
+    }
+
+    @Test
+    void switchCaseInts_1() {
+        val result = makeInterface(impl -> {
+            val method = impl.addMethod("switchCaseInts", String.class);
+            method.addParameter(int.class);
+
+            method.setAccess(Access.PUBLIC);
+            method.setOverrides(MultifunctionalInterface.class);
+
+            val code = method.getBytecode();
+            code.loadLocal(1);
+
+            val switchCase = code.intsSwitchCaseInsn();
+
+            switchCase.branch(1);
+            switchCase.branch(2);
+            val branch123 = switchCase.branch(3);
+            branch123.loadString("123");
+            branch123.callReturn();
+
+            switchCase.branch(1000);
+            switchCase.branch(100);
+            val branch100010010 = switchCase.branch(10);
+            branch100010010.loadString("100010010");
+            branch100010010.callReturn();
+
+            val defaultBranch = switchCase.defaultBranch();
+            defaultBranch.loadString("Default");
+            defaultBranch.callReturn();
+        });
+
+        assertEquals("123", result.switchCaseInts(1));
+        assertEquals("123", result.switchCaseInts(2));
+        assertEquals("123", result.switchCaseInts(3));
     }
 
     @Test

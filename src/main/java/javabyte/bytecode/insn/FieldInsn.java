@@ -14,19 +14,24 @@
  *    limitations under the License.
  */
 
-package javabyte.bytecode;
+package javabyte.bytecode.insn;
 
-import javabyte.make.MakeExecutable;
+import javabyte.name.Name;
 import org.jetbrains.annotations.NotNull;
-import org.objectweb.asm.MethodVisitor;
+
+import java.lang.reflect.Type;
 
 /**
  * @author whilein
  */
-public interface Bytecode extends InstructionSet {
-    void compile(
-            @NotNull MakeExecutable executable,
-            @NotNull MethodVisitor visitor
-    );
+public interface FieldInsn {
+
+    @NotNull FieldInsn descriptor(@NotNull Type type);
+    @NotNull FieldInsn descriptor(@NotNull Name type);
+
+    @NotNull FieldInsn in(@NotNull Type owner);
+    @NotNull FieldInsn in(@NotNull Name owner);
+
+    @NotNull FieldInsn inCurrent();
 
 }

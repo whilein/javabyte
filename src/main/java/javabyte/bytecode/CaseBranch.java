@@ -16,17 +16,11 @@
 
 package javabyte.bytecode;
 
-import javabyte.make.MakeExecutable;
-import org.jetbrains.annotations.NotNull;
-import org.objectweb.asm.MethodVisitor;
-
 /**
  * @author whilein
  */
-public interface Bytecode extends InstructionSet {
-    void compile(
-            @NotNull MakeExecutable executable,
-            @NotNull MethodVisitor visitor
-    );
+public interface CaseBranch extends InstructionSet {
+
+    void callBreak();
 
 }

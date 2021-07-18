@@ -14,24 +14,17 @@
  *    limitations under the License.
  */
 
-package javabyte.bytecode;
+package javabyte.bytecode.insn;
 
-import javabyte.name.Name;
+import javabyte.bytecode.CaseBranch;
 import org.jetbrains.annotations.NotNull;
-
-import java.lang.reflect.Type;
 
 /**
  * @author whilein
  */
-public interface FieldInsn {
+public interface IntsSwitchInsn {
 
-    @NotNull FieldInsn descriptor(@NotNull Type type);
-    @NotNull FieldInsn descriptor(@NotNull Name type);
-
-    @NotNull FieldInsn in(@NotNull Type owner);
-    @NotNull FieldInsn in(@NotNull Name owner);
-
-    @NotNull FieldInsn inCurrent();
+    @NotNull CaseBranch branch(int value);
+    @NotNull CaseBranch defaultBranch();
 
 }
