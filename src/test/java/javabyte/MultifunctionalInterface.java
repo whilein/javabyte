@@ -38,5 +38,6 @@ public interface MultifunctionalInterface<T> {
     }
 
     default String switchCaseInts(final int value) { return null; }
+    default String switchCaseStrings(final String value) { return null; }
 
 }

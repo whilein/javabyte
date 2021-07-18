@@ -19,6 +19,7 @@ package javabyte.bytecode;
 import javabyte.bytecode.insn.FieldInsn;
 import javabyte.bytecode.insn.IntsSwitchInsn;
 import javabyte.bytecode.insn.MethodInsn;
+import javabyte.bytecode.insn.StringsSwitchInsn;
 import javabyte.bytecode.macro.Macro;
 import javabyte.name.Name;
 import javabyte.opcode.FieldOpcode;
@@ -34,6 +35,8 @@ import java.lang.reflect.Type;
 public interface InstructionSet {
     void loadLocal(int index);
     void loadLocal(@NotNull LocalIndex index);
+    void storeLocal(int index);
+    void storeLocal(@NotNull LocalIndex index);
     @NotNull LocalIndex storeLocal();
 
     @NotNull FieldInsn fieldInsn(@NotNull FieldOpcode opcode, @NotNull String name);
@@ -60,5 +63,6 @@ public interface InstructionSet {
     void callReturn();
 
     @NotNull IntsSwitchInsn intsSwitchCaseInsn();
+    @NotNull StringsSwitchInsn stringsSwitchCaseInsn();
 
 }

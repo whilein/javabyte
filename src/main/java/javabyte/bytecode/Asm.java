@@ -16,9 +16,7 @@
 
 package javabyte.bytecode;
 
-import javabyte.bytecode.insn.FieldInsn;
-import javabyte.bytecode.insn.IntsSwitchInsn;
-import javabyte.bytecode.insn.MethodInsn;
+import javabyte.bytecode.insn.*;
 import javabyte.bytecode.macro.Macro;
 import javabyte.make.MakeExecutable;
 import javabyte.name.Name;
@@ -53,6 +51,7 @@ public class Asm {
     }
 
     @FieldDefaults(level = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     private static final class LocalIndexImpl implements LocalIndex {
 
@@ -79,12 +78,12 @@ public class Asm {
             int localSize = 0;
 
             if (!executable.isStatic()) {
-                locals.add(new Local(executable.getDeclaringClass().getName(), localSize));
+                locals.add(new Local(executable.getDeclaringClass().getName(), localSize, new LocalIndexImpl(0)));
                 localSize++;
             }
 
             for (val parameter : executable.getParameters()) {
-                locals.add(new Local(parameter, localSize));
+                locals.add(new Local(parameter, localSize, new LocalIndexImpl(locals.size())));
                 localSize += parameter.getSize();
             }
 
@@ -120,6 +119,26 @@ public class Asm {
             });
         }
 
+        @Override
+        public void storeLocal(final int index) {
+            insn(compile -> {
+                val stack = compile.popStack();
+
+                compile.replaceLocal(index, stack);
+                compile.mv.visitVarInsn(stack.getType().getOpcode(ISTORE), compile.localOffset(index));
+            });
+        }
+
+        @Override
+        public void storeLocal(final @NonNull LocalIndex index) {
+            insn(compile -> {
+                val stack = compile.popStack();
+
+                compile.replaceLocal(index.getValue(), stack);
+                compile.mv.visitVarInsn(stack.getType().getOpcode(ISTORE), compile.localOffset(index.getValue()));
+            });
+        }
+
         private void _loadLocal(final Compile compile, final int index) {
             val local = compile.locals.get(index);
             val localName = local.name;
@@ -131,28 +150,18 @@ public class Asm {
 
         @Override
         public @NotNull LocalIndex storeLocal() {
-            val index = new LocalIndexImpl();
+            val localIndex = new LocalIndexImpl();
 
             insn(compile -> {
                 val stack = compile.popStack();
-                val stackSize = stack.getSize();
 
-                val locals = compile.locals;
-                val localIndex = locals.size();
-                index.setValue(localIndex);
+                val index = compile.pushLocal(stack);
+                localIndex.setValue(index);
 
-                val lastLocal = locals.get(localIndex - 1);
-
-                val offset = lastLocal != null
-                        ? lastLocal.offset + stackSize
-                        : stackSize;
-
-                locals.add(new Local(stack, offset));
-
-                compile.mv.visitVarInsn(stack.getType().getOpcode(ISTORE), offset);
+                compile.mv.visitVarInsn(stack.getType().getOpcode(ISTORE), compile.localOffset(index));
             });
 
-            return index;
+            return localIndex;
         }
 
         @Override
@@ -186,19 +195,7 @@ public class Asm {
 
         @Override
         public void loadInt(final int value) {
-            insn(compile -> {
-                if (value >= -1 && value <= 5) {
-                    compile.mv.visitInsn(ICONST_0 + value);
-                } else if (value >= Byte.MIN_VALUE && value <= Byte.MAX_VALUE) {
-                    compile.mv.visitIntInsn(BIPUSH, value);
-                } else if (value >= Short.MIN_VALUE && value <= Short.MAX_VALUE) {
-                    compile.mv.visitIntInsn(SIPUSH, value);
-                } else {
-                    compile.mv.visitLdcInsn(value);
-                }
-
-                compile.pushStack(Names.INT);
-            });
+            insn(compile -> compile.pushInt(value));
         }
 
         @Override
@@ -523,6 +520,20 @@ public class Asm {
             return switchInsn;
         }
 
+        @Override
+        public @NotNull StringsSwitchInsn stringsSwitchCaseInsn() {
+            val endLabel = new Label();
+            val defaultLabel = new Label();
+
+            val switchInsn = new StringsSwitchInsnImpl(new HashMap<>(), CaseBranchImpl.create(defaultLabel),
+                    endLabel);
+
+            insn(switchInsn);
+
+            return switchInsn;
+        }
+
+
     }
 
     @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -564,15 +575,199 @@ public class Asm {
 
     @FieldDefaults(level = AccessLevel.PROTECTED, makeFinal = true)
     @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
-    private static abstract class AbstractSwitchInsn {
-        Map<Integer, CaseBranchImpl> branches;
+    private static abstract class AbstractSwitchInsn<T> implements SwitchInsn {
+        Map<T, CaseBranchImpl> branches;
         CaseBranchImpl defaultBranch;
         Label endLabel;
+
+        @Override
+        public @NotNull CaseBranch defaultBranch() {
+            return defaultBranch;
+        }
+
+        /**
+         * http://hg.openjdk.java.net/jdk8/jdk8/langtools/file/30db5e0aaf83/src/share/classes/com/sun/tools/javac/jvm/Gen.java#l1153
+         */
+        protected final boolean isTableSwitchInsn(final int lo, final int hi, final int nLabels) {
+            val tableSpaceCost = 4 + ((long) hi - lo + 1);
+            val lookupSpaceCost = 3 + 2 * (long) nLabels;
+
+            return nLabels > 0 && tableSpaceCost + 9 <= lookupSpaceCost + 3 * (long) nLabels;
+        }
+
+        protected final CaseBranchImpl _branch(final T value) {
+            return branches.get(value);
+        }
+
+    }
+
+    @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+    private static final class StringsSwitchInsnImpl
+            extends AbstractSwitchInsn<String>
+            implements Consumer<Compile>, StringsSwitchInsn {
+
+        private StringsSwitchInsnImpl(
+                final Map<String, CaseBranchImpl> branches,
+                final CaseBranchImpl defaultBranch,
+                final Label endLabel
+        ) {
+            super(branches, defaultBranch, endLabel);
+        }
+
+
+        @Override
+        public void accept(final @NonNull Compile compile) {
+            compile.popStack();
+
+            val mv = compile.mv;
+
+            val lastLocal = compile.localSize;
+
+            mv.visitVarInsn(ASTORE, lastLocal);
+
+            compile.pushInt(-1);
+            compile.popStack();
+            mv.visitVarInsn(ISTORE, lastLocal + 1);
+
+            compile.touchLocals(2);
+
+            compile.pushStack(Names.STRING);
+            mv.visitVarInsn(ALOAD, lastLocal);
+
+            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "hashCode",
+                    "()I", false);
+
+            compile.popStack();
+
+            compile.pushStack(Names.INT);
+
+            val defaultLabel = defaultBranch.getLabel();
+
+            val hashes = new TreeMap<Integer, List<String>>();
+
+            for (val branch : branches.keySet()) {
+                hashes.computeIfAbsent(branch.hashCode(), __ -> new ArrayList<>())
+                        .add(branch);
+            }
+
+            val hashArray = hashes.keySet().stream()
+                    .mapToInt(Integer::intValue)
+                    .toArray();
+
+            val lo = hashes.firstKey();
+            val hi = hashes.lastKey();
+
+            val nHashLabels = hashes.size();
+            val nLabels = branches.size();
+
+            val hashBranches = new Label[hashes.size()];
+
+            for (int i = 0, j = hashBranches.length; i < j; i++)
+                hashBranches[i] = new Label();
+
+            val endFirstSwitchLabel = new Label();
+
+            compile.popStack();
+
+            if (nHashLabels > 1 && isTableSwitchInsn(lo, hi, nHashLabels)) {
+                mv.visitTableSwitchInsn(lo, hi, endFirstSwitchLabel, hashBranches);
+            } else {
+                mv.visitLookupSwitchInsn(endFirstSwitchLabel, hashArray, hashBranches);
+            }
+
+            int hashCounter = 0;
+            int counter = 0;
+
+            val hashIfBranches = new Label[branches.size()];
+
+            for (int i = 0; i < hashIfBranches.length; i++)
+                hashIfBranches[i] = new Label();
+
+            for (val branches : hashes.values()) {
+                mv.visitLabel(hashBranches[hashCounter]);
+
+                for (val branch : branches) {
+                    mv.visitLabel(hashIfBranches[counter]);
+
+                    compile.pushStack(Names.STRING);
+                    compile.pushStack(Names.STRING);
+
+                    mv.visitVarInsn(ALOAD, lastLocal);
+                    mv.visitLdcInsn(branch);
+
+                    compile.popStack();
+                    compile.popStack();
+
+                    compile.pushStack(Names.INT);
+
+                    mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "equals",
+                            "(Ljava/lang/Object;)Z", false);
+
+                    compile.popStack();
+
+                    mv.visitJumpInsn(IFEQ, counter == hashIfBranches.length - 1
+                            ? endFirstSwitchLabel
+                            : hashIfBranches[counter + 1]);
+
+                    compile.pushInt(counter);
+                    mv.visitVarInsn(ISTORE, lastLocal + 1);
+                    compile.popStack();
+
+                    mv.visitJumpInsn(GOTO, endFirstSwitchLabel);
+
+                    counter++;
+                }
+
+                hashCounter++;
+            }
+
+            mv.visitLabel(endFirstSwitchLabel);
+            mv.visitVarInsn(ILOAD, lastLocal + 1);
+
+            compile.pushStack(Names.INT);
+
+            if (nLabels > 1) {
+                val branches = new Label[nLabels];
+
+                counter = 0;
+
+                for (val branchList : hashes.values()) {
+                    for (val branch : branchList) {
+                        branches[counter++] = _branch(branch).getLabel();
+                    }
+                }
+
+                mv.visitTableSwitchInsn(0, nLabels - 1, defaultLabel, branches);
+            } else {
+                val firstBranch = branches.values().stream().findFirst()
+                        .map(CaseBranchImpl::getLabel).orElse(null);
+
+                mv.visitLookupSwitchInsn(defaultLabel,
+                        new int[] { 0 },
+                        new Label[] { firstBranch });
+            }
+
+            compile.popStack();
+
+            for (val branch : branches.values()) {
+                branch.write(compile);
+            }
+
+            defaultBranch.write(compile);
+
+            mv.visitLabel(endLabel);
+        }
+
+        @Override
+        public @NotNull CaseBranch branch(final @NonNull String value) {
+            return branches.computeIfAbsent(value, __ -> CaseBranchImpl.create(endLabel));
+        }
+
     }
 
     @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
     private static final class IntsSwitchInsnImpl
-            extends AbstractSwitchInsn
+            extends AbstractSwitchInsn<Integer>
             implements Consumer<Compile>, IntsSwitchInsn {
 
         private IntsSwitchInsnImpl(
@@ -583,16 +778,6 @@ public class Asm {
             super(branches, defaultBranch, endLabel);
         }
 
-        /**
-         * http://hg.openjdk.java.net/jdk8/jdk8/langtools/file/30db5e0aaf83/src/share/classes/com/sun/tools/javac/jvm/Gen.java#l1153
-         */
-        private boolean isTableSwitchInsn(final int lo, final int hi, final int nLabels) {
-            val tableSpaceCost = 4 + ((long) hi - lo + 1);
-            val lookupSpaceCost = 3 + 2 * (long) nLabels;
-
-            return nLabels > 0 && tableSpaceCost + 9 <= lookupSpaceCost + 3 * (long) nLabels;
-        }
-
         @Override
         public void accept(final @NonNull Compile compile) {
             compile.popStack();
@@ -601,11 +786,11 @@ public class Asm {
 
             val sortedBranches = new TreeMap<>(branches);
 
-            final int lo = sortedBranches.firstKey();
-            final int hi = sortedBranches.lastKey();
-            final int nLabels = sortedBranches.size();
+            val lo = sortedBranches.firstKey();
+            val hi = sortedBranches.lastKey();
+            val nLabels = sortedBranches.size();
 
-            if (branches.size() > 1 && isTableSwitchInsn(lo, hi, nLabels)) {
+            if (nLabels > 1 && isTableSwitchInsn(lo, hi, nLabels)) {
                 val branches = new Label[nLabels];
 
                 for (int i = 0, j = branches.length; i < j; i++) {
@@ -639,19 +824,11 @@ public class Asm {
             compile.mv.visitLabel(endLabel);
         }
 
-        public CaseBranchImpl _branch(final int value) {
-            return branches.get(value);
-        }
-
         @Override
         public @NotNull CaseBranch branch(final int value) {
             return branches.computeIfAbsent(value, __ -> CaseBranchImpl.create(endLabel));
         }
 
-        @Override
-        public @NotNull CaseBranch defaultBranch() {
-            return defaultBranch;
-        }
     }
 
     @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -795,6 +972,8 @@ public class Asm {
     private static final class Local {
         Name name;
         int offset;
+
+        LocalIndex index;
     }
 
     @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -830,11 +1009,66 @@ public class Asm {
             }
         }
 
+        private void touchLocals(final int delta) {
+            this.maxLocalSize = Math.max(maxLocalSize, localSize + delta);
+        }
+
+        private void pushInt(final int value) {
+            if (value >= -1 && value <= 5) {
+                mv.visitInsn(ICONST_0 + value);
+            } else if (value >= Byte.MIN_VALUE && value <= Byte.MAX_VALUE) {
+                mv.visitIntInsn(BIPUSH, value);
+            } else if (value >= Short.MIN_VALUE && value <= Short.MAX_VALUE) {
+                mv.visitIntInsn(SIPUSH, value);
+            } else {
+                mv.visitLdcInsn(value);
+            }
+
+            pushStack(Names.INT);
+        }
+
         private void pushStack(final Name name) {
             this.stack.push(name);
             this.stackSize += name.getSize();
 
             this.maxStackSize = Math.max(maxStackSize, stackSize);
+        }
+
+        private void replaceLocal(final int index, final Name name) {
+            val oldLocal = this.locals.get(index);
+
+            this.locals.set(index, new Local(name, oldLocal.offset, new LocalIndexImpl(index)));
+
+            val offset = name.getSize();
+
+            if (offset != oldLocal.offset) {
+                val shift = offset - oldLocal.offset;
+
+                for (int i = index + 1; i < locals.size(); i++) {
+                    val unshiftedLocal = locals.get(i);
+
+                    locals.set(index, new Local(unshiftedLocal.name, unshiftedLocal.offset + shift,
+                            unshiftedLocal.index));
+                }
+
+                this.localSize += name.getSize();
+                this.maxLocalSize = Math.max(maxLocalSize, localSize);
+            }
+        }
+
+        private int pushLocal(final Name name) {
+            val localIndex = locals.size();
+
+            this.locals.add(new Local(name, localSize, new LocalIndexImpl(localIndex)));
+
+            this.localSize += name.getSize();
+            this.maxLocalSize = Math.max(maxLocalSize, localSize);
+
+            return localIndex;
+        }
+
+        private int localOffset(final int index) {
+            return locals.get(index).offset;
         }
 
         private Name popStack() {

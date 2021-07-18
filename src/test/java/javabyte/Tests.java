@@ -158,6 +158,41 @@ final class Tests {
     }
 
     @Test
+    void switchCaseInts_2() {
+        val branches = new String[] {
+                "AaAaAa", "AaAaBB", "AaBBAa", "AaBBBB",
+                "BBAaAa", "BBAaBB", "BBBBAa", "BBBBBB"
+        };
+
+        val result = makeInterface(impl -> {
+            val method = impl.addMethod("switchCaseStrings", String.class);
+            method.addParameter(String.class);
+
+            method.setAccess(Access.PUBLIC);
+            method.setOverrides(MultifunctionalInterface.class);
+
+            val code = method.getBytecode();
+            code.loadLocal(1);
+
+            val switchCase = code.stringsSwitchCaseInsn();
+
+            for (int i = 0; i < branches.length; i++) {
+                val branch = switchCase.branch(branches[i]);
+                branch.loadString(Integer.toString(i));
+                branch.callReturn();
+            }
+
+            val defaultBranch = switchCase.defaultBranch();
+            defaultBranch.loadString("Default");
+            defaultBranch.callReturn();
+        });
+
+        for (int i = 0; i < branches.length; i++) {
+            assertEquals(String.valueOf(i), result.switchCaseStrings(branches[i]));
+        }
+    }
+
+    @Test
     void castLongToByte() {
         val value = random.nextLong();
 

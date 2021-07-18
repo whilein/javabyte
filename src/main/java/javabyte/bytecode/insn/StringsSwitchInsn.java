@@ -22,8 +22,8 @@ import org.jetbrains.annotations.NotNull;
 /**
  * @author whilein
  */
-public interface IntsSwitchInsn extends SwitchInsn {
+public interface StringsSwitchInsn extends SwitchInsn {
 
-    @NotNull CaseBranch branch(int value);
+    @NotNull CaseBranch branch(@NotNull String value);
 
 }
