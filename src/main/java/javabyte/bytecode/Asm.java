@@ -52,6 +52,21 @@ public class Asm {
         return new BytecodeImpl(new ArrayList<>());
     }
 
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+    private static final class LocalIndexImpl implements LocalIndex {
+
+        @Getter
+        @Setter
+        int value;
+
+        @Override
+        public boolean isInitialized() {
+            return value != 0;
+        }
+
+    }
+
     private static final class BytecodeImpl extends InstructionSetImpl implements Bytecode {
         private BytecodeImpl(final List<Consumer<Compile>> instructions) {
             super(instructions);
@@ -95,15 +110,54 @@ public class Asm {
         }
 
         @Override
-        public void loadLocal(final int index) {
+        public void loadLocal(final @NonNull LocalIndex index) {
             insn(compile -> {
-                val local = compile.locals.get(index);
-                val localName = local.name;
-                val localType = localName.getType();
+                if (index.isInitialized()) {
+                    throw new IllegalStateException("Index isn't initialized");
+                }
 
-                compile.mv.visitVarInsn(localType.getOpcode(ILOAD), local.offset);
-                compile.pushStack(localName);
+                _loadLocal(compile, index.getValue());
             });
+        }
+
+        private void _loadLocal(final Compile compile, final int index) {
+            val local = compile.locals.get(index);
+            val localName = local.name;
+            val localType = localName.getType();
+
+            compile.mv.visitVarInsn(localType.getOpcode(ILOAD), local.offset);
+            compile.pushStack(localName);
+        }
+
+        @Override
+        public @NotNull LocalIndex storeLocal() {
+            val index = new LocalIndexImpl();
+
+            insn(compile -> {
+                val stack = compile.popStack();
+                val stackSize = stack.getSize();
+
+                val locals = compile.locals;
+                val localIndex = locals.size();
+                index.setValue(localIndex);
+
+                val lastLocal = locals.get(localIndex - 1);
+
+                val offset = lastLocal != null
+                        ? lastLocal.offset + stackSize
+                        : stackSize;
+
+                locals.add(new Local(stack, offset));
+
+                compile.mv.visitVarInsn(stack.getType().getOpcode(ISTORE), offset);
+            });
+
+            return index;
+        }
+
+        @Override
+        public void loadLocal(final int index) {
+            insn(compile -> _loadLocal(compile, index));
         }
 
         @Override

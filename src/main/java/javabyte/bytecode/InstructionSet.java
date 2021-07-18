@@ -33,6 +33,8 @@ import java.lang.reflect.Type;
  */
 public interface InstructionSet {
     void loadLocal(int index);
+    void loadLocal(@NotNull LocalIndex index);
+    @NotNull LocalIndex storeLocal();
 
     @NotNull FieldInsn fieldInsn(@NotNull FieldOpcode opcode, @NotNull String name);
     @NotNull MethodInsn methodInsn(@NotNull MethodOpcode opcode, @NotNull String name);
