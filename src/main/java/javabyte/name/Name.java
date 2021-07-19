@@ -24,6 +24,9 @@ import org.objectweb.asm.Type;
  */
 public interface Name {
 
+    int getDimensions();
+    boolean isArray();
+
     int getPrimitive();
     boolean isPrimitive();
 

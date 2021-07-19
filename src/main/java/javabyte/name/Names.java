@@ -114,7 +114,19 @@ public class Names {
     }
 
     public @NotNull ExactName of(final @NonNull Class<?> cls) {
-        return _getCacheOrInit(cls.getName(), false);
+        return _of(cls);
+    }
+
+    private ExactName _of(final Class<?> cls) {
+        int dimensions = 0;
+        Class<?> component = cls;
+
+        while (component.isArray()) {
+            dimensions++;
+            component = component.getComponentType();
+        }
+
+        return _getCacheOrInit(component.getName(), dimensions,false);
     }
 
     public @NotNull Name of(final @NonNull Type type) {
@@ -126,11 +138,11 @@ public class Names {
     }
 
     public @NotNull ExactName of(final @NonNull String name) {
-        return _fromName(name);
+        return _fromName(name, 0);
     }
 
     public @NotNull ExactName ofInternal(final @NonNull String internalName) {
-        return _getCacheOrInit(internalName, true);
+        return _getCacheOrInit(internalName, 0, true);
     }
 
     public @NotNull ExactName @NotNull [] of(final @NotNull String @NonNull [] names) {
@@ -201,7 +213,7 @@ public class Names {
     }
 
     private ExactName _putCache(final int primitive, final Class<?> type) {
-        val name = _fromName(type.getName(), primitive, "\\.");
+        val name = _fromName(type.getName(), primitive, 0, "\\.");
 
         CACHE.put(type.getName(), name);
         CACHE_INTERNAL.put(type.getName().replace('.', '/'), name);
@@ -209,24 +221,26 @@ public class Names {
         return name;
     }
 
-    private ExactName _getCacheOrInit(final String type, final boolean internal) {
-        val cache = internal ? CACHE_INTERNAL.get(type) : CACHE.get(type);
-        if (cache != null) return cache;
+    private ExactName _getCacheOrInit(final String type, final int dimensions, final boolean internal) {
+        if (dimensions == 0) {
+            val cache = internal ? CACHE_INTERNAL.get(type) : CACHE.get(type);
+            if (cache != null) return cache;
+        }
 
-        return _fromName(type, -1, internal ? "/" : "\\.");
+        return _fromName(type, -1, dimensions, internal ? "/" : "\\.");
     }
 
-    private ExactName _fromName(final String name, final int primitive, final String separator) {
-        return new ExactNameImpl(primitive, name.split(separator));
+    private ExactName _fromName(final String name, final int primitive, final int dimensions, final String separator) {
+        return new ExactNameImpl(primitive, dimensions, name.split(separator));
     }
 
-    private ExactName _fromName(final String name) {
-        return _fromName(name, -1, "\\.");
+    private ExactName _fromName(final String name, final int dimensions) {
+        return _fromName(name, -1, dimensions, "\\.");
     }
 
     private Name _fromType(final Type type) {
         if (type instanceof Class<?>) {
-            return _getCacheOrInit(((Class<?>) type).getName(), false);
+            return _of((Class<?>) type);
         } else if (type instanceof ParameterizedType) {
             val parameterized = (ParameterizedType) type;
 
@@ -271,7 +285,7 @@ public class Names {
         val exactNames = new ExactName[names.length];
 
         for (int i = 0, j = names.length; i < j; i++)
-            exactNames[i] = Names._getCacheOrInit(names[i], internal);
+            exactNames[i] = Names._getCacheOrInit(names[i], 0, internal);
 
         return exactNames;
     }
@@ -280,7 +294,7 @@ public class Names {
         val exactNames = new ExactName[types.length];
 
         for (int i = 0, j = types.length; i < j; i++)
-            exactNames[i] = Names._getCacheOrInit(types[i].getName(), false);
+            exactNames[i] = _of(types[i]);
 
         return exactNames;
     }
@@ -299,6 +313,16 @@ public class Names {
             toString(out);
 
             return out.toString();
+        }
+
+        @Override
+        public int getDimensions() {
+            return rawName.getDimensions();
+        }
+
+        @Override
+        public boolean isArray() {
+            return rawName.isArray();
         }
 
         @Override
@@ -338,6 +362,8 @@ public class Names {
 
         @Override
         public void getSignature(final @NonNull StringBuilder out) {
+            for (int i = 0, j = rawName.getDimensions(); i < j; i++)
+                out.append('[');
             out.append('L');
             out.append(rawName.getInternalName());
             out.append('<');
@@ -350,6 +376,8 @@ public class Names {
 
         @Override
         public void getDescriptor(final @NonNull StringBuilder out) {
+            for (int i = 0, j = rawName.getDimensions(); i < j; i++)
+                out.append('[');
             out.append('L');
             out.append(rawName.getInternalName());
             out.append(';');
@@ -364,6 +392,8 @@ public class Names {
                 parameters[i].toString(out);
             }
             out.append('>');
+            for (int i = 0, j = rawName.getDimensions(); i < j; i++)
+                out.append('[').append(']');
         }
 
         @Override
@@ -392,6 +422,10 @@ public class Names {
             return out.toString();
         }
 
+        @Override
+        public @NotNull ParameterizedName dimensions(final int dimensions) {
+            return new ParameterizedNameImpl(rawName.dimensions(dimensions), parameters);
+        }
     }
 
 
@@ -410,6 +444,16 @@ public class Names {
             hash = hash * 31 + Arrays.hashCode(lower);
 
             return hash;
+        }
+
+        @Override
+        public int getDimensions() {
+            return 0;
+        }
+
+        @Override
+        public boolean isArray() {
+            return false;
         }
 
         @Override
@@ -563,6 +607,16 @@ public class Names {
         Name[] bounds;
 
         @Override
+        public int getDimensions() {
+            return 0;
+        }
+
+        @Override
+        public boolean isArray() {
+            return false;
+        }
+
+        @Override
         public int getPrimitive() {
             return -1;
         }
@@ -691,6 +745,7 @@ public class Names {
     private static final class ExactNameImpl implements ExactName {
 
         int primitive;
+        int dimensions;
         String[] array;
 
         @Override
@@ -713,6 +768,11 @@ public class Names {
         }
 
         @Override
+        public boolean isArray() {
+            return dimensions > 0;
+        }
+
+        @Override
         public boolean isPrimitive() {
             return primitive != -1;
         }
@@ -729,11 +789,10 @@ public class Names {
 
         @Override
         public @NotNull String getSignature() {
-            if (primitive != -1) {
-                return Character.toString(PRIMITIVE_DESCRIPTORS[primitive]);
-            }
+            val out = new StringBuilder();
+            getSignature(out);
 
-            return 'L' + getInternalName() + ';';
+            return out.toString();
         }
 
         @Override
@@ -768,6 +827,10 @@ public class Names {
                 val descriptor = PRIMITIVE_DESCRIPTORS[primitive];
                 out.append(descriptor);
                 return;
+            }
+
+            for (int i = 0; i < dimensions; i++) {
+                out.append('[');
             }
 
             out.append('L');
@@ -816,6 +879,11 @@ public class Names {
             }
 
             return new ParameterizedNameImpl(this, _fromArray(parameters));
+        }
+
+        @Override
+        public @NotNull ExactName dimensions(final int dimensions) {
+            return new ExactNameImpl(primitive, dimensions, array);
         }
     }
 
