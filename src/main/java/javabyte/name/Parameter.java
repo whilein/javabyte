@@ -21,15 +21,14 @@ import org.jetbrains.annotations.NotNull;
 /**
  * @author whilein
  */
-public interface VariableName extends Name {
+public interface Parameter {
+    @NotNull String getSignature();
+    @NotNull String getDescriptor();
+    @NotNull String toString();
 
-    @NotNull String getLabel();
-    @NotNull Name @NotNull [] getBounds();
+    void getSignature(@NotNull StringBuilder out);
+    void getDescriptor(@NotNull StringBuilder out);
+    void toString(@NotNull StringBuilder out);
 
-    @NotNull String getDefinitionSignature();
-    @NotNull String getDefinition();
-
-    void getDefinitionSignature(@NotNull StringBuilder out);
-    void getDefinition(@NotNull StringBuilder out);
-
+    boolean hasParameterizedTypes();
 }

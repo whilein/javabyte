@@ -17,7 +17,7 @@
 package javabyte.signature;
 
 import javabyte.name.Name;
-import javabyte.name.VariableName;
+import javabyte.name.TypeParameter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -26,7 +26,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public interface ClassSignature extends Signature {
 
-    @NotNull VariableName @NotNull [] getGeneric();
+    @NotNull TypeParameter @NotNull [] getGeneric();
 
     @NotNull Name getSuperName();
 

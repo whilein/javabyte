@@ -14,26 +14,17 @@
  *    limitations under the License.
  */
 
-package javabyte.signature;
+package javabyte.name;
 
-import javabyte.name.Name;
-import javabyte.name.TypeParameter;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author whilein
  */
-public interface MethodSignature extends Signature {
+public interface Wildcard extends Parameter {
 
-    @NotNull TypeParameter @NotNull [] getGeneric();
-
-    @NotNull Name getReturnType();
-
-    @NotNull Name @NotNull [] getParameterTypes();
-
-    @NotNull String getDescriptor();
-    void getDescriptor(@NotNull StringBuilder out);
-
-    boolean hasParameterizedTypes();
+    @NotNull Name @Nullable [] getUpper();
+    @NotNull Name @Nullable [] getLower();
 
 }

@@ -17,14 +17,16 @@
 package javabyte.name;
 
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * @author whilein
  */
-public interface WildcardName extends Name {
+public interface TypeParameter extends Parameter {
 
-    @NotNull Name @Nullable [] getUpper();
-    @NotNull Name @Nullable [] getLower();
+    @NotNull String getLabel();
+    @NotNull Name @NotNull [] getBounds();
+
+    @NotNull String getDefinitionSignature();
+    void getDefinitionSignature(@NotNull StringBuilder out);
 
 }

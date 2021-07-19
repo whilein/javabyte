@@ -22,7 +22,7 @@ import org.objectweb.asm.Type;
 /**
  * @author whilein
  */
-public interface Name {
+public interface Name extends Parameter {
 
     int getDimensions();
     boolean isArray();
@@ -35,17 +35,11 @@ public interface Name {
     @NotNull Type getType();
 
     @NotNull String getInternalName();
-    @NotNull String getSignature();
-    @NotNull String getDescriptor();
     @NotNull String getName();
 
     void getName(@NotNull StringBuilder out);
     void getInternalName(@NotNull StringBuilder out);
-    void getSignature(@NotNull StringBuilder out);
-    void getDescriptor(@NotNull StringBuilder out);
-    void toString(@NotNull StringBuilder out);
 
-    boolean hasParameterizedTypes();
     int getSize();
 
 }

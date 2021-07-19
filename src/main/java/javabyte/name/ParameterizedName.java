@@ -24,7 +24,7 @@ import org.jetbrains.annotations.NotNull;
 public interface ParameterizedName extends Name {
 
     @NotNull ExactName getRawName();
-    @NotNull Name @NotNull [] getParameters();
+    @NotNull Parameter @NotNull [] getParameters();
 
     @NotNull ParameterizedName dimensions(int dimensions);
 

@@ -17,6 +17,7 @@
 package javabyte.name;
 
 import javabyte.util.AsmUtils;
+import javabyte.util.StringUtils;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.UtilityClass;
@@ -94,8 +95,8 @@ public class Names {
             DOUBLE
     };
 
-    public final WildcardName WILDCARD_ANY
-            = new WildcardNameImpl(null, null);
+    public final Wildcard WILDCARD_ANY
+            = new WildcardImpl(null, null);
 
     public @NotNull ExactName getWrapper(final int primitive) {
         return WRAPPERS[primitive];
@@ -158,16 +159,16 @@ public class Names {
         return _fromArray(internalNames, true);
     }
 
-    public @NotNull VariableName variable(
+    public @NotNull TypeParameter variable(
             final @NonNull String label,
             final @NotNull Name @NonNull [] bounds
     ) {
-        return new VariableNameImpl(label, bounds);
+        return new TypeParameterImpl(label, bounds);
     }
 
     public @NotNull ParameterizedName parameterized(
             final @NonNull ExactName name,
-            final @NotNull Name @NonNull ... parameters
+            final @NotNull Parameter @NonNull ... parameters
     ) {
         if (parameters.length < 1) {
             throw new IllegalStateException("You should specify at least one parameter");
@@ -176,20 +177,20 @@ public class Names {
         return new ParameterizedNameImpl(name, parameters);
     }
 
-    public @NotNull WildcardName wildcardUpper(final @NotNull Name @NonNull ... names) {
+    public @NotNull Wildcard wildcardUpper(final @NotNull Name @NonNull ... names) {
         if (names.length < 1) {
             throw new IllegalStateException("You should specify at least one name");
         }
 
-        return new WildcardNameImpl(names, null);
+        return new WildcardImpl(names, null);
     }
 
-    public @NotNull WildcardName wildcardLower(final @NotNull Name @NonNull ... names) {
+    public @NotNull Wildcard wildcardLower(final @NotNull Name @NonNull ... names) {
         if (names.length < 1) {
             throw new IllegalStateException("You should specify at least one name");
         }
 
-        return new WildcardNameImpl(null, names);
+        return new WildcardImpl(null, names);
     }
 
     public boolean hasParameterizedTypes(final @NonNull Iterable<@NotNull Name> names) {
@@ -238,6 +239,28 @@ public class Names {
         return _fromName(name, -1, dimensions, "\\.");
     }
 
+    private Parameter _getParam(final Type type) {
+        if (type instanceof WildcardType) {
+            val wildcard = (WildcardType) type;
+            val upperTypes = wildcard.getUpperBounds();
+            val lowerTypes = wildcard.getLowerBounds();
+
+            val upper = upperTypes.length != 0 ? _fromArray(upperTypes) : null;
+            val lower = lowerTypes.length != 0 ? _fromArray(lowerTypes) : null;
+
+            return new WildcardImpl(upper, lower);
+        } else if (type instanceof TypeVariable<?>) {
+            val variable = (TypeVariable<?>) type;
+
+            val boundTypes = variable.getBounds();
+            val bounds = _fromArray(boundTypes);
+
+            return new TypeParameterImpl(variable.getName(), bounds);
+        }
+
+        return _fromType(type);
+    }
+
     private Name _fromType(final Type type) {
         if (type instanceof Class<?>) {
             return _of((Class<?>) type);
@@ -251,25 +274,18 @@ public class Names {
             val parameters = _fromArray(parameterTypes);
 
             return new ParameterizedNameImpl((ExactName) raw, parameters);
-        } else if (type instanceof WildcardType) {
-            val wildcard = (WildcardType) type;
-            val upperTypes = wildcard.getUpperBounds();
-            val lowerTypes = wildcard.getLowerBounds();
-
-            val upper = upperTypes.length != 0 ? _fromArray(upperTypes) : null;
-            val lower = lowerTypes.length != 0 ? _fromArray(lowerTypes) : null;
-
-            return new WildcardNameImpl(upper, lower);
-        } else if (type instanceof TypeVariable<?>) {
-            val variable = (TypeVariable<?>) type;
-
-            val boundTypes = variable.getBounds();
-            val bounds = _fromArray(boundTypes);
-
-            return new VariableNameImpl(variable.getName(), bounds);
         } else {
             throw new IllegalArgumentException(type.getClass().getName() + " is not supported");
         }
+    }
+
+    private Parameter[] _getParams(final Type... types) {
+        val params = new Parameter[types.length];
+
+        for (int i = 0, j = params.length; i < j; i++)
+            params[i] = _getParam(types[i]);
+
+        return params;
     }
 
     private Name[] _fromArray(final Type... types) {
@@ -299,21 +315,44 @@ public class Names {
         return exactNames;
     }
 
+    @NoArgsConstructor(access = AccessLevel.PROTECTED)
+    private static abstract class AbstractParameter implements Parameter {
+        @Override
+        public final @NotNull String getSignature() {
+            return StringUtils.from(this::getSignature);
+        }
+
+        @Override
+        public final @NotNull String getDescriptor() {
+            return StringUtils.from(this::getDescriptor);
+        }
+
+        @Override
+        public final @NotNull String toString() {
+            return StringUtils.from(this::toString);
+        }
+    }
+
+    @NoArgsConstructor(access = AccessLevel.PROTECTED)
+    private static abstract class AbstractName extends AbstractParameter implements Name {
+        @Override
+        public final @NotNull String getInternalName() {
+            return StringUtils.from(this::getInternalName);
+        }
+
+        @Override
+        public final @NotNull String getName() {
+            return StringUtils.from(this::getName);
+        }
+    }
+
     @Getter
     @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-    private static final class ParameterizedNameImpl implements ParameterizedName {
+    private static final class ParameterizedNameImpl extends AbstractName implements ParameterizedName {
 
         ExactName rawName;
-        Name[] parameters;
-
-        @Override
-        public String toString() {
-            val out = new StringBuilder();
-            toString(out);
-
-            return out.toString();
-        }
+        Parameter[] parameters;
 
         @Override
         public int getDimensions() {
@@ -338,16 +377,6 @@ public class Names {
         @Override
         public @NotNull org.objectweb.asm.Type getType() {
             return rawName.getType();
-        }
-
-        @Override
-        public @NotNull String getInternalName() {
-            return rawName.getInternalName();
-        }
-
-        @Override
-        public @NotNull String getName() {
-            return rawName.getName();
         }
 
         @Override
@@ -407,22 +436,6 @@ public class Names {
         }
 
         @Override
-        public @NotNull String getSignature() {
-            val out = new StringBuilder();
-            getSignature(out);
-
-            return out.toString();
-        }
-
-        @Override
-        public @NotNull String getDescriptor() {
-            val out = new StringBuilder();
-            getDescriptor(out);
-
-            return out.toString();
-        }
-
-        @Override
         public @NotNull ParameterizedName dimensions(final int dimensions) {
             return new ParameterizedNameImpl(rawName.dimensions(dimensions), parameters);
         }
@@ -432,7 +445,7 @@ public class Names {
     @Getter
     @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-    private static final class WildcardNameImpl implements WildcardName {
+    private static final class WildcardImpl extends AbstractParameter implements Wildcard {
 
         Name[] upper;
         Name[] lower;
@@ -447,72 +460,14 @@ public class Names {
         }
 
         @Override
-        public int getDimensions() {
-            return 0;
-        }
-
-        @Override
-        public boolean isArray() {
-            return false;
-        }
-
-        @Override
-        public @NotNull Name dimensions(final int dimensions) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public int getPrimitive() {
-            return -1;
-        }
-
-        @Override
-        public boolean isPrimitive() {
-            return false;
-        }
-
-        @Override
-        public @NotNull org.objectweb.asm.Type getType() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
         public boolean equals(final Object obj) {
             if (obj == this) return true;
-            if (!(obj instanceof WildcardName)) return false;
+            if (!(obj instanceof Wildcard)) return false;
 
-            val that = (WildcardName) obj;
+            val that = (Wildcard) obj;
 
             return Arrays.equals(getUpper(), that.getUpper())
                     && Arrays.equals(getLower(), that.getLower());
-        }
-
-        @Override
-        public String toString() {
-            val out = new StringBuilder();
-            toString(out);
-
-            return out.toString();
-        }
-
-        @Override
-        public @NotNull String getInternalName() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public @NotNull String getName() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void getName(final @NonNull StringBuilder out) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void getInternalName(final @NonNull StringBuilder out) {
-            throw new UnsupportedOperationException();
         }
 
         @Override
@@ -582,112 +537,29 @@ public class Names {
             return Names.hasParameterizedTypes(upper) || Names.hasParameterizedTypes(lower);
         }
 
-        @Override
-        public int getSize() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public @NotNull String getSignature() {
-            val out = new StringBuilder();
-            getSignature(out);
-
-            return out.toString();
-        }
-
-        @Override
-        public @NotNull String getDescriptor() {
-            return "";
-        }
-
     }
 
 
     @Getter
     @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-    private static final class VariableNameImpl implements VariableName {
+    private static final class TypeParameterImpl extends AbstractParameter implements TypeParameter {
 
         String label;
         Name[] bounds;
 
         @Override
-        public int getDimensions() {
-            return 0;
-        }
-
-        @Override
-        public boolean isArray() {
-            return false;
-        }
-
-        @Override
-        public @NotNull Name dimensions(final int dimensions) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public int getPrimitive() {
-            return -1;
-        }
-
-        @Override
-        public boolean isPrimitive() {
-            return false;
-        }
-
-        @Override
-        public @NotNull org.objectweb.asm.Type getType() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
         public boolean equals(final Object obj) {
             if (obj == this) return true;
-            if (!(obj instanceof VariableName)) return false;
+            if (!(obj instanceof TypeParameter)) return false;
 
-            val that = (VariableName) obj;
+            val that = (TypeParameter) obj;
             return Arrays.equals(getBounds(), that.getBounds());
         }
 
         @Override
         public int hashCode() {
             return Arrays.hashCode(bounds);
-        }
-
-        @Override
-        public String toString() {
-            return getName();
-        }
-
-        @Override
-        public @NotNull String getInternalName() {
-            return getName();
-        }
-
-        @Override
-        public @NotNull String getSignature() {
-            return 'T' + label + ';';
-        }
-
-        @Override
-        public @NotNull String getDescriptor() {
-            return "";
-        }
-
-        @Override
-        public @NotNull String getName() {
-            return label;
-        }
-
-        @Override
-        public void getName(final @NonNull StringBuilder out) {
-            out.append(getName());
-        }
-
-        @Override
-        public void getInternalName(final @NonNull StringBuilder out) {
-            out.append(getName());
         }
 
         @Override
@@ -704,6 +576,13 @@ public class Names {
         @Override
         public void toString(final @NonNull StringBuilder out) {
             out.append(label);
+            if (bounds.length != 0 && !OBJECT.equals(bounds[0])) {
+                out.append(" extends ");
+                for (int i = 0, j = bounds.length; i < j; i++) {
+                    if (i != 0) out.append(' ').append('&').append(' ');
+                    bounds[i].toString(out);
+                }
+            }
         }
 
         @Override
@@ -712,18 +591,8 @@ public class Names {
         }
 
         @Override
-        public int getSize() {
-            return 1;
-        }
-
-        @Override
         public @NotNull String getDefinitionSignature() {
-            return "";
-        }
-
-        @Override
-        public @NotNull String getDefinition() {
-            return label;
+            return StringUtils.from(this::getDefinitionSignature);
         }
 
         @Override
@@ -736,23 +605,12 @@ public class Names {
             }
         }
 
-        @Override
-        public void getDefinition(final @NonNull StringBuilder out) {
-            out.append(label);
-            if (bounds.length != 0 && !OBJECT.equals(bounds[0])) {
-                out.append(" extends ");
-                for (int i = 0, j = bounds.length; i < j; i++) {
-                    if (i != 0) out.append(' ').append('&').append(' ');
-                    bounds[i].toString(out);
-                }
-            }
-        }
     }
 
     @Getter
     @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-    private static final class ExactNameImpl implements ExactName {
+    private static final class ExactNameImpl extends AbstractName implements ExactName {
 
         int primitive;
         int dimensions;
@@ -773,11 +631,6 @@ public class Names {
         }
 
         @Override
-        public String toString() {
-            return getName();
-        }
-
-        @Override
         public boolean isArray() {
             return dimensions > 0;
         }
@@ -790,29 +643,6 @@ public class Names {
         @Override
         public @NotNull org.objectweb.asm.Type getType() {
             return AsmUtils.getType(array);
-        }
-
-        @Override
-        public @NotNull String getInternalName() {
-            return String.join("/", array);
-        }
-
-        @Override
-        public @NotNull String getSignature() {
-            val out = new StringBuilder();
-            getSignature(out);
-
-            return out.toString();
-        }
-
-        @Override
-        public @NotNull String getDescriptor() {
-            return getSignature();
-        }
-
-        @Override
-        public @NotNull String getName() {
-            return String.join(".", array);
         }
 
         @Override
@@ -856,6 +686,9 @@ public class Names {
         @Override
         public void toString(final @NonNull StringBuilder out) {
             getName(out);
+
+            for (int i = 0; i < dimensions; i++)
+                out.append('[').append(']');
         }
 
         @Override
@@ -874,7 +707,7 @@ public class Names {
         }
 
         @Override
-        public @NotNull ParameterizedName parameterized(final @NotNull Name @NonNull ... parameters) {
+        public @NotNull ParameterizedName parameterized(final @NotNull Parameter @NonNull ... parameters) {
             if (parameters.length < 1) {
                 throw new IllegalStateException("You should specify at least one parameter");
             }

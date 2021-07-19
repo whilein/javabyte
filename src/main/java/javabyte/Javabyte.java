@@ -22,7 +22,7 @@ import javabyte.make.*;
 import javabyte.name.ExactName;
 import javabyte.name.Name;
 import javabyte.name.Names;
-import javabyte.name.VariableName;
+import javabyte.name.TypeParameter;
 import javabyte.opcode.MethodOpcode;
 import javabyte.signature.MethodSignature;
 import javabyte.signature.Signatures;
@@ -218,7 +218,7 @@ public class Javabyte {
 
             if (superName.hasParameterizedTypes() || Names.hasParameterizedTypes(interfaces)) {
                 classSignature = Signatures.classSignature(
-                        new VariableName[0], superName,
+                        new TypeParameter[0], superName,
                         interfaces.toArray(new Name[0])
                 ).getSignature();
             } else {

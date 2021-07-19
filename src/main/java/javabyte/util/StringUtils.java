@@ -14,26 +14,26 @@
  *    limitations under the License.
  */
 
-package javabyte.signature;
+package javabyte.util;
 
-import javabyte.name.Name;
-import javabyte.name.TypeParameter;
+import lombok.NonNull;
+import lombok.experimental.UtilityClass;
+import lombok.val;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.function.Consumer;
 
 /**
  * @author whilein
  */
-public interface MethodSignature extends Signature {
+@UtilityClass
+public class StringUtils {
 
-    @NotNull TypeParameter @NotNull [] getGeneric();
+    public @NotNull String from(final @NonNull Consumer<@NotNull StringBuilder> consumer) {
+        val out = new StringBuilder();
+        consumer.accept(out);
 
-    @NotNull Name getReturnType();
-
-    @NotNull Name @NotNull [] getParameterTypes();
-
-    @NotNull String getDescriptor();
-    void getDescriptor(@NotNull StringBuilder out);
-
-    boolean hasParameterizedTypes();
+        return out.toString();
+    }
 
 }

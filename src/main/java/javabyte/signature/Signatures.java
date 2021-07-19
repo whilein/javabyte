@@ -18,7 +18,7 @@ package javabyte.signature;
 
 import javabyte.name.Name;
 import javabyte.name.Names;
-import javabyte.name.VariableName;
+import javabyte.name.TypeParameter;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.UtilityClass;
@@ -35,9 +35,9 @@ import java.lang.reflect.Type;
 @UtilityClass
 public class Signatures {
 
-    private static VariableName[] getTypeParameters(final GenericDeclaration declaration) {
+    private static TypeParameter[] getTypeParameters(final GenericDeclaration declaration) {
         val typeParameters = declaration.getTypeParameters();
-        val typeParameterNames = new VariableName[typeParameters.length];
+        val typeParameterNames = new TypeParameter[typeParameters.length];
 
         for (int i = 0, j = typeParameterNames.length; i < j; i++) {
             val typeParameter = typeParameters[i];
@@ -51,11 +51,11 @@ public class Signatures {
             final Name returnType,
             final Name[] parameters
     ) {
-        return new MethodSignatureImpl(new VariableName[0], returnType, parameters);
+        return new MethodSignatureImpl(new TypeParameter[0], returnType, parameters);
     }
 
     public static @NotNull MethodSignature methodSignature(
-            final @NotNull VariableName @NonNull [] variables,
+            final @NotNull TypeParameter @NonNull [] variables,
             final @NonNull Name returnType,
             final @NotNull Name @NonNull [] parameters
     ) {
@@ -77,7 +77,7 @@ public class Signatures {
     }
 
     public static @NotNull ClassSignature classSignature(
-            final @NotNull VariableName @NonNull [] variables,
+            final @NotNull TypeParameter @NonNull [] variables,
             final @NonNull Name superName,
             final @NotNull Name @Nullable [] interfaces
     ) {
@@ -88,7 +88,7 @@ public class Signatures {
             final @NonNull Name superName,
             final @NotNull Name @Nullable [] interfaces
     ) {
-        return new ClassSignatureImpl(new VariableName[0], superName, interfaces);
+        return new ClassSignatureImpl(new TypeParameter[0], superName, interfaces);
     }
 
 
@@ -115,7 +115,7 @@ public class Signatures {
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     private static final class ClassSignatureImpl implements ClassSignature {
 
-        VariableName[] generic;
+        TypeParameter[] generic;
         Name superName;
         Name[] interfaces;
 
@@ -156,7 +156,7 @@ public class Signatures {
                 out.append('<');
                 for (int i = 0, j = generic.length; i < j; i++) {
                     if (i != 0) out.append(',').append(' ');
-                    generic[i].getDefinition(out);
+                    generic[i].toString(out);
                 }
                 out.append('>');
             }
@@ -184,7 +184,7 @@ public class Signatures {
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     private static final class MethodSignatureImpl implements MethodSignature {
 
-        VariableName[] generic;
+        TypeParameter[] generic;
         Name returnType;
         Name[] parameterTypes;
 
@@ -220,7 +220,7 @@ public class Signatures {
                 out.append('<');
                 for (int i = 0, j = generic.length; i < j; i++) {
                     if (i != 0) out.append(',').append(' ');
-                    generic[i].getDefinition(out);
+                    generic[i].toString(out);
                 }
                 out.append('>').append(' ');
             }

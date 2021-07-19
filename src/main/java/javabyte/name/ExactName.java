@@ -28,7 +28,7 @@ public interface ExactName extends Name {
 
     @NotNull String @Nullable [] split();
 
-    @NotNull ParameterizedName parameterized(@NotNull Name @NotNull ... parameters);
+    @NotNull ParameterizedName parameterized(@NotNull Parameter @NotNull ... parameters);
     @NotNull ParameterizedName parameterized(@NotNull Type @NotNull ... parameters);
 
     @NotNull ExactName dimensions(int dimensions);
