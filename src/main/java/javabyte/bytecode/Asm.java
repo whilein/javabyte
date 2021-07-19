@@ -128,6 +128,55 @@ public class Asm {
         }
 
         @Override
+        public void loadArrayLength() {
+            insn(compile -> {
+                compile.popStack();
+                compile.mv.visitInsn(ARRAYLENGTH);
+                compile.pushStack(Names.INT);
+            });
+        }
+
+        @Override
+        public void loadFromArray() {
+            insn(compile -> {
+                compile.popStack(); // index
+
+                val array = compile.popStack();
+
+                if (array.getDimensions() > 1 || !array.isPrimitive()) {
+                    compile.mv.visitInsn(AALOAD);
+                } else {
+                    switch (array.getPrimitive()) {
+                        case Names.BYTE_TYPE:
+                        case Names.BOOL_TYPE:
+                            compile.mv.visitInsn(BALOAD);
+                            break;
+                        case Names.CHAR_TYPE:
+                            compile.mv.visitInsn(CALOAD);
+                            break;
+                        case Names.SHORT_TYPE:
+                            compile.mv.visitInsn(SALOAD);
+                            break;
+                        case Names.INT_TYPE:
+                            compile.mv.visitInsn(IALOAD);
+                            break;
+                        case Names.LONG_TYPE:
+                            compile.mv.visitInsn(LALOAD);
+                            break;
+                        case Names.FLOAT_TYPE:
+                            compile.mv.visitInsn(FALOAD);
+                            break;
+                        case Names.DOUBLE_TYPE:
+                            compile.mv.visitInsn(DALOAD);
+                            break;
+                    }
+                }
+
+                compile.pushStack(array.dimensions(array.getDimensions() - 1));
+            });
+        }
+
+        @Override
         public @NotNull Position newPos() {
             return new PositionImpl(new Label());
         }
@@ -351,6 +400,10 @@ public class Asm {
                     throw new IllegalStateException("Stack item should be a primitive!");
                 }
 
+                if (stack.isArray()) {
+                    throw new IllegalStateException("Cannot box an array");
+                }
+
                 val wrapper = Names.getWrapper(stack);
 
                 compile.mv.visitMethodInsn(INVOKESTATIC, wrapper.getInternalName(), "valueOf",
@@ -371,7 +424,8 @@ public class Asm {
                     return;
                 }
 
-                if (stack.isPrimitive() && to.isPrimitive()
+                if (!stack.isArray()
+                        && stack.isPrimitive() && to.isPrimitive()
                         && stack.getPrimitive() != Names.BOOL_TYPE
                         && to.getPrimitive() != Names.BOOL_TYPE) {
                     switch (stack.getPrimitive()) {
@@ -490,6 +544,10 @@ public class Asm {
 
                 if (stack.isPrimitive()) {
                     throw new IllegalStateException("Stack item should not be a primitive!");
+                }
+
+                if (stack.isArray()) {
+                    throw new IllegalStateException("Cannot unbox an array");
                 }
 
                 final String methodName;

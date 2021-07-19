@@ -27,6 +27,8 @@ public interface Name {
     int getDimensions();
     boolean isArray();
 
+    @NotNull Name dimensions(int dimensions);
+
     int getPrimitive();
     boolean isPrimitive();
 

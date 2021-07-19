@@ -55,6 +55,8 @@ public interface InstructionSet {
     void loadDouble(double value);
     void loadLong(long value);
 
+    void loadFromArray();
+    void loadArrayLength();
     void loadNull();
 
     void callBox();

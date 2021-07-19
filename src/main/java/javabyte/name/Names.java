@@ -457,6 +457,11 @@ public class Names {
         }
 
         @Override
+        public @NotNull Name dimensions(final int dimensions) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public int getPrimitive() {
             return -1;
         }
@@ -614,6 +619,11 @@ public class Names {
         @Override
         public boolean isArray() {
             return false;
+        }
+
+        @Override
+        public @NotNull Name dimensions(final int dimensions) {
+            throw new UnsupportedOperationException();
         }
 
         @Override
@@ -883,7 +893,11 @@ public class Names {
 
         @Override
         public @NotNull ExactName dimensions(final int dimensions) {
-            return new ExactNameImpl(primitive, dimensions, array);
+            if (dimensions == this.dimensions) return this;
+
+            return dimensions == 0
+                    ? _getCacheOrInit(getName(), 0, false)
+                    : new ExactNameImpl(primitive, dimensions, array);
         }
     }
 
