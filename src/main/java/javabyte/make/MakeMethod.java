@@ -19,10 +19,15 @@ package javabyte.make;
 import javabyte.name.Name;
 import org.jetbrains.annotations.NotNull;
 
+import java.lang.reflect.Type;
+
 /**
  * @author whilein
  */
 public interface MakeMethod extends MakeExecutable {
+
+    void setReturnType(@NotNull Name type);
+    void setReturnType(@NotNull Type type);
 
     void setOverrides(
             @NotNull Class<?> type

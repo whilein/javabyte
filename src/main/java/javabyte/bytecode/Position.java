@@ -14,30 +14,17 @@
  *    limitations under the License.
  */
 
-package javabyte;
+package javabyte.bytecode;
+
+import org.jetbrains.annotations.NotNull;
+import org.objectweb.asm.MethodVisitor;
 
 /**
  * @author whilein
  */
-public interface MultifunctionalInterface<T> {
+public interface Position {
 
-    default Object box(final int value) {
-        return null;
-    }
-
-    default int unbox(final Integer value) {
-        return 0;
-    }
-
-    default byte castLongToByte(final long value) {
-        return 0;
-    }
-
-    default int calc(final int a, final int b) {
-        return 0;
-    }
-
-    default String switchCaseInts(final int value) { return null; }
-    default String switchCaseStrings(final String value) { return null; }
+    void visit(@NotNull MethodVisitor mv);
+    void jump(@NotNull MethodVisitor mv, int opcode);
 
 }

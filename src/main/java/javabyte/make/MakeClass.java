@@ -38,10 +38,7 @@ public interface MakeClass extends MakeElement {
 
     @NotNull MakeConstructor addConstructor();
 
-    @NotNull MakeMethod addMethod(@NotNull String name, @NotNull Name returns);
-    @NotNull MakeMethod addMethod(@NotNull String name, @NotNull Type returns);
-
-    @NotNull MakeMethod addVoidMethod(@NotNull String name);
+    @NotNull MakeMethod addMethod(@NotNull String name);
 
     @NotNull MakeField addField(@NotNull String name, @NotNull Name type);
     @NotNull MakeField addField(@NotNull String name, @NotNull Type type);

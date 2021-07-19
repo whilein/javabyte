@@ -23,6 +23,7 @@ import javabyte.bytecode.insn.StringsSwitchInsn;
 import javabyte.bytecode.macro.Macro;
 import javabyte.name.Name;
 import javabyte.opcode.FieldOpcode;
+import javabyte.opcode.JumpOpcode;
 import javabyte.opcode.MathOpcode;
 import javabyte.opcode.MethodOpcode;
 import org.jetbrains.annotations.NotNull;
@@ -33,6 +34,11 @@ import java.lang.reflect.Type;
  * @author whilein
  */
 public interface InstructionSet {
+
+    @NotNull Position newPos();
+    void setPos(@NotNull Position position);
+    void jumpPos(@NotNull JumpOpcode opcode, @NotNull Position position);
+
     void loadLocal(int index);
     void loadLocal(@NotNull LocalIndex index);
     void storeLocal(int index);

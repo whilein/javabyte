@@ -113,6 +113,30 @@ public class Javabyte {
         }
 
         @Override
+        public void setPublic() {
+            setAccess(Access.PUBLIC);
+            setFinal(false);
+        }
+
+        @Override
+        public void setPublicFinal() {
+            setAccess(Access.PUBLIC);
+            setFinal(true);
+        }
+
+        @Override
+        public void setPrivate() {
+            setAccess(Access.PRIVATE);
+            setFinal(false);
+        }
+
+        @Override
+        public void setPrivateFinal() {
+            setAccess(Access.PRIVATE);
+            setFinal(true);
+        }
+
+        @Override
         public void setFinal(final boolean flag) {
             if (flag) {
                 setModifiers(modifiers |= Opcodes.ACC_FINAL);
@@ -266,7 +290,9 @@ public class Javabyte {
 
                 if (method.shouldMakeBridge()) {
                     val overrides = executable.overrides;
-                    val bridge = _initMethod(executable.getName(), overrides.returnType);
+
+                    val bridge = _initMethod(executable.getName());
+                    bridge.setReturnType(overrides.returnType);
 
                     bridge.setParameters(overrides.parameterTypes);
                     bridge.setModifiers(executable.getAccess().getOpcode() | Opcodes.ACC_BRIDGE | Opcodes.ACC_SYNTHETIC);
@@ -293,9 +319,9 @@ public class Javabyte {
                     new ArrayList<>(), new ArrayList<>(), isStatic);
         }
 
-        private MakeMethodImpl _initMethod(final String name, final Name returns) {
+        private MakeMethodImpl _initMethod(final String name) {
             return new MakeMethodImpl(Asm.bytecode(), this,
-                    name, returns, new ArrayList<>(), new ArrayList<>());
+                    name, Names.VOID, new ArrayList<>(), new ArrayList<>());
         }
 
         private <T extends MakeExecutableImpl> T _addExecutable(final T executable) {
@@ -321,18 +347,8 @@ public class Javabyte {
         }
 
         @Override
-        public @NotNull MakeMethod addMethod(final @NonNull String name, final @NonNull Name returns) {
-            return _addExecutable(_initMethod(name, returns));
-        }
-
-        @Override
-        public @NotNull MakeMethod addMethod(final @NonNull String name, final @NonNull Type returns) {
-            return _addExecutable(_initMethod(name, Names.of(returns)));
-        }
-
-        @Override
-        public @NotNull MakeMethod addVoidMethod(final @NonNull String name) {
-            return _addExecutable(_initMethod(name, Names.VOID));
+        public @NotNull MakeMethod addMethod(final @NonNull String name) {
+            return _addExecutable(_initMethod(name));
         }
 
         private MakeField _addField(final String name, final Name type) {
@@ -494,6 +510,16 @@ public class Javabyte {
         }
 
         @Override
+        public void setReturnType(final @NonNull Name type) {
+            this.returnType = type;
+        }
+
+        @Override
+        public void setReturnType(final @NonNull Type type) {
+            this.returnType = Names.of(type);
+        }
+
+        @Override
         public void setOverrides(
                 final @NonNull Class<?> type
         ) {
@@ -575,7 +601,8 @@ public class Javabyte {
         final String name;
 
         @Getter
-        final Name returnType;
+        @NotNull
+        Name returnType;
 
         @Getter
         final List<Name> parameters;

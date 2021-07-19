@@ -51,9 +51,7 @@ final class Tests {
         val impl = Javabyte.make("gen.MultifunctionInterfaceImpl");
 
         impl.addInterface(MultifunctionalInterface.class);
-
-        impl.setAccess(Access.PUBLIC);
-        impl.setFinal(true);
+        impl.setPublicFinal();
 
         init.accept(impl);
 
@@ -71,10 +69,12 @@ final class Tests {
         val y = random.nextInt(10000) - 5000;
 
         val result = makeInterface(impl -> {
-            val method = impl.addMethod("calc", int.class);
+            val method = impl.addMethod("calc");
+            method.setPublic();
+
+            method.setReturnType(int.class);
             method.setParameterTypes(int.class, int.class);
 
-            method.setAccess(Access.PUBLIC);
             method.setOverrides(MultifunctionalInterface.class);
 
             val code = method.getBytecode();
@@ -92,10 +92,12 @@ final class Tests {
     @Test
     void switchCaseInts_0() {
         val result = makeInterface(impl -> {
-            val method = impl.addMethod("switchCaseInts", String.class);
+            val method = impl.addMethod("switchCaseInts");
+            method.setPublic();
+
+            method.setReturnType(String.class);
             method.addParameter(int.class);
 
-            method.setAccess(Access.PUBLIC);
             method.setOverrides(MultifunctionalInterface.class);
 
             val code = method.getBytecode();
@@ -124,10 +126,11 @@ final class Tests {
     @Test
     void switchCaseInts_1() {
         val result = makeInterface(impl -> {
-            val method = impl.addMethod("switchCaseInts", String.class);
+            val method = impl.addMethod("switchCaseInts");
+            method.setPublic();
+            method.setReturnType(String.class);
             method.addParameter(int.class);
 
-            method.setAccess(Access.PUBLIC);
             method.setOverrides(MultifunctionalInterface.class);
 
             val code = method.getBytecode();
@@ -161,11 +164,15 @@ final class Tests {
     void switchCaseInts_2() {
         val branches = new String[] {
                 "AaAaAa", "AaAaBB", "AaBBAa", "AaBBBB",
-                "BBAaAa", "BBAaBB", "BBBBAa", "BBBBBB"
+                "BBAaAa", "BBAaBB", "BBBBAa", "BBBBBB",
+                "A", "B", "C", "D", "E", "F"
         };
 
         val result = makeInterface(impl -> {
-            val method = impl.addMethod("switchCaseStrings", String.class);
+            val method = impl.addMethod("switchCaseStrings");
+            method.setPublic();
+
+            method.setReturnType(String.class);
             method.addParameter(String.class);
 
             method.setAccess(Access.PUBLIC);
@@ -190,6 +197,8 @@ final class Tests {
         for (int i = 0; i < branches.length; i++) {
             assertEquals(String.valueOf(i), result.switchCaseStrings(branches[i]));
         }
+
+        assertEquals("Default", result.switchCaseStrings("123"));
     }
 
     @Test
@@ -197,10 +206,12 @@ final class Tests {
         val value = random.nextLong();
 
         val result = makeInterface(impl -> {
-            val method = impl.addMethod("castLongToByte", byte.class);
+            val method = impl.addMethod("castLongToByte");
+            method.setPublic();
+
+            method.setReturnType(byte.class);
             method.addParameter(long.class);
 
-            method.setAccess(Access.PUBLIC);
             method.setOverrides(MultifunctionalInterface.class);
 
             val code = method.getBytecode();
@@ -217,10 +228,12 @@ final class Tests {
         val value = random.nextInt();
 
         val result = makeInterface(impl -> {
-            val method = impl.addMethod("box", Integer.class);
+            val method = impl.addMethod("box");
+            method.setPublic();
+
+            method.setReturnType(Object.class);
             method.addParameter(int.class);
 
-            method.setAccess(Access.PUBLIC);
             method.setOverrides(MultifunctionalInterface.class);
 
             val code = method.getBytecode();
@@ -237,9 +250,12 @@ final class Tests {
         val value = random.nextInt();
 
         val result = makeInterface(impl -> {
-            val method = impl.addMethod("unbox", int.class);
+            val method = impl.addMethod("unbox");
+            method.setPublic();
+
+            method.setReturnType(Integer.class);
             method.addParameter(Integer.class);
-            method.setAccess(Access.PUBLIC);
+
             method.setOverrides(MultifunctionalInterface.class);
 
             val code = method.getBytecode();

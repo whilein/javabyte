@@ -14,30 +14,32 @@
  *    limitations under the License.
  */
 
-package javabyte;
+package javabyte.opcode;
 
-/**
- * @author whilein
- */
-public interface MultifunctionalInterface<T> {
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 
-    default Object box(final int value) {
-        return null;
-    }
+@Getter
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+public enum JumpOpcode {
+    IFEQ(153),
+    IFNE(154),
+    IFLT(155),
+    IFGE(156),
+    IFGT(157),
+    IFLE(158),
+    IF_ICMPEQ(159),
+    IF_ICMPNE(160),
+    IF_ICMPLT(161),
+    IF_ICMPGE(162),
+    IF_ICMPGT(163),
+    IF_ICMPLE(164),
+    IF_ACMPEQ(165),
+    IF_ACMPNE(166),
+    GOTO(167);
 
-    default int unbox(final Integer value) {
-        return 0;
-    }
-
-    default byte castLongToByte(final long value) {
-        return 0;
-    }
-
-    default int calc(final int a, final int b) {
-        return 0;
-    }
-
-    default String switchCaseInts(final int value) { return null; }
-    default String switchCaseStrings(final String value) { return null; }
-
+    int opcode;
 }

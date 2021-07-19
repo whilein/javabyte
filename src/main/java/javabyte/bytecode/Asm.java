@@ -22,6 +22,7 @@ import javabyte.make.MakeExecutable;
 import javabyte.name.Name;
 import javabyte.name.Names;
 import javabyte.opcode.FieldOpcode;
+import javabyte.opcode.JumpOpcode;
 import javabyte.opcode.MathOpcode;
 import javabyte.opcode.MethodOpcode;
 import javabyte.signature.MethodSignature;
@@ -50,6 +51,24 @@ public class Asm {
         return new BytecodeImpl(new ArrayList<>());
     }
 
+    @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+    private static final class PositionImpl implements Position {
+
+        Label label;
+
+        @Override
+        public void visit(final @NonNull MethodVisitor mv) {
+            mv.visitLabel(label);
+        }
+
+        @Override
+        public void jump(final @NonNull MethodVisitor mv, final int opcode) {
+            mv.visitJumpInsn(opcode, label);
+        }
+
+    }
+
     @FieldDefaults(level = AccessLevel.PRIVATE)
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
@@ -72,7 +91,7 @@ public class Asm {
         }
 
         @Override
-        public void compile(@NotNull final MakeExecutable executable, @NotNull final MethodVisitor visitor) {
+        public void compile(final @NonNull MakeExecutable executable, final @NonNull MethodVisitor visitor) {
             val locals = new ArrayList<Local>();
 
             int localSize = 0;
@@ -106,6 +125,21 @@ public class Asm {
 
         protected void insn(final Consumer<Compile> instruction) {
             instructions.add(instruction);
+        }
+
+        @Override
+        public @NotNull Position newPos() {
+            return new PositionImpl(new Label());
+        }
+
+        @Override
+        public void setPos(final @NonNull Position position) {
+            insn(compile -> position.visit(compile.mv));
+        }
+
+        @Override
+        public void jumpPos(final @NonNull JumpOpcode opcode, final @NonNull Position position) {
+            insn(compile -> position.jump(compile.mv, opcode.getOpcode()));
         }
 
         @Override
@@ -281,7 +315,7 @@ public class Asm {
         }
 
         @Override
-        public void callMacro(@NotNull final Macro macro) {
+        public void callMacro(final @NonNull Macro macro) {
             insn(compile -> {
                 switch (macro) {
                     case SOUT:
@@ -436,12 +470,12 @@ public class Asm {
         }
 
         @Override
-        public void callCast(@NotNull final Type to) {
+        public void callCast(final @NonNull Type to) {
             _callCast(Names.of(to));
         }
 
         @Override
-        public void callCast(@NotNull final Name to) {
+        public void callCast(final @NonNull Name to) {
             _callCast(to);
         }
 
@@ -743,8 +777,8 @@ public class Asm {
                         .map(CaseBranchImpl::getLabel).orElse(null);
 
                 mv.visitLookupSwitchInsn(defaultLabel,
-                        new int[] { 0 },
-                        new Label[] { firstBranch });
+                        new int[]{0},
+                        new Label[]{firstBranch});
             }
 
             compile.popStack();

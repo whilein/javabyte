@@ -33,6 +33,11 @@ public interface MakeElement {
     void setFinal(boolean flag);
     void setStatic(boolean flag);
 
+    void setPublic();
+    void setPublicFinal();
+    void setPrivate();
+    void setPrivateFinal();
+
     boolean isFinal();
     boolean isStatic();
 
