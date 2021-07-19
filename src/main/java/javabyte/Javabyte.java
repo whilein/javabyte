@@ -290,18 +290,33 @@ public class Javabyte {
 
                 if (method.shouldMakeBridge()) {
                     val overrides = executable.overrides;
+                    val oldParameters = executable.parameters;
+                    val newParameters = overrides.parameterTypes;
+
+                    if (oldParameters.size() != newParameters.length) {
+                        throw new IllegalStateException("Cannot override method "
+                                + overrides.type.getName() + "#" + method.getName()
+                                + " because the method has " + newParameters.length + " parameters"
+                                + ", but implementation has " + oldParameters.size());
+                    }
 
                     val bridge = _initMethod(executable.getName());
                     bridge.setReturnType(overrides.returnType);
+                    bridge.setParameters(newParameters);
 
-                    bridge.setParameters(overrides.parameterTypes);
                     bridge.setModifiers(executable.getAccess().getOpcode() | Opcodes.ACC_BRIDGE | Opcodes.ACC_SYNTHETIC);
 
                     val code = bridge.getBytecode();
                     code.loadLocal(0);
+
+                    for (int i = 0; i < newParameters.length; i++) {
+                        code.loadLocal(i + 1);
+                        code.callCast(oldParameters.get(i));
+                    }
+
                     code.methodInsn(MethodOpcode.VIRTUAL, executable.getName())
-                            .in(overrides.type)
-                            .descriptor(executable.getReturnType());
+                            .in(name).descriptor(executable.getSignature());
+
                     code.callReturn();
 
                     addExecutable(writer, bridge);
@@ -556,7 +571,7 @@ public class Javabyte {
                 final Class<?> returnType,
                 final Class<?>... parameterTypes
         ) {
-            _setOverrides(type, Names.exact(returnType), Names.exact(parameterTypes));
+            _setOverrides(type, Names.of(returnType), Names.of(parameterTypes));
         }
 
         @Override
@@ -619,7 +634,7 @@ public class Javabyte {
 
         @Override
         public final void addException(final @NonNull Class<?> type) {
-            exceptions.add(Names.exact(type));
+            exceptions.add(Names.of(type));
         }
 
         @Override
@@ -629,12 +644,12 @@ public class Javabyte {
 
         @Override
         public final void setExceptionTypes(final @NonNull Collection<@NotNull Class<?>> types) {
-            _setExceptions(types.stream().map(Names::exact).collect(Collectors.toList()));
+            _setExceptions(types.stream().map(Names::of).collect(Collectors.toList()));
         }
 
         @Override
         public final void setExceptionTypes(final @NotNull Class<?> @NotNull ... types) {
-            _setExceptions(Arrays.stream(types).map(Names::exact).collect(Collectors.toList()));
+            _setExceptions(Arrays.stream(types).map(Names::of).collect(Collectors.toList()));
         }
 
         @Override

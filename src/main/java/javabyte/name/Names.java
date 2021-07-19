@@ -113,7 +113,7 @@ public class Names {
         return WRAPPERS[primitive.getPrimitive()];
     }
 
-    public @NotNull ExactName exact(final @NonNull Class<?> cls) {
+    public @NotNull ExactName of(final @NonNull Class<?> cls) {
         return _getCacheOrInit(cls.getName(), false);
     }
 
@@ -137,7 +137,7 @@ public class Names {
         return _fromArray(names, false);
     }
 
-    public @NotNull ExactName @NotNull [] exact(final @NotNull Class<?> @NonNull [] types) {
+    public @NotNull ExactName @NotNull [] of(final @NotNull Class<?> @NonNull [] types) {
         return _fromArray(types);
     }
 

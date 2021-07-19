@@ -328,10 +328,14 @@ public class Asm {
                         compile.mv.visitFieldInsn(GETSTATIC, "java/lang/System", "out",
                                 "Ljava/io/PrintStream;");
 
+                        compile.pushStack(Names.of("java/lang/PrintStream"));
+
                         compile.mv.visitInsn(SWAP);
 
                         compile.mv.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println",
                                 "(" + descriptor + ")V", false);
+
+                        compile.popStack();
 
                         break;
                 }
