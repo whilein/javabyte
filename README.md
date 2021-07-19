@@ -64,7 +64,35 @@ Runnable sayHelloWorld = type.load(CLASS_LOADER)
 
 sayHelloWorld.run();
 ```
+> Sum two numbers
+```java
+MakeClass type = Javabyte.make("Calculator");
+type.setPublicFinal();
 
+type.addInterface(Names.of(BiFunction.class)
+        .parameterized(Integer.class, Integer.class, Integer.class));
+
+MakeMethod apply = type.addMethod("apply");
+apply.setPublic();
+apply.setReturnType(Integer.class);
+apply.setParameterTypes(Integer.class, Integer.class);
+apply.setOverrides(BiFunction.class);
+
+Bytecode applyCode = apply.getBytecode();
+applyCode.loadLocal(1); // push local 1 (Integer) to stack
+applyCode.callUnbox(); // convert Integer to int
+applyCode.loadLocal(2); // push local 2 (Integer) to stack
+applyCode.callUnbox(); // convert Integer to int
+applyCode.callMath(MathOpcode.IADD); // sum two integers
+applyCode.callBox(); // convert int to Integer
+applyCode.callReturn(); // return int
+
+Calculator calculator = type.load(Example.class.getClassLoader())
+        .asSubclass(BiFunction.class)
+        .newInstance();
+
+return calculator.apply(10, 20);
+```
 ## Contact
 [Vkontakte](https://vk.com/id623151994),
 [Telegram](https://t.me/whilein)
