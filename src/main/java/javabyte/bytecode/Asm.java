@@ -884,11 +884,14 @@ public class Asm {
                 throw new IllegalStateException("You should to specify descriptor using FieldInsn#descriptor method!");
             }
 
-            if (opcode == FieldOpcode.PUT || opcode == FieldOpcode.PUT_STATIC) {
-                compile.popStack();
+            if (opcode == FieldOpcode.PUT || opcode == FieldOpcode.GET) {
+                compile.popStack(); // pop instance
             }
 
-            compile.popStack();
+            if (opcode == FieldOpcode.PUT || opcode == FieldOpcode.PUT_STATIC) {
+                compile.popStack(); // pop new field value
+            }
+
             compile.mv.visitFieldInsn(opcode.getOpcode(), owner.apply(compile).getInternalName(),
                     name, descriptor.getDescriptor());
             compile.pushStack(descriptor);
