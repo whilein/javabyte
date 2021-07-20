@@ -110,6 +110,22 @@ body.loadLocal(loop.getElementLocal());
 // log element to console
 body.callMacro(Macro.SOUT);
 ```
+> Switch-Case statement
+```java
+code.loadString("Some string");
+
+// for integers you should use intsSwitchCaseInsn()
+StringsSwitchInsn switchCase = code.stringsSwitchCaseInsn();
+
+// following code is equal to
+// case "A": case "B": case "C":
+//   return "A or B or C";
+switchCase.branch("A");
+switchCase.branch("B");
+CaseBranch branchAorBorC = switchCase.branch("C");
+branchAorBorC.loadString("A or B or C");
+branchAorBorC.callReturn();
+```
 ## Contact
 [Vkontakte](https://vk.com/id623151994),
 [Telegram](https://t.me/whilein)
