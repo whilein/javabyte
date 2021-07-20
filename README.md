@@ -87,7 +87,7 @@ applyCode.callMath(MathOpcode.IADD); // sum two integers
 applyCode.callBox(); // convert int to Integer
 applyCode.callReturn(); // return int
 
-Calculator calculator = type.load(Example.class.getClassLoader())
+BiFunction calculator = type.load(Example.class.getClassLoader())
         .asSubclass(BiFunction.class)
         .newInstance();
 
