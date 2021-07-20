@@ -21,10 +21,7 @@ import javabyte.bytecode.macro.Macro;
 import javabyte.make.MakeExecutable;
 import javabyte.name.Name;
 import javabyte.name.Names;
-import javabyte.opcode.FieldOpcode;
-import javabyte.opcode.JumpOpcode;
-import javabyte.opcode.MathOpcode;
-import javabyte.opcode.MethodOpcode;
+import javabyte.opcode.*;
 import javabyte.signature.MethodSignature;
 import javabyte.signature.Signatures;
 import lombok.*;
@@ -822,10 +819,12 @@ public class Asm {
 
     }
 
-    @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+    @FieldDefaults(level = AccessLevel.PRIVATE)
     private static final class StringsSwitchInsnImpl
             extends AbstractSwitchInsn<String>
             implements Consumer<Compile>, StringsSwitchInsn {
+
+        StringsSwitchImplementation impl = StringsSwitchImplementation.JAVAC;
 
         private StringsSwitchInsnImpl(
                 final Map<String, CaseBranchImpl> branches,
@@ -835,14 +834,126 @@ public class Asm {
             super(branches, defaultBranch, endLabel);
         }
 
-
-        // TODO сделать как в ECJ
-
         @Override
         public void accept(final @NonNull Compile compile) {
+            switch (impl) {
+                case JAVAC:
+                    _javac(compile);
+                    break;
+                case ECJ:
+                    _ecj(compile);
+                    break;
+            }
+        }
+
+        private void _ecj(final Compile compile) {
+            val mv = compile.mv;
+
             val switchItem = compile.popStack();
 
+            compile.pushStack(switchItem);
+            mv.visitInsn(DUP);
+
+            val switchItemLocal = compile.pushLocal(switchItem, new LocalIndexImpl());
+            mv.visitVarInsn(ASTORE, switchItemLocal.offset);
+
+            compile.popStack();
+            compile.pushStack(Names.INT);
+
+            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "hashCode",
+                    "()I", false);
+
+            val defaultLabel = defaultBranch.getLabel();
+
+            val hashes = new TreeMap<Integer, List<String>>();
+
+            for (val branch : branches.keySet()) {
+                hashes.computeIfAbsent(branch.hashCode(), __ -> new ArrayList<>())
+                        .add(branch);
+            }
+
+            val hashArray = hashes.keySet().stream()
+                    .mapToInt(Integer::intValue)
+                    .toArray();
+
+            val lo = hashes.firstKey();
+            val hi = hashes.lastKey();
+
+            val nHashLabels = hashes.size();
+            val hashBranches = new Label[nHashLabels];
+
+            for (int i = 0, j = hashBranches.length; i < j; i++)
+                hashBranches[i] = new Label();
+
+            compile.popStack();
+
+            if (nHashLabels > 1 && isTableSwitchInsn(lo, hi, nHashLabels)) {
+                val table = new Label[hi - lo + 1];
+
+                int counter = 0;
+
+                for (int i = 0; i < table.length; i++) {
+                    val hash = hashes.get(lo + i);
+
+                    table[i] = hash == null
+                            ? defaultLabel
+                            : hashBranches[counter++];
+                }
+
+                // eclipse compiler doesn't uses table switch,
+                // but why not
+                mv.visitTableSwitchInsn(lo, hi, defaultLabel, table);
+            } else {
+                mv.visitLookupSwitchInsn(defaultLabel, hashArray, hashBranches);
+            }
+
+            int hashCounter = 0;
+
+            val end = new Label();
+
+            for (val branches : hashes.values()) {
+                mv.visitLabel(hashBranches[hashCounter]);
+
+                for (val branch : branches) {
+                    compile.pushStack(Names.STRING);
+                    compile.pushStack(Names.STRING);
+
+                    mv.visitVarInsn(ALOAD, switchItemLocal.offset);
+                    mv.visitLdcInsn(branch);
+
+                    compile.popStack();
+                    compile.popStack();
+
+                    compile.pushStack(Names.INT);
+
+                    mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "equals",
+                            "(Ljava/lang/Object;)Z", false);
+
+                    compile.popStack();
+
+                    mv.visitJumpInsn(IFNE, this.branches.get(branch).getLabel());
+                }
+
+                mv.visitJumpInsn(GOTO, defaultLabel);
+                hashCounter++;
+            }
+
+            compile.popLocal(); // pop switch item
+
+            for (val branch : branches.values()) {
+                branch.write(compile);
+                mv.visitJumpInsn(GOTO, end);
+            }
+
+            defaultBranch.write(compile);
+
+            mv.visitLabel(end);
+        }
+
+        private void _javac(final Compile compile) {
             val mv = compile.mv;
+
+            val switchItem = compile.popStack();
 
             val switchItemLocal = compile.pushLocal(switchItem, new LocalIndexImpl());
             mv.visitVarInsn(ASTORE, switchItemLocal.offset);
@@ -857,11 +968,11 @@ public class Asm {
 
             mv.visitVarInsn(ALOAD, switchItemLocal.offset);
 
-            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "hashCode",
-                    "()I", false);
-
             compile.popStack(); // pop switch subject
             compile.pushStack(Names.INT); // push switch subject hashCode
+
+            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "hashCode",
+                    "()I", false);
 
             val defaultLabel = defaultBranch.getLabel();
 
@@ -882,7 +993,7 @@ public class Asm {
             val nHashLabels = hashes.size();
             val nLabels = branches.size();
 
-            val hashBranches = new Label[hashes.size()];
+            val hashBranches = new Label[nHashLabels];
 
             for (int i = 0, j = hashBranches.length; i < j; i++)
                 hashBranches[i] = new Label();
@@ -890,7 +1001,19 @@ public class Asm {
             val endFirstSwitchLabel = new Label();
 
             if (nHashLabels > 1 && isTableSwitchInsn(lo, hi, nHashLabels)) {
-                mv.visitTableSwitchInsn(lo, hi, endFirstSwitchLabel, hashBranches);
+                val table = new Label[hi - lo + 1];
+
+                int counter = 0;
+
+                for (int i = 0; i < table.length; i++) {
+                    val hash = hashes.get(lo + i);
+
+                    table[i] = hash == null
+                            ? endFirstSwitchLabel
+                            : hashBranches[counter++];
+                }
+
+                mv.visitTableSwitchInsn(lo, hi, endFirstSwitchLabel, table);
             } else {
                 mv.visitLookupSwitchInsn(endFirstSwitchLabel, hashArray, hashBranches);
             }
@@ -900,7 +1023,7 @@ public class Asm {
             int hashCounter = 0;
             int counter = 0;
 
-            val hashIfBranches = new Label[branches.size()];
+            val hashIfBranches = new Label[nLabels];
 
             for (int i = 0; i < hashIfBranches.length; i++)
                 hashIfBranches[i] = new Label();
@@ -981,6 +1104,13 @@ public class Asm {
             defaultBranch.write(compile);
 
             mv.visitLabel(endLabel);
+        }
+
+        @Override
+        public @NotNull StringsSwitchInsn impl(final @NonNull StringsSwitchImplementation impl) {
+            this.impl = impl;
+
+            return this;
         }
 
         @Override

@@ -14,18 +14,13 @@
  *    limitations under the License.
  */
 
-package javabyte.bytecode.insn;
-
-import javabyte.bytecode.CaseBranch;
-import javabyte.opcode.StringsSwitchImplementation;
-import org.jetbrains.annotations.NotNull;
+package javabyte.opcode;
 
 /**
  * @author whilein
  */
-public interface StringsSwitchInsn extends SwitchInsn {
+public enum StringsSwitchImplementation {
 
-    @NotNull StringsSwitchInsn impl(@NotNull StringsSwitchImplementation impl);
-    @NotNull CaseBranch branch(@NotNull String value);
+    JAVAC, ECJ
 
 }

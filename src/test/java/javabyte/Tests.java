@@ -21,13 +21,13 @@ import javabyte.make.MakeMethod;
 import javabyte.opcode.JumpOpcode;
 import javabyte.opcode.MathOpcode;
 import javabyte.opcode.MethodOpcode;
+import javabyte.opcode.StringsSwitchImplementation;
 import javabyte.type.Access;
 import lombok.SneakyThrows;
 import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.File;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Arrays;
@@ -54,7 +54,7 @@ final class Tests {
     }
 
     private int[] randomInts(final int max, final int min, final int count) {
-        val ints = new int[] { count };
+        val ints = new int[]{count};
 
         for (int i = 0; i < ints.length; i++) {
             ints[i] = random.nextInt(max - min) + min;
@@ -62,6 +62,7 @@ final class Tests {
 
         return ints;
     }
+
     private String randomText(final int length) {
         val chars = new char[length];
 
@@ -84,14 +85,12 @@ final class Tests {
     private MultifunctionalInterface<?> makeInterface(
             final Consumer<MakeClass> init
     ) {
-        val impl = Javabyte.make("gen.MultifunctionInterfaceImpl");
+        val impl = Javabyte.make("gen.MultifunctionalInterfaceImpl");
 
         impl.addInterface(MultifunctionalInterface.class);
         impl.setPublicFinal();
 
         init.accept(impl);
-
-        impl.writeClass(new File("MultifunctionInterfaceImpl.class"));
 
         val classLoader = new URLClassLoader(new URL[0], getClass().getClassLoader());
 
@@ -327,10 +326,12 @@ final class Tests {
 
     @Test
     void switchCaseInts_2() {
-        val branches = new String[]{
+        val randomBranches = randomTexts(100, 100);
+        val randomBranchList = Arrays.asList(randomBranches);
+
+        val sameHashBranches = new String[]{
                 "AaAaAa", "AaAaBB", "AaBBAa", "AaBBBB",
-                "BBAaAa", "BBAaBB", "BBBBAa", "BBBBBB",
-                "A", "B", "C", "D", "E", "F"
+                "BBAaAa", "BBAaBB", "BBBBAa", "BBBBBB"
         };
 
         val result = makeInterface(impl -> {
@@ -346,11 +347,21 @@ final class Tests {
             val code = method.getBytecode();
             code.loadLocal(1);
 
-            val switchCase = code.stringsSwitchCaseInsn();
+            val switchCase = code.stringsSwitchCaseInsn()
+                    .impl(StringsSwitchImplementation.JAVAC);
 
-            for (int i = 0; i < branches.length; i++) {
-                val branch = switchCase.branch(branches[i]);
+            for (int i = 0; i < randomBranches.length; i++) {
+                val branch = switchCase.branch(randomBranches[i]);
                 branch.loadString(Integer.toString(i));
+                branch.callReturn();
+            }
+
+            for (int i = 0; i < sameHashBranches.length; i++) {
+                val sameHashBranch = sameHashBranches[i];
+                if (randomBranchList.contains(sameHashBranch)) continue;
+
+                val branch = switchCase.branch(sameHashBranch);
+                branch.loadString("SameHash#" + i);
                 branch.callReturn();
             }
 
@@ -359,8 +370,15 @@ final class Tests {
             defaultBranch.callReturn();
         });
 
-        for (int i = 0; i < branches.length; i++) {
-            assertEquals(String.valueOf(i), result.switchCaseStrings(branches[i]));
+        for (int i = 0; i < randomBranches.length; i++) {
+            assertEquals(String.valueOf(i), result.switchCaseStrings(randomBranches[i]));
+        }
+
+        for (int i = 0; i < sameHashBranches.length; i++) {
+            val sameHashBranch = sameHashBranches[i];
+            if (randomBranchList.contains(sameHashBranch)) continue;
+
+            assertEquals("SameHash#" + i, result.switchCaseStrings(sameHashBranch));
         }
 
         assertEquals("Default", result.switchCaseStrings("123"));
