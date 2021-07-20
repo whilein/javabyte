@@ -273,7 +273,7 @@ public class Names {
             val parameterTypes = parameterized.getActualTypeArguments();
 
             val raw = _fromType(rawType);
-            val parameters = _fromArray(parameterTypes);
+            val parameters = _getParams(parameterTypes);
 
             return new ParameterizedNameImpl((ExactName) raw, parameters);
         } else {

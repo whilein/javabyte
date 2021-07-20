@@ -17,7 +17,7 @@
 package javabyte.bytecode.insn;
 
 import javabyte.bytecode.LocalIndex;
-import javabyte.bytecode.LoopBranch;
+import javabyte.bytecode.branch.LoopBranch;
 import javabyte.name.Name;
 import org.jetbrains.annotations.NotNull;
 

@@ -16,7 +16,7 @@
 
 package javabyte.bytecode.insn;
 
-import javabyte.bytecode.CaseBranch;
+import javabyte.bytecode.branch.CaseBranch;
 import org.jetbrains.annotations.NotNull;
 
 /**

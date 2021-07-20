@@ -16,6 +16,8 @@
 
 package javabyte.bytecode;
 
+import javabyte.bytecode.branch.CaseBranch;
+import javabyte.bytecode.branch.LoopBranch;
 import javabyte.bytecode.insn.*;
 import javabyte.bytecode.macro.Macro;
 import javabyte.make.MakeExecutable;
@@ -118,11 +120,15 @@ public class Asm {
 
     @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
     private static final class LoopBranchImpl extends InstructionSetImpl implements LoopBranch {
+
+        @Getter
+        InstructionSet parent;
         Label continueLoop;
         Label insideLoop;
         Label afterLoop;
 
         protected LoopBranchImpl(
+                final InstructionSet parent,
                 final List<Consumer<Compile>> instructions,
                 final Label continueLoop,
                 final Label insideLoop,
@@ -130,6 +136,7 @@ public class Asm {
         ) {
             super(instructions);
 
+            this.parent = parent;
             this.continueLoop = continueLoop;
             this.insideLoop = insideLoop;
             this.afterLoop = afterLoop;
@@ -160,6 +167,47 @@ public class Asm {
                 insn.accept(compile);
             }
         }
+
+        @Override
+        public void callContinue(final int depth) {
+            jumpPos(JumpOpcode.GOTO, getContinue(depth));
+        }
+
+        @Override
+        public @NotNull Position getContinue(final int depth) {
+            return _getOuter(depth).getContinue();
+        }
+
+        @Override
+        public void callBreak(final int depth) {
+            jumpPos(JumpOpcode.GOTO, getBreak(depth));
+        }
+
+        @Override
+        public @NotNull Position getBreak(final int depth) {
+            return _getOuter(depth).getBreak();
+        }
+
+        private LoopBranch _getOuter(final int depth) {
+            if (depth < 1) {
+                throw new IllegalArgumentException("depth < 1");
+            }
+
+            if (depth == 1) {
+                return this;
+            }
+
+            LoopBranch current = this;
+            int counter = 0;
+
+            while (counter < depth && current.getParent() instanceof LoopBranch) {
+                current = (LoopBranch) current.getParent();
+                counter++;
+            }
+
+            return current;
+        }
+
     }
 
     @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -182,7 +230,7 @@ public class Asm {
 
             val mv = compile.mv;
 
-            if (this.iterableIndex.isInitialized()) {
+            if (this.iterableIndex != null) {
                 iterable = compile.locals.get(this.iterableIndex.getValue()).name;
                 iterableIndex = this.iterableIndex;
             } else {
@@ -357,7 +405,7 @@ public class Asm {
         public @NotNull IterateOverInsn iterateOverInsn() {
             val insn = new IterateOverInsnImpl(
                     new LocalIndexImpl(),
-                    new LoopBranchImpl(new ArrayList<>(), new Label(), new Label(), new Label())
+                    new LoopBranchImpl(this, new ArrayList<>(), new Label(), new Label(), new Label())
             );
             insn(insn);
 
@@ -730,7 +778,8 @@ public class Asm {
             val endLabel = new Label();
             val defaultLabel = new Label();
 
-            val switchInsn = new IntsSwitchInsnImpl(new HashMap<>(), CaseBranchImpl.create(defaultLabel),
+            val switchInsn = new IntsSwitchInsnImpl(this, new HashMap<>(),
+                    CaseBranchImpl.create(defaultLabel, this),
                     endLabel);
 
             insn(switchInsn);
@@ -743,7 +792,8 @@ public class Asm {
             val endLabel = new Label();
             val defaultLabel = new Label();
 
-            val switchInsn = new StringsSwitchInsnImpl(new HashMap<>(), CaseBranchImpl.create(defaultLabel),
+            val switchInsn = new StringsSwitchInsnImpl(this, new HashMap<>(),
+                    CaseBranchImpl.create(defaultLabel, this),
                     endLabel);
 
             insn(switchInsn);
@@ -762,19 +812,25 @@ public class Asm {
 
         Label endLabel;
 
+        @Getter
+        InstructionSet parent;
+
         private CaseBranchImpl(
                 final List<Consumer<Compile>> instructions,
                 final Label label,
-                final Label endLabel
+                final Label endLabel,
+                final InstructionSet parent
         ) {
             super(instructions);
 
             this.label = label;
             this.endLabel = endLabel;
+
+            this.parent = parent;
         }
 
-        private static CaseBranchImpl create(final Label endLabel) {
-            return new CaseBranchImpl(new ArrayList<>(), new Label(), endLabel);
+        private static CaseBranchImpl create(final Label endLabel, final InstructionSet parent) {
+            return new CaseBranchImpl(new ArrayList<>(), new Label(), endLabel, parent);
         }
 
         private void write(final Compile compile) {
@@ -788,6 +844,11 @@ public class Asm {
         @Override
         public void callBreak() {
             insn(compiler -> compiler.mv.visitJumpInsn(GOTO, endLabel));
+        }
+
+        @Override
+        public @NotNull Position getBreak() {
+            return new PositionImpl(endLabel);
         }
     }
 
@@ -824,14 +885,19 @@ public class Asm {
             extends AbstractSwitchInsn<String>
             implements Consumer<Compile>, StringsSwitchInsn {
 
+        final InstructionSet parent;
+
         StringsSwitchImplementation impl = StringsSwitchImplementation.JAVAC;
 
         private StringsSwitchInsnImpl(
+                final InstructionSet parent,
                 final Map<String, CaseBranchImpl> branches,
                 final CaseBranchImpl defaultBranch,
                 final Label endLabel
         ) {
             super(branches, defaultBranch, endLabel);
+
+            this.parent = parent;
         }
 
         @Override
@@ -1115,7 +1181,7 @@ public class Asm {
 
         @Override
         public @NotNull CaseBranch branch(final @NonNull String value) {
-            return branches.computeIfAbsent(value, __ -> CaseBranchImpl.create(endLabel));
+            return branches.computeIfAbsent(value, __ -> CaseBranchImpl.create(endLabel, parent));
         }
 
     }
@@ -1125,12 +1191,17 @@ public class Asm {
             extends AbstractSwitchInsn<Integer>
             implements Consumer<Compile>, IntsSwitchInsn {
 
+        InstructionSet parent;
+
         private IntsSwitchInsnImpl(
+                final InstructionSet parent,
                 final Map<Integer, CaseBranchImpl> branches,
                 final CaseBranchImpl defaultBranch,
                 final Label endLabel
         ) {
             super(branches, defaultBranch, endLabel);
+
+            this.parent = parent;
         }
 
         @Override
@@ -1181,7 +1252,7 @@ public class Asm {
 
         @Override
         public @NotNull CaseBranch branch(final int value) {
-            return branches.computeIfAbsent(value, __ -> CaseBranchImpl.create(endLabel));
+            return branches.computeIfAbsent(value, __ -> CaseBranchImpl.create(endLabel, parent));
         }
 
     }

@@ -28,6 +28,7 @@ import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Arrays;
@@ -91,6 +92,8 @@ final class Tests {
         impl.setPublicFinal();
 
         init.accept(impl);
+
+        impl.writeClass(new File("MultifunctionalInterfaceImpl.class"));
 
         val classLoader = new URLClassLoader(new URL[0], getClass().getClassLoader());
 

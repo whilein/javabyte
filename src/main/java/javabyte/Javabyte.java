@@ -544,13 +544,13 @@ public class Javabyte {
 
             if (methods.isEmpty()) {
                 throw new IllegalStateException("Cannot override method "
-                        + type.getDeclaringClass().getName() + "#" + name
+                        + type.getName() + "#" + name
                         + ": No method found");
             }
 
             if (methods.size() > 1) {
                 throw new IllegalStateException("Cannot override method "
-                        + type.getDeclaringClass().getName() + "#" + name
+                        + type.getName() + "#" + name
                         + ": The class has multiple methods with name " + name);
             }
 

@@ -14,18 +14,16 @@
  *    limitations under the License.
  */
 
-package javabyte.bytecode;
+package javabyte.bytecode.branch;
 
+import javabyte.bytecode.Position;
 import org.jetbrains.annotations.NotNull;
 
 /**
  * @author whilein
  */
-public interface LoopBranch extends InstructionSet {
-    void callContinue();
+public interface Breakable {
     void callBreak();
 
-    @NotNull Position getContinue();
     @NotNull Position getBreak();
-
 }

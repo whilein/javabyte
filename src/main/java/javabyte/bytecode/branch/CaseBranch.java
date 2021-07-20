@@ -14,13 +14,11 @@
  *    limitations under the License.
  */
 
-package javabyte.bytecode;
+package javabyte.bytecode.branch;
 
 /**
  * @author whilein
  */
-public interface CaseBranch extends InstructionSet {
-
-    void callBreak();
+public interface CaseBranch extends Breakable, Branch {
 
 }
