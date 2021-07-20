@@ -76,11 +76,11 @@ public class Asm {
 
         @Getter
         @Setter
-        int value;
+        int value = -1;
 
         @Override
         public boolean isInitialized() {
-            return value != 0;
+            return value != -1;
         }
 
     }
@@ -115,6 +115,203 @@ public class Asm {
 
             visitor.visitMaxs(compile.maxStackSize, compile.maxLocalSize);
         }
+
+
+    }
+
+    @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+    private static final class LoopBranchImpl extends InstructionSetImpl implements LoopBranch {
+        Label insideLoop;
+        Label afterLoop;
+
+        protected LoopBranchImpl(
+                final List<Consumer<Compile>> instructions,
+                final Label insideLoop,
+                final Label afterLoop
+        ) {
+            super(instructions);
+
+            this.insideLoop = insideLoop;
+            this.afterLoop = afterLoop;
+        }
+
+        @Override
+        public void callContinue() {
+            insn(compile -> compile.mv.visitJumpInsn(GOTO, insideLoop));
+        }
+
+        @Override
+        public void callBreak() {
+            insn(compile -> compile.mv.visitJumpInsn(GOTO, afterLoop));
+        }
+
+        private void write(final Compile compile) {
+            for (val insn : instructions) {
+                insn.accept(compile);
+            }
+        }
+    }
+
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+    private static final class IterateOverInsnImpl implements IterateOverInsn, Consumer<Compile> {
+
+        @Getter
+        final LocalIndex elementLocal;
+
+        @Getter
+        final LoopBranchImpl body;
+
+        Name elementType;
+        LocalIndex iterableIndex;
+
+        @Override
+        public void accept(final Compile compile) {
+            final Name iterable;
+            final LocalIndex iterableIndex;
+
+            val mv = compile.mv;
+
+            if (this.iterableIndex.isInitialized()) {
+                iterable = compile.locals.get(this.iterableIndex.getValue()).name;
+                iterableIndex = this.iterableIndex;
+            } else {
+                iterable = compile.popStack();
+                iterableIndex = new LocalIndexImpl();
+
+                if (iterable.isArray()) {
+                    compile.pushLocal(iterable, iterableIndex);
+                    mv.visitVarInsn(ASTORE, iterableIndex.getValue());
+                }
+            }
+
+            if (iterable.isArray()) {
+                val position = compile.pushLocal(Names.INT, new LocalIndexImpl());
+                mv.visitInsn(ICONST_0);
+                mv.visitVarInsn(ISTORE, position.offset);
+
+                val end = compile.pushLocal(Names.INT, new LocalIndexImpl());
+                mv.visitVarInsn(ALOAD, iterableIndex.getValue());
+                mv.visitInsn(ARRAYLENGTH);
+                mv.visitVarInsn(ISTORE, end.offset);
+
+                mv.visitLabel(body.insideLoop);
+
+                mv.visitVarInsn(ILOAD, position.offset);
+                mv.visitVarInsn(ILOAD, end.offset);
+
+                mv.visitJumpInsn(IF_ICMPGE, body.afterLoop);
+
+                mv.visitVarInsn(ALOAD, iterableIndex.getValue());
+                mv.visitVarInsn(ILOAD, position.offset);
+
+                val component = compile.loadFromArray(iterable);
+
+                if (elementType != null) {
+                    compile.callCast(component, elementType);
+
+                    compile.popStack();
+                    compile.pushStack(elementType);
+                }
+
+                compile.pushLocal(component, elementLocal);
+                mv.visitVarInsn(component.toType().getOpcode(ISTORE), elementLocal.getValue());
+
+                body.write(compile);
+
+                mv.visitIincInsn(position.offset, 1);
+                mv.visitJumpInsn(GOTO, body.insideLoop);
+                compile.popLocal(); // position
+                compile.popLocal(); // length
+                compile.popLocal(); // element
+            } else {
+                final LocalIndex iteratorIndex;
+
+                if (iterableIndex.isInitialized()) {
+                    // load from local
+                    mv.visitVarInsn(ALOAD, iterableIndex.getValue());
+
+                    iteratorIndex = new LocalIndexImpl();
+                } else {
+                    // already in stack
+                    iteratorIndex = iterableIndex;
+                }
+
+                mv.visitMethodInsn(
+                        INVOKEINTERFACE,
+                        Names.ITERABLE.getInternalName(),
+                        "iterator", "()" + Names.ITERATOR.getDescriptor(),
+                        true
+                );
+
+                compile.pushLocal(Names.ITERABLE, iteratorIndex);
+                mv.visitVarInsn(ASTORE, iteratorIndex.getValue());
+
+                mv.visitLabel(body.insideLoop);
+                mv.visitVarInsn(ALOAD, iteratorIndex.getValue());
+
+                mv.visitMethodInsn(
+                        INVOKEINTERFACE,
+                        Names.ITERATOR.getInternalName(),
+                        "hasNext", "()Z",
+                        true
+                );
+
+                mv.visitJumpInsn(IFEQ, body.afterLoop);
+                mv.visitVarInsn(ALOAD, iteratorIndex.getValue());
+
+                mv.visitMethodInsn(
+                        INVOKEINTERFACE,
+                        Names.ITERATOR.getInternalName(),
+                        "next", "()" + Names.OBJECT.getDescriptor(),
+                        true
+                );
+
+                if (elementType != null) {
+                    mv.visitTypeInsn(CHECKCAST, elementType.getInternalName());
+                    compile.pushLocal(elementType, elementLocal);
+                } else {
+                    compile.pushLocal(Names.OBJECT, elementLocal);
+                }
+
+                mv.visitVarInsn(ASTORE, elementLocal.getValue());
+                body.write(compile);
+                mv.visitJumpInsn(GOTO, body.insideLoop);
+
+                compile.popLocal(); // iterator
+                compile.popLocal(); // element
+            }
+
+            mv.visitLabel(body.afterLoop);
+        }
+
+        @Override
+        public @NotNull IterateOverInsn source(final @NonNull LocalIndex index) {
+            this.iterableIndex = index;
+
+            return this;
+        }
+
+        @Override
+        public @NotNull IterateOverInsn source(final int index) {
+            this.iterableIndex = new LocalIndexImpl(index);
+
+            return this;
+        }
+
+        @Override
+        public @NotNull IterateOverInsn element(final @NonNull Name type) {
+            this.elementType = type;
+
+            return this;
+        }
+
+        @Override
+        public @NotNull IterateOverInsn element(final @NonNull Type type) {
+            this.elementType = Names.of(type);
+
+            return this;
+        }
     }
 
     @FieldDefaults(level = AccessLevel.PROTECTED, makeFinal = true)
@@ -125,6 +322,17 @@ public class Asm {
 
         protected void insn(final Consumer<Compile> instruction) {
             instructions.add(instruction);
+        }
+
+        @Override
+        public @NotNull IterateOverInsn iterateOverInsn() {
+            val insn = new IterateOverInsnImpl(
+                    new LocalIndexImpl(),
+                    new LoopBranchImpl(new ArrayList<>(), new Label(), new Label())
+            );
+            insn(insn);
+
+            return insn;
         }
 
         @Override
@@ -142,37 +350,7 @@ public class Asm {
                 compile.popStack(); // index
 
                 val array = compile.popStack();
-
-                if (array.getDimensions() > 1 || !array.isPrimitive()) {
-                    compile.mv.visitInsn(AALOAD);
-                } else {
-                    switch (array.getPrimitive()) {
-                        case Names.BYTE_TYPE:
-                        case Names.BOOL_TYPE:
-                            compile.mv.visitInsn(BALOAD);
-                            break;
-                        case Names.CHAR_TYPE:
-                            compile.mv.visitInsn(CALOAD);
-                            break;
-                        case Names.SHORT_TYPE:
-                            compile.mv.visitInsn(SALOAD);
-                            break;
-                        case Names.INT_TYPE:
-                            compile.mv.visitInsn(IALOAD);
-                            break;
-                        case Names.LONG_TYPE:
-                            compile.mv.visitInsn(LALOAD);
-                            break;
-                        case Names.FLOAT_TYPE:
-                            compile.mv.visitInsn(FALOAD);
-                            break;
-                        case Names.DOUBLE_TYPE:
-                            compile.mv.visitInsn(DALOAD);
-                            break;
-                    }
-                }
-
-                compile.pushStack(array.dimensions(array.getDimensions() - 1));
+                compile.pushStack(compile.loadFromArray(array));
             });
         }
 
@@ -194,7 +372,7 @@ public class Asm {
         @Override
         public void loadLocal(final @NonNull LocalIndex index) {
             insn(compile -> {
-                if (index.isInitialized()) {
+                if (!index.isInitialized()) {
                     throw new IllegalStateException("Index isn't initialized");
                 }
 
@@ -206,9 +384,9 @@ public class Asm {
         public void storeLocal(final int index) {
             insn(compile -> {
                 val stack = compile.popStack();
+                val local = compile.replaceLocal(new LocalIndexImpl(index), stack);
 
-                compile.replaceLocal(index, stack);
-                compile.mv.visitVarInsn(stack.getType().getOpcode(ISTORE), compile.localOffset(index));
+                compile.mv.visitVarInsn(stack.toType().getOpcode(ISTORE), local.offset);
             });
         }
 
@@ -216,16 +394,16 @@ public class Asm {
         public void storeLocal(final @NonNull LocalIndex index) {
             insn(compile -> {
                 val stack = compile.popStack();
+                val local = compile.replaceLocal(index, stack);
 
-                compile.replaceLocal(index.getValue(), stack);
-                compile.mv.visitVarInsn(stack.getType().getOpcode(ISTORE), compile.localOffset(index.getValue()));
+                compile.mv.visitVarInsn(stack.toType().getOpcode(ISTORE), local.offset);
             });
         }
 
         private void _loadLocal(final Compile compile, final int index) {
             val local = compile.locals.get(index);
             val localName = local.name;
-            val localType = localName.getType();
+            val localType = localName.toType();
 
             compile.mv.visitVarInsn(localType.getOpcode(ILOAD), local.offset);
             compile.pushStack(localName);
@@ -237,11 +415,9 @@ public class Asm {
 
             insn(compile -> {
                 val stack = compile.popStack();
+                val local = compile.pushLocal(stack, localIndex);
 
-                val index = compile.pushLocal(stack);
-                localIndex.setValue(index);
-
-                compile.mv.visitVarInsn(stack.getType().getOpcode(ISTORE), compile.localOffset(index));
+                compile.mv.visitVarInsn(stack.toType().getOpcode(ISTORE), local.offset);
             });
 
             return localIndex;
@@ -416,7 +592,6 @@ public class Asm {
 
         private void _callCast(final Name to) {
             insn(compile -> {
-                val mv = compile.mv;
                 val stack = compile.popStack();
 
                 if (stack.equals(to)) {
@@ -424,105 +599,7 @@ public class Asm {
                     return;
                 }
 
-                if (!stack.isArray()
-                        && stack.isPrimitive() && to.isPrimitive()
-                        && stack.getPrimitive() != Names.BOOL_TYPE
-                        && to.getPrimitive() != Names.BOOL_TYPE) {
-                    switch (stack.getPrimitive()) {
-                        case Names.BYTE_TYPE:
-                        case Names.SHORT_TYPE:
-                        case Names.CHAR_TYPE:
-                        case Names.INT_TYPE:
-                            switch (to.getPrimitive()) {
-                                case Names.FLOAT_TYPE:
-                                    mv.visitInsn(I2F);
-                                    break;
-                                case Names.DOUBLE_TYPE:
-                                    mv.visitInsn(I2D);
-                                    break;
-                                case Names.LONG_TYPE:
-                                    mv.visitInsn(I2L);
-                                    break;
-                            }
-                        case Names.FLOAT_TYPE:
-                            switch (to.getPrimitive()) {
-                                case Names.BYTE_TYPE:
-                                    mv.visitInsn(F2I);
-                                    mv.visitInsn(I2B);
-                                    break;
-                                case Names.CHAR_TYPE:
-                                    mv.visitInsn(F2I);
-                                    mv.visitInsn(I2C);
-                                    break;
-                                case Names.SHORT_TYPE:
-                                    mv.visitInsn(F2I);
-                                    mv.visitInsn(I2S);
-                                    break;
-                                case Names.INT_TYPE:
-                                    mv.visitInsn(F2I);
-                                    break;
-                                case Names.DOUBLE_TYPE:
-                                    mv.visitInsn(F2D);
-                                    break;
-                                case Names.LONG_TYPE:
-                                    mv.visitInsn(F2L);
-                                    break;
-                            }
-                        case Names.DOUBLE_TYPE:
-                            switch (to.getPrimitive()) {
-                                case Names.BYTE_TYPE:
-                                    mv.visitInsn(D2I);
-                                    mv.visitInsn(I2B);
-                                    break;
-                                case Names.CHAR_TYPE:
-                                    mv.visitInsn(D2I);
-                                    mv.visitInsn(I2C);
-                                    break;
-                                case Names.SHORT_TYPE:
-                                    mv.visitInsn(D2I);
-                                    mv.visitInsn(I2S);
-                                    break;
-                                case Names.INT_TYPE:
-                                    mv.visitInsn(D2I);
-                                    break;
-                                case Names.FLOAT_TYPE:
-                                    mv.visitInsn(D2F);
-                                    break;
-                                case Names.LONG_TYPE:
-                                    mv.visitInsn(D2L);
-                                    break;
-                            }
-                        case Names.LONG_TYPE:
-                            switch (to.getPrimitive()) {
-                                case Names.BYTE_TYPE:
-                                    mv.visitInsn(L2I);
-                                    mv.visitInsn(I2B);
-                                    break;
-                                case Names.CHAR_TYPE:
-                                    mv.visitInsn(L2I);
-                                    mv.visitInsn(I2C);
-                                    break;
-                                case Names.SHORT_TYPE:
-                                    mv.visitInsn(L2I);
-                                    mv.visitInsn(I2S);
-                                    break;
-                                case Names.INT_TYPE:
-                                    mv.visitInsn(L2I);
-                                    break;
-                                case Names.FLOAT_TYPE:
-                                    mv.visitInsn(L2F);
-                                    break;
-                                case Names.DOUBLE_TYPE:
-                                    mv.visitInsn(L2D);
-                                    break;
-                            }
-                    }
-                } else if (!stack.isPrimitive() && !to.isPrimitive()) {
-                    compile.mv.visitTypeInsn(CHECKCAST, to.isArray() ? to.getDescriptor() : to.getInternalName());
-                } else {
-                    throw new IllegalStateException("Cannot cast " + stack + " to " + to);
-                }
-
+                compile.callCast(stack, to);
                 compile.pushStack(to);
             });
         }
@@ -598,7 +675,7 @@ public class Asm {
                     compile.mv.visitInsn(RETURN);
                 } else {
                     val stack = compile.popStack();
-                    compile.mv.visitInsn(stack.getType().getOpcode(IRETURN));
+                    compile.mv.visitInsn(stack.toType().getOpcode(IRETURN));
                 }
             });
         }
@@ -713,22 +790,20 @@ public class Asm {
 
         @Override
         public void accept(final @NonNull Compile compile) {
-            compile.popStack();
+            val switchItem = compile.popStack();
 
             val mv = compile.mv;
 
-            val lastLocal = compile.localSize;
-
-            mv.visitVarInsn(ASTORE, lastLocal);
+            val switchItemLocal = compile.pushLocal(switchItem, new LocalIndexImpl());
 
             compile.pushInt(-1);
             compile.popStack();
-            mv.visitVarInsn(ISTORE, lastLocal + 1);
+            mv.visitVarInsn(ISTORE, switchItemLocal.offset);
 
-            compile.touchLocals(2);
+            val switchIndexLocal = compile.pushLocal(Names.INT, new LocalIndexImpl());
 
             compile.pushStack(Names.STRING);
-            mv.visitVarInsn(ALOAD, lastLocal);
+            mv.visitVarInsn(ALOAD, switchIndexLocal.offset);
 
             mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "hashCode",
                     "()I", false);
@@ -788,7 +863,7 @@ public class Asm {
                     compile.pushStack(Names.STRING);
                     compile.pushStack(Names.STRING);
 
-                    mv.visitVarInsn(ALOAD, lastLocal);
+                    mv.visitVarInsn(ALOAD, switchItemLocal.offset);
                     mv.visitLdcInsn(branch);
 
                     compile.popStack();
@@ -806,7 +881,7 @@ public class Asm {
                             : hashIfBranches[counter + 1]);
 
                     compile.pushInt(counter);
-                    mv.visitVarInsn(ISTORE, lastLocal + 1);
+                    mv.visitVarInsn(ISTORE, switchIndexLocal.offset);
                     compile.popStack();
 
                     mv.visitJumpInsn(GOTO, endFirstSwitchLabel);
@@ -818,7 +893,7 @@ public class Asm {
             }
 
             mv.visitLabel(endFirstSwitchLabel);
-            mv.visitVarInsn(ILOAD, lastLocal + 1);
+            mv.visitVarInsn(ILOAD, switchIndexLocal.offset);
 
             compile.pushStack(Names.INT);
 
@@ -844,6 +919,9 @@ public class Asm {
             }
 
             compile.popStack();
+
+            compile.popLocal(); // pop index
+            compile.popLocal(); // pop item
 
             for (val branch : branches.values()) {
                 branch.write(compile);
@@ -1108,10 +1186,6 @@ public class Asm {
             }
         }
 
-        private void touchLocals(final int delta) {
-            this.maxLocalSize = Math.max(maxLocalSize, localSize + delta);
-        }
-
         private void pushInt(final int value) {
             if (value >= -1 && value <= 5) {
                 mv.visitInsn(ICONST_0 + value);
@@ -1126,6 +1200,39 @@ public class Asm {
             pushStack(Names.INT);
         }
 
+        private Name loadFromArray(final Name array) {
+            if (array.getDimensions() > 1 || !array.isPrimitive()) {
+                mv.visitInsn(AALOAD);
+            } else {
+                switch (array.getPrimitive()) {
+                    case Names.BYTE_TYPE:
+                    case Names.BOOL_TYPE:
+                        mv.visitInsn(BALOAD);
+                        break;
+                    case Names.CHAR_TYPE:
+                        mv.visitInsn(CALOAD);
+                        break;
+                    case Names.SHORT_TYPE:
+                        mv.visitInsn(SALOAD);
+                        break;
+                    case Names.INT_TYPE:
+                        mv.visitInsn(IALOAD);
+                        break;
+                    case Names.LONG_TYPE:
+                        mv.visitInsn(LALOAD);
+                        break;
+                    case Names.FLOAT_TYPE:
+                        mv.visitInsn(FALOAD);
+                        break;
+                    case Names.DOUBLE_TYPE:
+                        mv.visitInsn(DALOAD);
+                        break;
+                }
+            }
+
+            return array.dimensions(array.getDimensions() - 1);
+        }
+
         private void pushStack(final Name name) {
             this.stack.push(name);
             this.stackSize += name.getSize();
@@ -1133,10 +1240,13 @@ public class Asm {
             this.maxStackSize = Math.max(maxStackSize, stackSize);
         }
 
-        private void replaceLocal(final int index, final Name name) {
-            val oldLocal = this.locals.get(index);
+        private Local replaceLocal(final LocalIndex localIndex, final Name name) {
+            val index = localIndex.getValue();
 
-            this.locals.set(index, new Local(name, oldLocal.offset, new LocalIndexImpl(index)));
+            val oldLocal = this.locals.get(index);
+            val local = new Local(name, oldLocal.offset, localIndex);
+
+            this.locals.set(index, local);
 
             val offset = name.getSize();
 
@@ -1146,28 +1256,137 @@ public class Asm {
                 for (int i = index + 1; i < locals.size(); i++) {
                     val unshiftedLocal = locals.get(i);
 
-                    locals.set(index, new Local(unshiftedLocal.name, unshiftedLocal.offset + shift,
+                    locals.set(i, new Local(unshiftedLocal.name, unshiftedLocal.offset + shift,
                             unshiftedLocal.index));
                 }
 
                 this.localSize += name.getSize();
                 this.maxLocalSize = Math.max(maxLocalSize, localSize);
             }
+
+            return local;
         }
 
-        private int pushLocal(final Name name) {
-            val localIndex = locals.size();
+        private Local pushLocal(final Name name, final LocalIndex index) {
+            index.setValue(locals.size());
 
-            this.locals.add(new Local(name, localSize, new LocalIndexImpl(localIndex)));
+            val local = new Local(name, localSize, index);
+
+            this.locals.add(local);
 
             this.localSize += name.getSize();
             this.maxLocalSize = Math.max(maxLocalSize, localSize);
 
-            return localIndex;
+            return local;
         }
 
-        private int localOffset(final int index) {
-            return locals.get(index).offset;
+        private Name popLocal() {
+            val name = this.locals.remove(this.locals.size() - 1);
+
+            this.localSize -= name.offset;
+
+            return name.name;
+        }
+
+        private void callCast(final Name from, final Name to) {
+            if (!from.isArray()
+                    && from.isPrimitive() && to.isPrimitive()
+                    && from.getPrimitive() != Names.BOOL_TYPE
+                    && to.getPrimitive() != Names.BOOL_TYPE) {
+                switch (from.getPrimitive()) {
+                    case Names.BYTE_TYPE:
+                    case Names.SHORT_TYPE:
+                    case Names.CHAR_TYPE:
+                    case Names.INT_TYPE:
+                        switch (to.getPrimitive()) {
+                            case Names.FLOAT_TYPE:
+                                mv.visitInsn(I2F);
+                                break;
+                            case Names.DOUBLE_TYPE:
+                                mv.visitInsn(I2D);
+                                break;
+                            case Names.LONG_TYPE:
+                                mv.visitInsn(I2L);
+                                break;
+                        }
+                    case Names.FLOAT_TYPE:
+                        switch (to.getPrimitive()) {
+                            case Names.BYTE_TYPE:
+                                mv.visitInsn(F2I);
+                                mv.visitInsn(I2B);
+                                break;
+                            case Names.CHAR_TYPE:
+                                mv.visitInsn(F2I);
+                                mv.visitInsn(I2C);
+                                break;
+                            case Names.SHORT_TYPE:
+                                mv.visitInsn(F2I);
+                                mv.visitInsn(I2S);
+                                break;
+                            case Names.INT_TYPE:
+                                mv.visitInsn(F2I);
+                                break;
+                            case Names.DOUBLE_TYPE:
+                                mv.visitInsn(F2D);
+                                break;
+                            case Names.LONG_TYPE:
+                                mv.visitInsn(F2L);
+                                break;
+                        }
+                    case Names.DOUBLE_TYPE:
+                        switch (to.getPrimitive()) {
+                            case Names.BYTE_TYPE:
+                                mv.visitInsn(D2I);
+                                mv.visitInsn(I2B);
+                                break;
+                            case Names.CHAR_TYPE:
+                                mv.visitInsn(D2I);
+                                mv.visitInsn(I2C);
+                                break;
+                            case Names.SHORT_TYPE:
+                                mv.visitInsn(D2I);
+                                mv.visitInsn(I2S);
+                                break;
+                            case Names.INT_TYPE:
+                                mv.visitInsn(D2I);
+                                break;
+                            case Names.FLOAT_TYPE:
+                                mv.visitInsn(D2F);
+                                break;
+                            case Names.LONG_TYPE:
+                                mv.visitInsn(D2L);
+                                break;
+                        }
+                    case Names.LONG_TYPE:
+                        switch (to.getPrimitive()) {
+                            case Names.BYTE_TYPE:
+                                mv.visitInsn(L2I);
+                                mv.visitInsn(I2B);
+                                break;
+                            case Names.CHAR_TYPE:
+                                mv.visitInsn(L2I);
+                                mv.visitInsn(I2C);
+                                break;
+                            case Names.SHORT_TYPE:
+                                mv.visitInsn(L2I);
+                                mv.visitInsn(I2S);
+                                break;
+                            case Names.INT_TYPE:
+                                mv.visitInsn(L2I);
+                                break;
+                            case Names.FLOAT_TYPE:
+                                mv.visitInsn(L2F);
+                                break;
+                            case Names.DOUBLE_TYPE:
+                                mv.visitInsn(L2D);
+                                break;
+                        }
+                }
+            } else if (!from.isPrimitive() && !to.isPrimitive()) {
+                mv.visitTypeInsn(CHECKCAST, to.isArray() ? to.getDescriptor() : to.getInternalName());
+            } else {
+                throw new IllegalStateException("Cannot cast " + stack + " to " + to);
+            }
         }
 
         private Name popStack() {

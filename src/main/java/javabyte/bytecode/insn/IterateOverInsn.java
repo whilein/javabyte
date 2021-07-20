@@ -14,33 +14,27 @@
  *    limitations under the License.
  */
 
-package javabyte.name;
+package javabyte.bytecode.insn;
 
+import javabyte.bytecode.LocalIndex;
+import javabyte.bytecode.LoopBranch;
+import javabyte.name.Name;
 import org.jetbrains.annotations.NotNull;
-import org.objectweb.asm.Type;
+
+import java.lang.reflect.Type;
 
 /**
  * @author whilein
  */
-public interface Name extends Parameter {
+public interface IterateOverInsn {
 
-    int getDimensions();
-    boolean isArray();
+    @NotNull IterateOverInsn source(@NotNull LocalIndex index);
+    @NotNull IterateOverInsn source(int index);
 
-    @NotNull Name dimensions(int dimensions);
+    @NotNull IterateOverInsn element(@NotNull Name type);
+    @NotNull IterateOverInsn element(@NotNull Type type);
 
-    int getPrimitive();
-    boolean isPrimitive();
-
-    @NotNull Type toType();
-    @NotNull Class<?> toClass();
-
-    @NotNull String getInternalName();
-    @NotNull String getName();
-
-    void getName(@NotNull StringBuilder out);
-    void getInternalName(@NotNull StringBuilder out);
-
-    int getSize();
+    @NotNull LocalIndex getElementLocal();
+    @NotNull LoopBranch getBody();
 
 }

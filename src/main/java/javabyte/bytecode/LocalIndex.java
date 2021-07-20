@@ -23,5 +23,6 @@ public interface LocalIndex {
 
     boolean isInitialized();
     int getValue();
+    void setValue(int value);
 
 }

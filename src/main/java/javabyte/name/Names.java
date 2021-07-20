@@ -24,12 +24,10 @@ import lombok.experimental.UtilityClass;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
-import java.lang.reflect.TypeVariable;
-import java.lang.reflect.WildcardType;
+import java.lang.reflect.*;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 /**
@@ -76,7 +74,9 @@ public class Names {
             DOUBLE_OBJ  = Names._putCache(Double.class),
             STRING      = Names._putCache(String.class),
             NUMBER      = Names._putCache(Number.class),
-            OBJECT      = Names._putCache(Object.class);
+            OBJECT      = Names._putCache(Object.class),
+            ITERABLE    = Names._putCache(Iterable.class),
+            ITERATOR    = Names._putCache(Iterator.class);
     // @formatter:on
 
     private final ExactName[] WRAPPERS = {
@@ -127,7 +127,7 @@ public class Names {
             component = component.getComponentType();
         }
 
-        return _getCacheOrInit(component.getName(), dimensions,false);
+        return _getCacheOrInit(component.getName(), dimensions, false, cls);
     }
 
     public @NotNull Name of(final @NonNull Type type) {
@@ -139,11 +139,11 @@ public class Names {
     }
 
     public @NotNull ExactName of(final @NonNull String name) {
-        return _fromName(name, 0);
+        return _fromName(name, 0, null);
     }
 
     public @NotNull ExactName ofInternal(final @NonNull String internalName) {
-        return _getCacheOrInit(internalName, 0, true);
+        return _getCacheOrInit(internalName, 0, true, null);
     }
 
     public @NotNull ExactName @NotNull [] of(final @NotNull String @NonNull [] names) {
@@ -214,7 +214,7 @@ public class Names {
     }
 
     private ExactName _putCache(final int primitive, final Class<?> type) {
-        val name = _fromName(type.getName(), primitive, 0, "\\.");
+        val name = _fromName(type.getName(), primitive, 0, "\\.", type);
 
         CACHE.put(type.getName(), name);
         CACHE_INTERNAL.put(type.getName().replace('.', '/'), name);
@@ -222,21 +222,23 @@ public class Names {
         return name;
     }
 
-    private ExactName _getCacheOrInit(final String type, final int dimensions, final boolean internal) {
+    private ExactName _getCacheOrInit(final String type, final int dimensions, final boolean internal,
+                                      final Class<?> originalClass) {
         if (dimensions == 0) {
             val cache = internal ? CACHE_INTERNAL.get(type) : CACHE.get(type);
             if (cache != null) return cache;
         }
 
-        return _fromName(type, -1, dimensions, internal ? "/" : "\\.");
+        return _fromName(type, -1, dimensions, internal ? "/" : "\\.", originalClass);
     }
 
-    private ExactName _fromName(final String name, final int primitive, final int dimensions, final String separator) {
-        return new ExactNameImpl(primitive, dimensions, name.split(separator));
+    private ExactName _fromName(final String name, final int primitive, final int dimensions, final String separator,
+                                final Class<?> originalClass) {
+        return new ExactNameImpl(primitive, dimensions, name.split(separator), originalClass);
     }
 
-    private ExactName _fromName(final String name, final int dimensions) {
-        return _fromName(name, -1, dimensions, "\\.");
+    private ExactName _fromName(final String name, final int dimensions, final Class<?> originalClass) {
+        return _fromName(name, -1, dimensions, "\\.", originalClass);
     }
 
     private Parameter _getParam(final Type type) {
@@ -301,7 +303,7 @@ public class Names {
         val exactNames = new ExactName[names.length];
 
         for (int i = 0, j = names.length; i < j; i++)
-            exactNames[i] = Names._getCacheOrInit(names[i], 0, internal);
+            exactNames[i] = Names._getCacheOrInit(names[i], 0, internal, null);
 
         return exactNames;
     }
@@ -375,8 +377,13 @@ public class Names {
         }
 
         @Override
-        public @NotNull org.objectweb.asm.Type getType() {
-            return rawName.getType();
+        public @NotNull org.objectweb.asm.Type toType() {
+            return rawName.toType();
+        }
+
+        @Override
+        public @NotNull Class<?> toClass() {
+            return rawName.toClass();
         }
 
         @Override
@@ -608,13 +615,15 @@ public class Names {
     }
 
     @Getter
-    @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
     private static final class ExactNameImpl extends AbstractName implements ExactName {
 
-        int primitive;
-        int dimensions;
-        String[] array;
+        final int primitive;
+        final int dimensions;
+        final String[] array;
+
+        Class<?> originalClass;
 
         @Override
         public boolean equals(final Object obj) {
@@ -641,8 +650,19 @@ public class Names {
         }
 
         @Override
-        public @NotNull org.objectweb.asm.Type getType() {
+        public @NotNull org.objectweb.asm.Type toType() {
             return AsmUtils.getType(array);
+        }
+
+        @Override
+        @SneakyThrows
+        public @NotNull Class<?> toClass() {
+            if (originalClass == null) {
+                originalClass = Class.forName(getName());
+                originalClass = _originalWithDims(0, dimensions);
+            }
+
+            return originalClass;
         }
 
         @Override
@@ -728,9 +748,32 @@ public class Names {
         public @NotNull ExactName dimensions(final int dimensions) {
             if (dimensions == this.dimensions) return this;
 
+            val originalClass = _originalWithDims(this.dimensions, dimensions);
+
             return dimensions == 0
-                    ? _getCacheOrInit(getName(), 0, false)
-                    : new ExactNameImpl(primitive, dimensions, array);
+                    ? _getCacheOrInit(getName(), 0, false, originalClass)
+                    : new ExactNameImpl(primitive, dimensions, array, originalClass);
+        }
+
+        @SneakyThrows
+        private Class<?> _originalWithDims(final int originalDims, final int dims) {
+            Class<?> result = originalClass;
+
+            int diff = Math.abs(originalDims - dims);
+
+            if (originalDims < dims) {
+                while (diff > 0) {
+                    result = Array.newInstance(result, 0).getClass();
+                    diff--;
+                }
+            } else {
+                while (diff > 0) {
+                    result = result.getComponentType();
+                    diff--;
+                }
+            }
+
+            return result;
         }
     }
 

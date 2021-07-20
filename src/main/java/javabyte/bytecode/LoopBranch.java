@@ -14,33 +14,12 @@
  *    limitations under the License.
  */
 
-package javabyte.name;
-
-import org.jetbrains.annotations.NotNull;
-import org.objectweb.asm.Type;
+package javabyte.bytecode;
 
 /**
  * @author whilein
  */
-public interface Name extends Parameter {
-
-    int getDimensions();
-    boolean isArray();
-
-    @NotNull Name dimensions(int dimensions);
-
-    int getPrimitive();
-    boolean isPrimitive();
-
-    @NotNull Type toType();
-    @NotNull Class<?> toClass();
-
-    @NotNull String getInternalName();
-    @NotNull String getName();
-
-    void getName(@NotNull StringBuilder out);
-    void getInternalName(@NotNull StringBuilder out);
-
-    int getSize();
-
+public interface LoopBranch extends InstructionSet {
+    void callContinue();
+    void callBreak();
 }

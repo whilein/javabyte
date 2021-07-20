@@ -16,10 +16,7 @@
 
 package javabyte.bytecode;
 
-import javabyte.bytecode.insn.FieldInsn;
-import javabyte.bytecode.insn.IntsSwitchInsn;
-import javabyte.bytecode.insn.MethodInsn;
-import javabyte.bytecode.insn.StringsSwitchInsn;
+import javabyte.bytecode.insn.*;
 import javabyte.bytecode.macro.Macro;
 import javabyte.name.Name;
 import javabyte.opcode.FieldOpcode;
@@ -58,6 +55,8 @@ public interface InstructionSet {
     void loadFromArray();
     void loadArrayLength();
     void loadNull();
+
+    @NotNull IterateOverInsn iterateOverInsn();
 
     void callBox();
     void callMacro(@NotNull Macro macro);

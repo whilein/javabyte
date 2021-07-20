@@ -93,6 +93,23 @@ Calculator calculator = type.load(Example.class.getClassLoader())
 
 return calculator.apply(10, 20);
 ```
+> Iterate over Iterable or array
+```java
+// push iterable or array to stack
+code.loadLocal(...);
+
+IterateOverInsn loop = code.iterateOver();
+// or instead of loadLocal & iterateOver 
+// you can use iterateOver().source(...)
+// without pushing it into stack
+loop.element(String.class); // element type
+
+LoopBranch body = loop.getBody();
+// load element
+body.loadLocal(loop.getElementLocal());
+// log element to console
+body.callMacro(Macro.SOUT);
+```
 ## Contact
 [Vkontakte](https://vk.com/id623151994),
 [Telegram](https://t.me/whilein)
