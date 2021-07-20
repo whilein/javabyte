@@ -16,6 +16,8 @@
 
 package javabyte;
 
+import java.util.List;
+
 /**
  * @author whilein
  */
@@ -37,7 +39,24 @@ public interface MultifunctionalInterface<T> {
         return 0;
     }
 
-    default String switchCaseInts(final int value) { return null; }
-    default String switchCaseStrings(final String value) { return null; }
+    default String switchCaseInts(final int value) {
+        return null;
+    }
+
+    default String switchCaseStrings(final String value) {
+        return null;
+    }
+
+    default boolean searchInArray(final String[] strings, final String subject) {
+        return false;
+    }
+
+    default boolean searchInList(final List<String> strings, final String subject) {
+        return false;
+    }
+
+    default boolean searchInIntArray(final int[] ints, final int subject) {
+        return false;
+    }
 
 }

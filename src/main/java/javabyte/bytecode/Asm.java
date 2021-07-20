@@ -121,28 +121,41 @@ public class Asm {
 
     @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
     private static final class LoopBranchImpl extends InstructionSetImpl implements LoopBranch {
+        Label continueLoop;
         Label insideLoop;
         Label afterLoop;
 
         protected LoopBranchImpl(
                 final List<Consumer<Compile>> instructions,
+                final Label continueLoop,
                 final Label insideLoop,
                 final Label afterLoop
         ) {
             super(instructions);
 
+            this.continueLoop = continueLoop;
             this.insideLoop = insideLoop;
             this.afterLoop = afterLoop;
         }
 
         @Override
         public void callContinue() {
-            insn(compile -> compile.mv.visitJumpInsn(GOTO, insideLoop));
+            insn(compile -> compile.mv.visitJumpInsn(GOTO, continueLoop));
         }
 
         @Override
         public void callBreak() {
             insn(compile -> compile.mv.visitJumpInsn(GOTO, afterLoop));
+        }
+
+        @Override
+        public @NotNull Position getContinue() {
+            return new PositionImpl(continueLoop);
+        }
+
+        @Override
+        public @NotNull Position getBreak() {
+            return new PositionImpl(afterLoop);
         }
 
         private void write(final Compile compile) {
@@ -187,43 +200,60 @@ public class Asm {
 
             if (iterable.isArray()) {
                 val position = compile.pushLocal(Names.INT, new LocalIndexImpl());
-                mv.visitInsn(ICONST_0);
+                compile.pushInt(0);
+                compile.popStack();
                 mv.visitVarInsn(ISTORE, position.offset);
 
                 val end = compile.pushLocal(Names.INT, new LocalIndexImpl());
+                compile.pushStack(iterable);
                 mv.visitVarInsn(ALOAD, iterableIndex.getValue());
+                compile.popStack();
+                compile.pushStack(Names.INT);
                 mv.visitInsn(ARRAYLENGTH);
+                compile.popStack();
                 mv.visitVarInsn(ISTORE, end.offset);
 
                 mv.visitLabel(body.insideLoop);
 
+                compile.pushStack(Names.INT);
+                compile.pushStack(Names.INT);
                 mv.visitVarInsn(ILOAD, position.offset);
                 mv.visitVarInsn(ILOAD, end.offset);
 
+                compile.popStack();
+                compile.popStack();
                 mv.visitJumpInsn(IF_ICMPGE, body.afterLoop);
+
+                compile.pushStack(iterable);
+                compile.pushStack(Names.INT);
 
                 mv.visitVarInsn(ALOAD, iterableIndex.getValue());
                 mv.visitVarInsn(ILOAD, position.offset);
 
+                compile.popStack();
+                compile.popStack();
+
                 val component = compile.loadFromArray(iterable);
 
-                if (elementType != null) {
+                if (elementType != null && !component.equals(elementType)) {
                     compile.callCast(component, elementType);
-
-                    compile.popStack();
                     compile.pushStack(elementType);
+                    compile.pushLocal(elementType, elementLocal);
+                } else {
+                    compile.pushStack(component);
+                    compile.pushLocal(component, elementLocal);
                 }
 
-                compile.pushLocal(component, elementLocal);
                 mv.visitVarInsn(component.toType().getOpcode(ISTORE), elementLocal.getValue());
 
                 body.write(compile);
 
-                mv.visitIincInsn(position.offset, 1);
-                mv.visitJumpInsn(GOTO, body.insideLoop);
                 compile.popLocal(); // position
                 compile.popLocal(); // length
                 compile.popLocal(); // element
+
+                mv.visitLabel(body.continueLoop);
+                mv.visitIincInsn(position.offset, 1);
             } else {
                 final LocalIndex iteratorIndex;
 
@@ -276,12 +306,14 @@ public class Asm {
 
                 mv.visitVarInsn(ASTORE, elementLocal.getValue());
                 body.write(compile);
-                mv.visitJumpInsn(GOTO, body.insideLoop);
 
                 compile.popLocal(); // iterator
                 compile.popLocal(); // element
+
+                mv.visitLabel(body.continueLoop);
             }
 
+            mv.visitJumpInsn(GOTO, body.insideLoop);
             mv.visitLabel(body.afterLoop);
         }
 
@@ -328,7 +360,7 @@ public class Asm {
         public @NotNull IterateOverInsn iterateOverInsn() {
             val insn = new IterateOverInsnImpl(
                     new LocalIndexImpl(),
-                    new LoopBranchImpl(new ArrayList<>(), new Label(), new Label())
+                    new LoopBranchImpl(new ArrayList<>(), new Label(), new Label(), new Label())
             );
             insn(insn);
 
@@ -366,7 +398,23 @@ public class Asm {
 
         @Override
         public void jumpPos(final @NonNull JumpOpcode opcode, final @NonNull Position position) {
-            insn(compile -> position.jump(compile.mv, opcode.getOpcode()));
+            insn(compile -> {
+                switch (opcode) {
+                    case IF_ICMPEQ:
+                    case IF_ICMPNE:
+                    case IF_ICMPLT:
+                    case IF_ICMPGE:
+                    case IF_ICMPGT:
+                    case IF_ICMPLE:
+                    case IF_ACMPEQ:
+                    case IF_ACMPNE:
+                        compile.popStack();
+                        compile.popStack();
+                        break;
+                }
+
+                position.jump(compile.mv, opcode.getOpcode());
+            });
         }
 
         @Override
@@ -788,6 +836,8 @@ public class Asm {
         }
 
 
+        // TODO сделать как в ECJ
+
         @Override
         public void accept(final @NonNull Compile compile) {
             val switchItem = compile.popStack();
@@ -795,22 +845,23 @@ public class Asm {
             val mv = compile.mv;
 
             val switchItemLocal = compile.pushLocal(switchItem, new LocalIndexImpl());
+            mv.visitVarInsn(ASTORE, switchItemLocal.offset);
 
-            compile.pushInt(-1);
-            compile.popStack();
-            mv.visitVarInsn(ISTORE, switchItemLocal.offset);
+            compile.pushInt(-1); // push switch index
 
             val switchIndexLocal = compile.pushLocal(Names.INT, new LocalIndexImpl());
+            mv.visitVarInsn(ISTORE, switchIndexLocal.offset);
+            compile.popStack(); // pop switch index
 
-            compile.pushStack(Names.STRING);
-            mv.visitVarInsn(ALOAD, switchIndexLocal.offset);
+            compile.pushStack(Names.STRING); // push switch subject
+
+            mv.visitVarInsn(ALOAD, switchItemLocal.offset);
 
             mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "hashCode",
                     "()I", false);
 
-            compile.popStack();
-
-            compile.pushStack(Names.INT);
+            compile.popStack(); // pop switch subject
+            compile.pushStack(Names.INT); // push switch subject hashCode
 
             val defaultLabel = defaultBranch.getLabel();
 
@@ -838,13 +889,13 @@ public class Asm {
 
             val endFirstSwitchLabel = new Label();
 
-            compile.popStack();
-
             if (nHashLabels > 1 && isTableSwitchInsn(lo, hi, nHashLabels)) {
                 mv.visitTableSwitchInsn(lo, hi, endFirstSwitchLabel, hashBranches);
             } else {
                 mv.visitLookupSwitchInsn(endFirstSwitchLabel, hashArray, hashBranches);
             }
+
+            compile.popStack();
 
             int hashCounter = 0;
             int counter = 0;
@@ -1201,10 +1252,12 @@ public class Asm {
         }
 
         private Name loadFromArray(final Name array) {
-            if (array.getDimensions() > 1 || !array.isPrimitive()) {
+            val component = array.dimensions(array.getDimensions() - 1);
+
+            if (array.getDimensions() > 1 || !component.isPrimitive()) {
                 mv.visitInsn(AALOAD);
             } else {
-                switch (array.getPrimitive()) {
+                switch (component.getPrimitive()) {
                     case Names.BYTE_TYPE:
                     case Names.BOOL_TYPE:
                         mv.visitInsn(BALOAD);
@@ -1230,7 +1283,7 @@ public class Asm {
                 }
             }
 
-            return array.dimensions(array.getDimensions() - 1);
+            return component;
         }
 
         private void pushStack(final Name name) {
@@ -1283,7 +1336,7 @@ public class Asm {
         private Name popLocal() {
             val name = this.locals.remove(this.locals.size() - 1);
 
-            this.localSize -= name.offset;
+            this.localSize -= name.name.getSize();
 
             return name.name;
         }

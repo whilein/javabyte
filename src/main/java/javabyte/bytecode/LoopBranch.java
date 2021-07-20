@@ -16,10 +16,16 @@
 
 package javabyte.bytecode;
 
+import org.jetbrains.annotations.NotNull;
+
 /**
  * @author whilein
  */
 public interface LoopBranch extends InstructionSet {
     void callContinue();
     void callBreak();
+
+    @NotNull Position getContinue();
+    @NotNull Position getBreak();
+
 }

@@ -689,13 +689,16 @@ public class Names {
                 return;
             }
 
-            for (int i = 0; i < dimensions; i++) {
+            if (dimensions > 0) {
                 out.append('[');
-            }
 
-            out.append('L');
-            getInternalName(out);
-            out.append(';');
+                val component = dimensions(dimensions - 1);
+                component.getSignature(out);
+            } else {
+                out.append('L');
+                getInternalName(out);
+                out.append(';');
+            }
         }
 
         @Override
@@ -757,6 +760,8 @@ public class Names {
 
         @SneakyThrows
         private Class<?> _originalWithDims(final int originalDims, final int dims) {
+            if (originalClass == null) return null;
+
             Class<?> result = originalClass;
 
             int diff = Math.abs(originalDims - dims);

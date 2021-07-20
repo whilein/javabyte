@@ -17,7 +17,10 @@
 package javabyte;
 
 import javabyte.make.MakeClass;
+import javabyte.make.MakeMethod;
+import javabyte.opcode.JumpOpcode;
 import javabyte.opcode.MathOpcode;
+import javabyte.opcode.MethodOpcode;
 import javabyte.type.Access;
 import lombok.SneakyThrows;
 import lombok.val;
@@ -27,10 +30,14 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author whilein
@@ -38,10 +45,39 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 final class Tests {
 
     Random random;
+    char[] alphabet;
 
     @BeforeEach
     void init() {
         random = new Random();
+        alphabet = "abcdefghijklmnopqrstuvwxyz".toCharArray();
+    }
+
+    private int[] randomInts(final int max, final int min, final int count) {
+        val ints = new int[] { count };
+
+        for (int i = 0; i < ints.length; i++) {
+            ints[i] = random.nextInt(max - min) + min;
+        }
+
+        return ints;
+    }
+    private String randomText(final int length) {
+        val chars = new char[length];
+
+        for (int i = 0; i < length; i++)
+            chars[i] = alphabet[random.nextInt(alphabet.length)];
+
+        return new String(chars);
+    }
+
+    private String[] randomTexts(final int textLength, final int texts) {
+        val randomTexts = new String[texts];
+
+        for (int i = 0; i < texts; i++)
+            randomTexts[i] = randomText(textLength);
+
+        return randomTexts;
     }
 
     @SneakyThrows
@@ -61,6 +97,135 @@ final class Tests {
 
         return (MultifunctionalInterface<?>) impl.load(classLoader)
                 .getDeclaredConstructor().newInstance();
+    }
+
+
+    private void initSearchCode(final MakeMethod method) {
+        val code = method.getBytecode();
+        code.loadInt(0);
+
+        val index = code.storeLocal();
+
+        val loop = code.iterateOverInsn()
+                .element(String.class)
+                .source(1);
+
+        val loopCode = loop.getBody();
+        loopCode.loadLocal(loop.getElementLocal());
+        loopCode.loadLocal(2);
+
+        loopCode.methodInsn(MethodOpcode.VIRTUAL, "equals")
+                .descriptor(boolean.class, Object.class)
+                .in(String.class);
+
+        loopCode.jumpPos(JumpOpcode.IFEQ, loopCode.getContinue());
+        loopCode.loadInt(1);
+        loopCode.storeLocal(index);
+        loopCode.callBreak();
+
+        code.loadLocal(index);
+        code.callReturn();
+    }
+
+    @Test
+    void searchInList() {
+        val strings = Arrays.asList(randomTexts(256, 100));
+
+        val result = makeInterface(impl -> {
+            val method = impl.addMethod("searchInList");
+            method.setPublic();
+
+            method.setReturnType(boolean.class);
+            method.setParameterTypes(List.class, String.class);
+
+            method.setOverrides(MultifunctionalInterface.class);
+
+            initSearchCode(method);
+        });
+
+        for (val text : strings) {
+            assertTrue(result.searchInList(strings, text));
+        }
+
+        for (val text : randomTexts(256, 100)) {
+            if (strings.contains(text)) continue;
+            assertFalse(result.searchInList(strings, text));
+        }
+    }
+
+    @Test
+    void searchInIntArray() {
+        val ints = randomInts(10000, -10000, 100);
+
+        val intList = IntStream.of(ints).boxed()
+                .collect(Collectors.toList());
+
+        val result = makeInterface(impl -> {
+            val method = impl.addMethod("searchInIntArray");
+            method.setPublic();
+
+            method.setReturnType(boolean.class);
+            method.setParameterTypes(int[].class, int.class);
+
+            method.setOverrides(MultifunctionalInterface.class);
+
+            val code = method.getBytecode();
+            code.loadInt(0);
+
+            val index = code.storeLocal();
+
+            val loop = code.iterateOverInsn()
+                    .element(int.class)
+                    .source(1);
+
+            val loopCode = loop.getBody();
+            loopCode.loadLocal(loop.getElementLocal());
+            loopCode.loadLocal(2);
+
+            loopCode.jumpPos(JumpOpcode.IF_ICMPNE, loopCode.getContinue());
+            loopCode.loadInt(1);
+            loopCode.storeLocal(index);
+            loopCode.callBreak();
+
+            code.loadLocal(index);
+            code.callReturn();
+        });
+
+        for (val i : ints) {
+            assertTrue(result.searchInIntArray(ints, i));
+        }
+
+        for (val i : ints) {
+            if (intList.contains(i)) continue;
+            assertFalse(result.searchInIntArray(ints, i));
+        }
+    }
+
+    @Test
+    void searchInArray() {
+        val strings = randomTexts(256, 100);
+        val stringList = Arrays.asList(strings);
+
+        val result = makeInterface(impl -> {
+            val method = impl.addMethod("searchInArray");
+            method.setPublic();
+
+            method.setReturnType(boolean.class);
+            method.setParameterTypes(String[].class, String.class);
+
+            method.setOverrides(MultifunctionalInterface.class);
+
+            initSearchCode(method);
+        });
+
+        for (val text : strings) {
+            assertTrue(result.searchInArray(strings, text));
+        }
+
+        for (val text : randomTexts(256, 100)) {
+            if (stringList.contains(text)) continue;
+            assertFalse(result.searchInArray(strings, text));
+        }
     }
 
     @Test
@@ -162,7 +327,7 @@ final class Tests {
 
     @Test
     void switchCaseInts_2() {
-        val branches = new String[] {
+        val branches = new String[]{
                 "AaAaAa", "AaAaBB", "AaBBAa", "AaBBBB",
                 "BBAaAa", "BBAaBB", "BBBBAa", "BBBBBB",
                 "A", "B", "C", "D", "E", "F"
@@ -253,7 +418,7 @@ final class Tests {
             val method = impl.addMethod("unbox");
             method.setPublic();
 
-            method.setReturnType(Integer.class);
+            method.setReturnType(int.class);
             method.addParameter(Integer.class);
 
             method.setOverrides(MultifunctionalInterface.class);
