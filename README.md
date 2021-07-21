@@ -147,6 +147,11 @@ insn.init(initializer -> {
 });
 
 ```
+> Init new array
+```java
+code.pushInt(arraySize);
+code.callNewArray(String[].class);
+```
 ## Contact
 [Vkontakte](https://vk.com/id623151994),
 [Telegram](https://t.me/whilein)
