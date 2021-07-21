@@ -1231,6 +1231,21 @@ public final class Instructions {
             return branches.computeIfAbsent(value, __ -> CaseBranchImpl.create(endLabel, parent));
         }
 
+        @Override
+        public @NotNull CaseBranch branch(final @NotNull String @NonNull ... values) {
+            CaseBranch last = null;
+
+            for (val value : values) {
+                last = branch(value);
+            }
+
+            if (last == null) {
+                throw new IllegalArgumentException("values is empty");
+            }
+
+            return last;
+        }
+
     }
 
     @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -1322,6 +1337,20 @@ public final class Instructions {
             return branches.computeIfAbsent(value, __ -> CaseBranchImpl.create(endLabel, parent));
         }
 
+        @Override
+        public @NotNull CaseBranch branch(final int @NonNull ... values) {
+            CaseBranch last = null;
+
+            for (int value : values) {
+                last = branch(value);
+            }
+
+            if (last == null) {
+                throw new IllegalArgumentException("values is empty");
+            }
+
+            return last;
+        }
     }
 
     @FieldDefaults(level = AccessLevel.PRIVATE)

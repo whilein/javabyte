@@ -29,5 +29,6 @@ public interface IntsSwitchInsn extends SwitchInsn {
     @NotNull IntsSwitchInsn source(@NotNull LocalIndex index);
 
     @NotNull CaseBranch branch(int value);
+    @NotNull CaseBranch branch(int @NotNull ... values);
 
 }

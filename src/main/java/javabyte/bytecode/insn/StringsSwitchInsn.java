@@ -30,5 +30,5 @@ public interface StringsSwitchInsn extends SwitchInsn {
     @NotNull StringsSwitchInsn source(@NotNull LocalIndex index);
     @NotNull StringsSwitchInsn impl(@NotNull StringsSwitchImplementation impl);
     @NotNull CaseBranch branch(@NotNull String value);
-
+    @NotNull CaseBranch branch(@NotNull String @NotNull ... values);
 }

@@ -121,9 +121,7 @@ StringsSwitchInsn switchCase = code.stringsSwitchCaseInsn();
 // following code is equal to
 // case "A": case "B": case "C":
 //   return "A or B or C";
-switchCase.branch("A");
-switchCase.branch("B");
-CaseBranch branchAorBorC = switchCase.branch("C");
+CaseBranch branchAorBorC = switchCase.branch("A", "B", "C");
 branchAorBorC.loadString("A or B or C");
 branchAorBorC.callReturn();
 ```

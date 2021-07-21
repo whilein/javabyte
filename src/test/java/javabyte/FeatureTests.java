@@ -302,15 +302,11 @@ final class FeatureTests {
 
             val switchCase = code.intsSwitchCaseInsn();
 
-            switchCase.branch(1);
-            switchCase.branch(2);
-            val branch123 = switchCase.branch(3);
+            val branch123 = switchCase.branch(1, 2, 3);
             branch123.pushString("123");
             branch123.callReturn();
 
-            switchCase.branch(1000);
-            switchCase.branch(100);
-            val branch100010010 = switchCase.branch(10);
+            val branch100010010 = switchCase.branch(1000, 100, 10);
             branch100010010.pushString("100010010");
             branch100010010.callReturn();
 
