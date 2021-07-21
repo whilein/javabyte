@@ -268,9 +268,9 @@ final class Tests {
             method.setOverrides(MultifunctionalInterface.class);
 
             val code = method.getBytecode();
-            code.loadLocal(1);
 
-            val switchCase = code.intsSwitchCaseInsn();
+            val switchCase = code.intsSwitchCaseInsn()
+                    .source(1);
 
             for (int i = 0; i < 100; i++) {
                 val branch = switchCase.branch(i);
@@ -348,10 +348,10 @@ final class Tests {
             method.setOverrides(MultifunctionalInterface.class);
 
             val code = method.getBytecode();
-            code.loadLocal(1);
 
             val switchCase = code.stringsSwitchCaseInsn()
-                    .impl(StringsSwitchImplementation.JAVAC);
+                    .impl(StringsSwitchImplementation.JAVAC)
+                    .source(1);
 
             for (int i = 0; i < randomBranches.length; i++) {
                 val branch = switchCase.branch(randomBranches[i]);

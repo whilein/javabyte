@@ -16,6 +16,7 @@
 
 package javabyte.bytecode.insn;
 
+import javabyte.bytecode.LocalIndex;
 import javabyte.bytecode.branch.CaseBranch;
 import org.jetbrains.annotations.NotNull;
 
@@ -23,6 +24,9 @@ import org.jetbrains.annotations.NotNull;
  * @author whilein
  */
 public interface IntsSwitchInsn extends SwitchInsn {
+
+    @NotNull IntsSwitchInsn source(int value);
+    @NotNull IntsSwitchInsn source(@NotNull LocalIndex index);
 
     @NotNull CaseBranch branch(int value);
 

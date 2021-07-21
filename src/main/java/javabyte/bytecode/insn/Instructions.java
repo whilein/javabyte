@@ -149,7 +149,7 @@ public final class Instructions {
         public static Instruction INSTANCE = new SoutInsn();
 
         @Override
-        public void compile(@NotNull final CompileContext ctx) {
+        public void compile(final @NonNull CompileContext ctx) {
             val mv = ctx.getMethodVisitor();
             val stack = ctx.popStack();
 
@@ -635,7 +635,7 @@ public final class Instructions {
         }
 
         @Override
-        public void compile(@NotNull final CompileContext ctx) {
+        public void compile(final @NonNull CompileContext ctx) {
             ctx.getMethodVisitor().visitLabel(label);
             super.compile(ctx);
         }
@@ -686,6 +686,7 @@ public final class Instructions {
 
         final InstructionSet parent;
 
+        LocalIndex source;
         StringsSwitchImplementation impl = StringsSwitchImplementation.JAVAC;
 
         private StringsSwitchInsnImpl(
@@ -714,13 +715,24 @@ public final class Instructions {
         private void _ecj(final CompileContext ctx) {
             val mv = ctx.getMethodVisitor();
 
-            val switchItem = ctx.popStack();
+            final Local switchItemLocal;
 
-            ctx.pushStack(switchItem);
-            mv.visitInsn(DUP);
+            if (source != null && source.isInitialized()) {
+                switchItemLocal = ctx.getLocal(source);
 
-            val switchItemLocal = ctx.pushLocal(Asm.index(), switchItem);
-            mv.visitVarInsn(ASTORE, switchItemLocal.getOffset());
+                val name = switchItemLocal.getName();
+
+                mv.visitVarInsn(name.toType().getOpcode(ILOAD), switchItemLocal.getOffset());
+                ctx.pushStack(name);
+            } else {
+                val switchItem = ctx.popStack();
+
+                ctx.pushStack(switchItem);
+                mv.visitInsn(DUP);
+
+                switchItemLocal = ctx.pushLocal(Asm.index(), switchItem);
+                mv.visitVarInsn(ASTORE, switchItemLocal.getOffset());
+            }
 
             ctx.popStack();
             ctx.pushStack(Names.INT);
@@ -818,10 +830,16 @@ public final class Instructions {
         private void _javac(final CompileContext ctx) {
             val mv = ctx.getMethodVisitor();
 
-            val switchItem = ctx.popStack();
+            final Local switchItemLocal;
 
-            val switchItemLocal = ctx.pushLocal(Asm.index(), switchItem);
-            mv.visitVarInsn(ASTORE, switchItemLocal.getOffset());
+            if (source != null && source.isInitialized()) {
+                switchItemLocal = ctx.getLocal(source);
+            } else {
+                val switchItem = ctx.popStack();
+
+                switchItemLocal = ctx.pushLocal(Asm.index(), switchItem);
+                mv.visitVarInsn(ASTORE, switchItemLocal.getOffset());
+            }
 
             ctx.visitInt(-1); // push switch index
             ctx.pushStack(Names.INT);
@@ -975,6 +993,18 @@ public final class Instructions {
         }
 
         @Override
+        public @NotNull StringsSwitchInsn source(final int value) {
+            this.source = Asm.indexOf(value);
+            return this;
+        }
+
+        @Override
+        public @NotNull StringsSwitchInsn source(final @NonNull LocalIndex index) {
+            this.source = index;
+            return this;
+        }
+
+        @Override
         public @NotNull StringsSwitchInsn impl(final @NonNull StringsSwitchImplementation impl) {
             this.impl = impl;
 
@@ -988,12 +1018,13 @@ public final class Instructions {
 
     }
 
-    @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+    @FieldDefaults(level = AccessLevel.PRIVATE)
     private static final class IntsSwitchInsnImpl
             extends AbstractSwitchInsn<Integer>
             implements IntsSwitchInsn {
 
-        InstructionSet parent;
+        final InstructionSet parent;
+        LocalIndex source;
 
         private IntsSwitchInsnImpl(
                 final InstructionSet parent,
@@ -1008,9 +1039,16 @@ public final class Instructions {
 
         @Override
         public void compile(final @NonNull CompileContext compile) {
+            val mv = compile.getMethodVisitor();
+
+            if (source != null && source.isInitialized()) {
+                val local = compile.getLocal(source);
+                mv.visitVarInsn(local.getName().toType().getOpcode(ILOAD), local.getOffset());
+                compile.pushStack(local.getName());
+            }
+
             compile.popStack();
 
-            val mv = compile.getMethodVisitor();
             val defaultLabel = defaultBranch.getLabel();
 
             val sortedBranches = new TreeMap<>(branches);
@@ -1050,6 +1088,18 @@ public final class Instructions {
 
             defaultBranch.compile(compile);
             mv.visitLabel(endLabel);
+        }
+
+        @Override
+        public @NotNull IntsSwitchInsn source(final int value) {
+            this.source = Asm.indexOf(value);
+            return this;
+        }
+
+        @Override
+        public @NotNull IntsSwitchInsn source(final @NonNull LocalIndex index) {
+            this.source = index;
+            return this;
         }
 
         @Override
