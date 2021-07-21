@@ -491,6 +491,10 @@ public class Javabyte {
 
         @Override
         public @NotNull Class<?> load(final @NonNull ClassLoader loader) {
+            for (val innerClass : innerClasses) {
+                innerClass.load(loader);
+            }
+
             val bytes = writeAsBytes();
 
             try {
