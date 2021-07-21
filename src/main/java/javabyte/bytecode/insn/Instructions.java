@@ -56,6 +56,14 @@ public final class Instructions {
         return ArrayLoadInsn.INSTANCE;
     }
 
+    public @NotNull Instruction popInsn() {
+        return PopInsn.INSTANCE;
+    }
+
+    public @NotNull Instruction dupInsn() {
+        return DupInsn.INSTANCE;
+    }
+
     public @NotNull Instruction pushNullInsn() {
         return PushNullInsn.INSTANCE;
     }
@@ -346,6 +354,42 @@ public final class Instructions {
         @Override
         public String toString() {
             return "[" + opcode + "]";
+        }
+    }
+
+    @NoArgsConstructor(access = AccessLevel.PRIVATE)
+    private static final class DupInsn implements Instruction {
+
+        public static Instruction INSTANCE = new DupInsn();
+
+        @Override
+        public void compile(final @NonNull CompileContext ctx) {
+            ctx.getMethodVisitor().visitInsn(DUP);
+            val old = ctx.popStack();
+            ctx.pushStack(old);
+            ctx.pushStack(old);
+        }
+
+        @Override
+        public String toString() {
+            return "[DUP]";
+        }
+    }
+
+    @NoArgsConstructor(access = AccessLevel.PRIVATE)
+    private static final class PopInsn implements Instruction {
+
+        public static Instruction INSTANCE = new PopInsn();
+
+        @Override
+        public void compile(final @NonNull CompileContext ctx) {
+            ctx.getMethodVisitor().visitInsn(POP);
+            ctx.popStack();
+        }
+
+        @Override
+        public String toString() {
+            return "[POP]";
         }
     }
 

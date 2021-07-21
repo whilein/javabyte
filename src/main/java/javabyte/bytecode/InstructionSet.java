@@ -34,6 +34,9 @@ public interface InstructionSet extends Instruction {
     void callInsn(@NotNull Instruction instruction);
     void callSout();
 
+    void pop();
+    void dup();
+
     @NotNull Position initPosition();
     void visit(@NotNull Position position);
     void jump(@NotNull JumpOpcode opcode, @NotNull Position position);

@@ -44,6 +44,16 @@ public abstract class AbstractInstructionSet implements InstructionSet {
     List<Instruction> instructions;
 
     @Override
+    public void pop() {
+        _callInsn(Instructions.popInsn());
+    }
+
+    @Override
+    public void dup() {
+        _callInsn(Instructions.dupInsn());
+    }
+
+    @Override
     public final @NotNull InitInsn callInit(
             final @NonNull Type type
     ) {
