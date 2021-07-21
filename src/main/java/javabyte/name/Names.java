@@ -392,6 +392,11 @@ public class Names {
         }
 
         @Override
+        public @NotNull String getSimpleName() {
+            return rawName.getSimpleName();
+        }
+
+        @Override
         public void getName(final @NonNull StringBuilder out) {
             rawName.getName(out);
         }
@@ -677,6 +682,11 @@ public class Names {
             }
 
             return originalClass;
+        }
+
+        @Override
+        public @NotNull String getSimpleName() {
+            return array[array.length - 1];
         }
 
         @Override

@@ -61,7 +61,12 @@ public class Javabyte {
             final Version version,
             final ExactName name
     ) {
-        return new MakeClassImpl(version, name, new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), Names.OBJECT);
+        return new MakeClassImpl(
+                version, name,
+                new ArrayList<>(), new ArrayList<>(),
+                new ArrayList<>(), new ArrayList<>(),
+                Names.OBJECT
+        );
     }
 
     public @NotNull MakeClass make(
@@ -92,7 +97,7 @@ public class Javabyte {
 
     @FieldDefaults(level = AccessLevel.PROTECTED)
     @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
-    private static abstract class MakeElementImpl implements MakeElement {
+    private static abstract class AbstractMakeElement implements MakeElement {
         @Getter
         @Setter
         int modifiers;
@@ -166,9 +171,9 @@ public class Javabyte {
 
     }
 
-    @FieldDefaults(level = AccessLevel.PRIVATE)
-    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-    private static final class MakeClassImpl extends MakeElementImpl implements MakeClass {
+    @FieldDefaults(level = AccessLevel.PROTECTED)
+    @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
+    private static abstract class AbstractMakeClass extends AbstractMakeElement implements MakeClass {
 
         private static final Method INVOKE_DEFINE_CLASS;
 
@@ -196,13 +201,24 @@ public class Javabyte {
         final List<MakeExecutableImpl> executables;
 
         @Getter
+        final List<MakeInnerClassImpl> innerClasses;
+
+        @Getter
         @NotNull
         Name superName;
 
         MakeConstructorImpl staticConstructor;
 
-        private ClassWriter makeClassWriter() {
+        protected final ClassWriter makeClassWriter() {
             val cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
+
+            for (val innerClass : innerClasses) {
+                cw.visitInnerClass(innerClass.getName().getInternalName(), name.getInternalName(),
+                        innerClass.getInnerName(), innerClass.getModifiers());
+
+                val innerWriter = innerClass.makeClassWriter();
+                innerWriter.visitOuterClass(name.getInternalName(), null, null);
+            }
 
             final String[] interfaceNames;
 
@@ -366,6 +382,18 @@ public class Javabyte {
             return _addExecutable(_initMethod(name));
         }
 
+        @Override
+        public @NotNull MakeInnerClass addInner(final @NonNull String name) {
+            val inner = new MakeInnerClassImpl(
+                    version, Names.of(this.name.getName() + "$" + name), name,
+                    new ArrayList<>(), new ArrayList<>(),
+                    new ArrayList<>(), new ArrayList<>(),
+                    this, Names.OBJECT
+            );
+            innerClasses.add(inner);
+            return inner;
+        }
+
         private MakeField _addField(final String name, final Name type) {
             val field = new MakeFieldImpl(this, name, type);
             fields.add(field);
@@ -426,6 +454,42 @@ public class Javabyte {
         }
 
         @Override
+        public void writeClass(final @NonNull OutputStream os) throws IOException {
+            os.write(writeAsBytes());
+        }
+
+        @Override
+        public void writeTo(final @NonNull File directory) throws IOException {
+            val thatClass = new File(directory, name.getSimpleName() + ".class");
+
+            try (val output = new FileOutputStream(thatClass)) {
+                writeClass(output);
+            }
+
+            for (val inner : innerClasses) {
+                inner.writeTo(directory);
+            }
+        }
+
+        @Override
+        public void writeTo(final @NonNull Path directory) throws IOException {
+            val thatClass = directory.resolve(name.getSimpleName() + ".class");
+
+            try (val output = Files.newOutputStream(thatClass)) {
+                writeClass(output);
+            }
+
+            for (val inner : innerClasses) {
+                inner.writeTo(directory);
+            }
+        }
+
+        @Override
+        public byte @NotNull [] writeAsBytes() {
+            return makeClassWriter().toByteArray();
+        }
+
+        @Override
         public @NotNull Class<?> load(final @NonNull ClassLoader loader) {
             val bytes = writeAsBytes();
 
@@ -437,42 +501,59 @@ public class Javabyte {
             }
         }
 
-        @Override
-        public void writeClass(final @NonNull OutputStream os) throws IOException {
-            os.write(writeAsBytes());
-        }
-
-        @Override
-        public void writeClass(final @NonNull File file) throws IOException {
-            try (val output = new FileOutputStream(file)) {
-                writeClass(output);
-            }
-        }
-
-        @Override
-        public void writeClass(final @NonNull Path path) throws IOException {
-            try (val output = Files.newOutputStream(path)) {
-                writeClass(output);
-            }
-        }
-
-        @Override
-        public byte @NotNull [] writeAsBytes() {
-            return makeClassWriter().toByteArray();
-        }
-
         private void _setInterfaces(final Collection<Name> interfaces) {
             this.interfaces.clear();
             this.interfaces.addAll(interfaces);
         }
 
+    }
+
+    @Getter
+    @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+    private static final class MakeInnerClassImpl extends AbstractMakeClass implements MakeInnerClass {
+
+        String innerName;
+        MakeClass declaringClass;
+
+        private MakeInnerClassImpl(
+                final Version version,
+                final ExactName name,
+                final String innerName,
+                final List<Name> interfaces,
+                final List<MakeFieldImpl> fields,
+                final List<MakeExecutableImpl> executables,
+                final List<MakeInnerClassImpl> innerClasses,
+                final MakeClass declaringClass,
+                final Name superName
+        ) {
+            super(version, name, interfaces, fields, executables, innerClasses, superName);
+
+            this.innerName = innerName;
+            this.declaringClass = declaringClass;
+        }
+
+    }
+
+    private static final class MakeClassImpl extends AbstractMakeClass implements MakeClass {
+
+        private MakeClassImpl(
+                final Version version,
+                final ExactName name,
+                final List<Name> interfaces,
+                final List<MakeFieldImpl> fields,
+                final List<MakeExecutableImpl> executables,
+                final List<MakeInnerClassImpl> innerClasses,
+                final Name superName
+        ) {
+            super(version, name, interfaces, fields, executables, innerClasses, superName);
+        }
 
     }
 
     @Getter
     @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-    private static final class MakeFieldImpl extends MakeElementImpl implements MakeField {
+    private static final class MakeFieldImpl extends AbstractMakeElement implements MakeField {
         MakeClass declaringClass;
         String name;
         Name type;
@@ -604,7 +685,7 @@ public class Javabyte {
 
     @FieldDefaults(level = AccessLevel.PROTECTED)
     @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
-    private static abstract class MakeExecutableImpl extends MakeElementImpl implements MakeExecutable {
+    private static abstract class MakeExecutableImpl extends AbstractMakeElement implements MakeExecutable {
 
         @Getter
         final Bytecode bytecode;

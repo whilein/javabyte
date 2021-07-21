@@ -34,11 +34,14 @@ import java.util.List;
  */
 public interface MakeClass extends MakeElement {
 
+    @NotNull List<? extends @NotNull MakeInnerClass> getInnerClasses();
+
     @NotNull MakeConstructor getStaticConstructor();
 
     @NotNull MakeConstructor addConstructor();
 
     @NotNull MakeMethod addMethod(@NotNull String name);
+    @NotNull MakeInnerClass addInner(@NotNull String name);
 
     @NotNull MakeField addField(@NotNull String name, @NotNull Name type);
     @NotNull MakeField addField(@NotNull String name, @NotNull Type type);
@@ -65,8 +68,8 @@ public interface MakeClass extends MakeElement {
     @NotNull Class<?> load(@NotNull ClassLoader loader);
 
     void writeClass(@NotNull OutputStream os) throws IOException;
-    void writeClass(@NotNull File file) throws IOException;
-    void writeClass(@NotNull Path path) throws IOException;
+    void writeTo(@NotNull File directory) throws IOException;
+    void writeTo(@NotNull Path directory) throws IOException;
 
     byte @NotNull [] writeAsBytes();
 

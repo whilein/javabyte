@@ -56,10 +56,10 @@ public interface InstructionSet extends Instruction {
     void pushFloat(float value);
     void pushDouble(double value);
     void pushLong(long value);
+    void pushNull();
 
     void loadFromArray();
     void loadArrayLength();
-    void loadNull();
 
     @NotNull IterateOverInsn iterateOverInsn();
 

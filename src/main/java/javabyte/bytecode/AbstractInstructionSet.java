@@ -198,7 +198,7 @@ public abstract class AbstractInstructionSet implements InstructionSet {
     }
 
     @Override
-    public final void loadNull() {
+    public final void pushNull() {
         _callInsn(Instructions.pushNullInsn());
     }
 

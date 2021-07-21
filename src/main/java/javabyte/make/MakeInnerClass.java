@@ -14,35 +14,13 @@
  *    limitations under the License.
  */
 
-package javabyte.name;
+package javabyte.make;
 
 import org.jetbrains.annotations.NotNull;
-import org.objectweb.asm.Type;
 
 /**
  * @author whilein
  */
-public interface Name extends Parameter {
-
-    int getDimensions();
-    boolean isArray();
-
-    @NotNull Name getComponent();
-    @NotNull Name dimensions(int dimensions);
-
-    int getPrimitive();
-    boolean isPrimitive();
-
-    @NotNull Type toType();
-    @NotNull Class<?> toClass();
-
-    @NotNull String getSimpleName();
-    @NotNull String getInternalName();
-    @NotNull String getName();
-
-    void getName(@NotNull StringBuilder out);
-    void getInternalName(@NotNull StringBuilder out);
-
-    int getSize();
-
+public interface MakeInnerClass extends MakeClass, MakeClassElement {
+    @NotNull String getInnerName();
 }
