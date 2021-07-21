@@ -44,7 +44,27 @@ public abstract class AbstractInstructionSet implements InstructionSet {
     List<Instruction> instructions;
 
     @Override
-    public void compile(@NotNull final CompileContext ctx) {
+    public final @NotNull InitInsn callInit(
+            final @NonNull Type type
+    ) {
+        val init = Instructions.initInsn(Names.of(type));
+        _callInsn(init);
+
+        return init;
+    }
+
+    @Override
+    public final @NotNull InitInsn callInit(
+            final @NonNull Name name
+    ) {
+        val init = Instructions.initInsn(name);
+        _callInsn(init);
+
+        return init;
+    }
+
+    @Override
+    public void compile(final @NonNull CompileContext ctx) {
         for (val instruction : instructions) {
             instruction.compile(ctx);
         }

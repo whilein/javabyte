@@ -66,6 +66,9 @@ public interface InstructionSet extends Instruction {
     void callCast(@NotNull Type to);
     void callCast(@NotNull Name to);
 
+    @NotNull InitInsn callInit(@NotNull Type type);
+    @NotNull InitInsn callInit(@NotNull Name name);
+
     void callUnbox();
 
     void callReturn();

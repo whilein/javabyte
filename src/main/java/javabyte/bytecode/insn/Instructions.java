@@ -32,7 +32,9 @@ import org.objectweb.asm.Label;
 
 import java.lang.reflect.Type;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static org.objectweb.asm.Opcodes.*;
 
@@ -102,6 +104,10 @@ public final class Instructions {
         return UnboxInsn.INSTANCE;
     }
 
+    public @NotNull InitInsn initInsn(final @NonNull Name name) {
+        return new InitInsnImpl(name);
+    }
+
     public @NotNull StringsSwitchInsn stringsSwitchInsn(final @NonNull InstructionSet parent) {
         return new StringsSwitchInsnImpl(
                 parent, new HashMap<>(),
@@ -141,6 +147,86 @@ public final class Instructions {
                 Asm.index(),
                 new LoopBranchImpl(parent, new ArrayList<>(), new Label(), new Label(), new Label())
         );
+    }
+
+    private static final class Init extends AbstractInstructionSet {
+
+        private Init(final List<Instruction> instructions) {
+            super(instructions);
+        }
+
+    }
+
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+    private static final class InitInsnImpl implements InitInsn {
+
+        final Name type;
+
+        Consumer<InstructionSet> init;
+        Name[] parameters;
+
+        @Override
+        public void compile(final @NonNull CompileContext ctx) {
+            val parameters = this.parameters != null
+                    ? this.parameters
+                    : new Name[0];
+
+            val mv = ctx.getMethodVisitor();
+
+            ctx.pushStack(Names.OBJECT);
+            ctx.pushStack(Names.OBJECT);
+
+            mv.visitTypeInsn(NEW, type.getInternalName());
+            mv.visitInsn(DUP);
+
+            if (this.init != null) {
+                val init = new Init(new ArrayList<>());
+                this.init.accept(init);
+
+                init.compile(ctx);
+            }
+
+            ctx.popStack();
+            ctx.popStack();
+
+            for (int i = 0; i < parameters.length; i++) {
+                ctx.popStack();
+            }
+
+            mv.visitMethodInsn(
+                    INVOKESPECIAL, type.getInternalName(), "<init>",
+                    Signatures.methodSignature(Names.VOID, parameters).getDescriptor(), false
+            );
+
+            ctx.pushStack(type);
+        }
+
+        @Override
+        public @NotNull String toString() {
+            return "[INIT " + type + "(" + (parameters != null
+                    ? Arrays.stream(parameters).map(Name::toString).collect(Collectors.joining(", "))
+                    : "") + ")";
+        }
+
+        @Override
+        public @NotNull InitInsn init(@NotNull final Consumer<@NotNull InstructionSet> init) {
+            this.init = init;
+            return this;
+        }
+
+        @Override
+        public @NotNull InitInsn parameters(final @NotNull Type @NonNull ... parameters) {
+            this.parameters = Names.of(parameters);
+            return this;
+        }
+
+        @Override
+        public @NotNull InitInsn parameters(final @NotNull Name @NonNull ... parameters) {
+            this.parameters = parameters;
+            return this;
+        }
+
     }
 
     @NoArgsConstructor(access = AccessLevel.PRIVATE)
