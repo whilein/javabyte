@@ -1,9 +1,14 @@
 plugins {
     id 'java'
+
+    id 'maven-publish'
+    id 'signing'
 }
 
 group 'io.github.whilein'
-version '0.1.0-SNAPSHOT'
+description 'Simple library that helps you to create new classes'
+version findProperty('github.tag') ?: ''
+archivesBaseName = 'javabyte'
 
 repositories {
     mavenCentral()
@@ -25,7 +30,90 @@ dependencies {
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.0'
 }
 
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            pom {
+                name = project.name
+                description = project.description
+
+                url = 'https://github.com/whilein/javabyte'
+
+                organization {
+                    name = 'io.github.whilein'
+                    url = 'https://github.com/whilein'
+                }
+
+                issueManagement {
+                    system = 'GitHub'
+                    url = 'https://github.com/whilein/javabyte/issues'
+                }
+
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+
+                scm {
+                    url = 'https://github.com/whilein/javabyte'
+                    connection = 'scm:https://github.com/whilein/javabyte.git'
+                    developerConnection = 'scm:git://github.com/whilein/javabyte.git'
+                }
+
+                developers {
+                    developer {
+                        id = 'whilein'
+                        name = 'whilein'
+                        email = 'whilein.1@gmail.com'
+                    }
+                }
+            }
+
+            groupId = project.group
+            artifactId = project.name
+            version = project.version
+
+            from components.java
+        }
+    }
+
+    repositories {
+        // github packages
+        maven {
+            url = "https://maven.pkg.github.com/whilein/javabyte"
+
+            credentials {
+                username = findProperty('gpr.user')
+                password = findProperty('gpr.password')
+            }
+        }
+
+        // maven central
+        if (project.version.matches("\\d+\\.\\d+(\\.\\d+)?")) {
+            maven {
+                url = "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2"
+
+                credentials {
+                    username = findProperty('sonatype.user')
+                    password = findProperty('sonatype.password')
+                }
+            }
+        }
+    }
+}
+
 tasks {
+    signing {
+        sign publishing.publications
+    }
+
+    java {
+        withJavadocJar()
+        withSourcesJar()
+    }
+
     compileJava {
         options.encoding = 'utf-8'
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -34,5 +122,12 @@ tasks {
 
     test {
         useJUnitPlatform()
+
+        testLogging {
+            showStandardStreams = true
+
+            exceptionFormat "short"
+            events("started", "skipped", "failed")
+        }
     }
 }
