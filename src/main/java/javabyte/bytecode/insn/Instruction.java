@@ -14,11 +14,16 @@
  *    limitations under the License.
  */
 
-package javabyte.bytecode.macro;
+package javabyte.bytecode.insn;
+
+import javabyte.bytecode.CompileContext;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * @author whilein
  */
-public enum Macro {
-    SOUT
+public interface Instruction {
+
+    void compile(@NotNull CompileContext ctx);
+
 }

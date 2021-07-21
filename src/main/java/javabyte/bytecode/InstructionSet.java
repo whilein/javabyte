@@ -17,7 +17,6 @@
 package javabyte.bytecode;
 
 import javabyte.bytecode.insn.*;
-import javabyte.bytecode.macro.Macro;
 import javabyte.name.Name;
 import javabyte.opcode.FieldOpcode;
 import javabyte.opcode.JumpOpcode;
@@ -30,11 +29,14 @@ import java.lang.reflect.Type;
 /**
  * @author whilein
  */
-public interface InstructionSet {
+public interface InstructionSet extends Instruction {
 
-    @NotNull Position newPos();
-    void setPos(@NotNull Position position);
-    void jumpPos(@NotNull JumpOpcode opcode, @NotNull Position position);
+    void callInsn(@NotNull Instruction instruction);
+    void callSout();
+
+    @NotNull Position initPosition();
+    void visit(@NotNull Position position);
+    void jump(@NotNull JumpOpcode opcode, @NotNull Position position);
 
     void loadLocal(int index);
     void loadLocal(@NotNull LocalIndex index);
@@ -45,12 +47,12 @@ public interface InstructionSet {
     @NotNull FieldInsn fieldInsn(@NotNull FieldOpcode opcode, @NotNull String name);
     @NotNull MethodInsn methodInsn(@NotNull MethodOpcode opcode, @NotNull String name);
 
-    void loadString(@NotNull String string);
+    void pushString(@NotNull String string);
 
-    void loadInt(int value);
-    void loadFloat(float value);
-    void loadDouble(double value);
-    void loadLong(long value);
+    void pushInt(int value);
+    void pushFloat(float value);
+    void pushDouble(double value);
+    void pushLong(long value);
 
     void loadFromArray();
     void loadArrayLength();
@@ -59,7 +61,6 @@ public interface InstructionSet {
     @NotNull IterateOverInsn iterateOverInsn();
 
     void callBox();
-    void callMacro(@NotNull Macro macro);
     void callMath(@NotNull MathOpcode opcode);
 
     void callCast(@NotNull Type to);

@@ -26,7 +26,7 @@ import java.lang.reflect.Type;
 /**
  * @author whilein
  */
-public interface IterateOverInsn {
+public interface IterateOverInsn extends Instruction {
 
     @NotNull IterateOverInsn source(@NotNull LocalIndex index);
     @NotNull IterateOverInsn source(int index);

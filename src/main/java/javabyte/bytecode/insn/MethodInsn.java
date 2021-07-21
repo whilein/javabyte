@@ -25,7 +25,7 @@ import java.lang.reflect.Type;
 /**
  * @author whilein
  */
-public interface MethodInsn {
+public interface MethodInsn extends Instruction {
 
     @NotNull MethodInsn descriptor(@NotNull MethodSignature signature);
     @NotNull MethodInsn descriptor(@NotNull Type returnType, @NotNull Type @NotNull ... parameters);

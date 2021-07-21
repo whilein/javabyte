@@ -22,7 +22,7 @@ import org.jetbrains.annotations.NotNull;
 /**
  * @author whilein
  */
-public interface SwitchInsn {
+public interface SwitchInsn extends Instruction {
 
     @NotNull CaseBranch defaultBranch();
 

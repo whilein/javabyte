@@ -104,7 +104,7 @@ final class Tests {
 
     private void initSearchCode(final MakeMethod method) {
         val code = method.getBytecode();
-        code.loadInt(0);
+        code.pushInt(0);
 
         val index = code.storeLocal();
 
@@ -120,8 +120,8 @@ final class Tests {
                 .descriptor(boolean.class, Object.class)
                 .in(String.class);
 
-        loopCode.jumpPos(JumpOpcode.IFEQ, loopCode.getContinue());
-        loopCode.loadInt(1);
+        loopCode.jump(JumpOpcode.IFEQ, loopCode.getContinue());
+        loopCode.pushInt(1);
         loopCode.storeLocal(index);
         loopCode.callBreak();
 
@@ -172,7 +172,7 @@ final class Tests {
             method.setOverrides(MultifunctionalInterface.class);
 
             val code = method.getBytecode();
-            code.loadInt(0);
+            code.pushInt(0);
 
             val index = code.storeLocal();
 
@@ -184,8 +184,8 @@ final class Tests {
             loopCode.loadLocal(loop.getElementLocal());
             loopCode.loadLocal(2);
 
-            loopCode.jumpPos(JumpOpcode.IF_ICMPNE, loopCode.getContinue());
-            loopCode.loadInt(1);
+            loopCode.jump(JumpOpcode.IF_ICMPNE, loopCode.getContinue());
+            loopCode.pushInt(1);
             loopCode.storeLocal(index);
             loopCode.callBreak();
 
@@ -248,7 +248,7 @@ final class Tests {
             code.loadLocal(1);
             code.loadLocal(2);
             code.callMath(MathOpcode.IADD);
-            code.loadInt(100);
+            code.pushInt(100);
             code.callMath(MathOpcode.IMUL);
             code.callReturn();
         });
@@ -274,12 +274,12 @@ final class Tests {
 
             for (int i = 0; i < 100; i++) {
                 val branch = switchCase.branch(i);
-                branch.loadString(String.valueOf(i) + (char) ('A' + i));
+                branch.pushString(String.valueOf(i) + (char) ('A' + i));
                 branch.callReturn();
             }
 
             val defaultBranch = switchCase.defaultBranch();
-            defaultBranch.loadString("Default");
+            defaultBranch.pushString("Default");
             defaultBranch.callReturn();
         });
 
@@ -308,17 +308,17 @@ final class Tests {
             switchCase.branch(1);
             switchCase.branch(2);
             val branch123 = switchCase.branch(3);
-            branch123.loadString("123");
+            branch123.pushString("123");
             branch123.callReturn();
 
             switchCase.branch(1000);
             switchCase.branch(100);
             val branch100010010 = switchCase.branch(10);
-            branch100010010.loadString("100010010");
+            branch100010010.pushString("100010010");
             branch100010010.callReturn();
 
             val defaultBranch = switchCase.defaultBranch();
-            defaultBranch.loadString("Default");
+            defaultBranch.pushString("Default");
             defaultBranch.callReturn();
         });
 
@@ -355,7 +355,7 @@ final class Tests {
 
             for (int i = 0; i < randomBranches.length; i++) {
                 val branch = switchCase.branch(randomBranches[i]);
-                branch.loadString(Integer.toString(i));
+                branch.pushString(Integer.toString(i));
                 branch.callReturn();
             }
 
@@ -364,12 +364,12 @@ final class Tests {
                 if (randomBranchList.contains(sameHashBranch)) continue;
 
                 val branch = switchCase.branch(sameHashBranch);
-                branch.loadString("SameHash#" + i);
+                branch.pushString("SameHash#" + i);
                 branch.callReturn();
             }
 
             val defaultBranch = switchCase.defaultBranch();
-            defaultBranch.loadString("Default");
+            defaultBranch.pushString("Default");
             defaultBranch.callReturn();
         });
 
