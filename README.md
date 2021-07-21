@@ -39,8 +39,8 @@ run.setPublic();
 
 Bytecode runCode = run.getBytecode();
 
-// push string to stack
-runCode.loadString("Hello world! :3");
+// push string into stack
+runCode.pushString("Hello world! :3");
 // call System.out.println using "callMacro"
 runCode.callMacro(Macro.SOUT);
 
@@ -49,7 +49,7 @@ runCode.callMacro(Macro.SOUT);
 //        .in(System.class)
 //        .descriptor(PrintStream.class);
 //
-// runCode.loadString("Hello world! :3");
+// runCode.pushString("Hello world! :3");
 //
 // runCode.methodInsn(MethodOpcode.VIRTUAL, "println")
 //       .in(PrintStream.class)
@@ -79,9 +79,9 @@ apply.setParameterTypes(Integer.class, Integer.class);
 apply.setOverrides(BiFunction.class);
 
 Bytecode applyCode = apply.getBytecode();
-applyCode.loadLocal(1); // push local 1 (Integer) to stack
+applyCode.loadLocal(1); // push local 1 (Integer) into stack
 applyCode.callUnbox(); // convert Integer to int
-applyCode.loadLocal(2); // push local 2 (Integer) to stack
+applyCode.loadLocal(2); // push local 2 (Integer) into stack
 applyCode.callUnbox(); // convert Integer to int
 applyCode.callMath(MathOpcode.IADD); // sum two integers
 applyCode.callBox(); // convert int to Integer
@@ -95,7 +95,7 @@ return calculator.apply(10, 20);
 ```
 > Iterate over Iterable or array
 ```java
-// push iterable or array to stack
+// push iterable or array into stack
 code.loadLocal(...);
 
 IterateOverInsn loop = code.iterateOver();
@@ -112,7 +112,8 @@ body.callMacro(Macro.SOUT);
 ```
 > Switch-Case statement
 ```java
-code.loadString("Some string");
+// push string into stack
+code.pushString("Some string");
 
 // for integers you should use intsSwitchCaseInsn()
 StringsSwitchInsn switchCase = code.stringsSwitchCaseInsn();
