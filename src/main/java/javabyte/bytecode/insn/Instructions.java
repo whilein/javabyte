@@ -56,6 +56,10 @@ public final class Instructions {
         return new NewArrayInsn(name, knownDims);
     }
 
+    public @NotNull Instruction throwInsn() {
+        return ThrowInsn.INSTANCE;
+    }
+
     public @NotNull Instruction castInsn(final @NonNull Name name) {
         return new CastInsn(name);
     }
@@ -1696,6 +1700,23 @@ public final class Instructions {
             ctx.popStack();
             ctx.getMethodVisitor().visitInsn(ARRAYLENGTH);
             ctx.pushStack(Names.INT);
+        }
+
+        @Override
+        public String toString() {
+            return "[ARRAYLENGTH]";
+        }
+    }
+
+    @NoArgsConstructor(access = AccessLevel.PRIVATE)
+    private static final class ThrowInsn implements Instruction {
+
+        private static final Instruction INSTANCE = new ThrowInsn();
+
+        @Override
+        public void compile(final @NonNull CompileContext ctx) {
+            ctx.popStack();
+            ctx.getMethodVisitor().visitInsn(ATHROW);
         }
 
         @Override

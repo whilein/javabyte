@@ -233,6 +233,11 @@ public abstract class AbstractInstructionSet implements InstructionSet {
     }
 
     @Override
+    public void callThrow() {
+        _callInsn(Instructions.throwInsn());
+    }
+
+    @Override
     public void callNewArray(@NotNull final Type arrayType) {
         val name = Names.of(arrayType);
 
