@@ -41,10 +41,10 @@ Bytecode runCode = run.getBytecode();
 
 // push string into stack
 runCode.pushString("Hello world! :3");
-// call System.out.println using "callMacro"
-runCode.callMacro(Macro.SOUT);
+// call System.out.println using "callSout"
+runCode.callSout();
 
-// or without macro:
+// or without callSout:
 // runCode.fieldInsn(FieldOpcode.GET_STATIC, "out")
 //        .in(System.class)
 //        .descriptor(PrintStream.class);
@@ -108,7 +108,7 @@ LoopBranch body = loop.getBody();
 // load element
 body.loadLocal(loop.getElementLocal());
 // log element to console
-body.callMacro(Macro.SOUT);
+body.callSout();
 ```
 > Switch-Case statement
 ```java
