@@ -18,6 +18,10 @@
   <a href="https://github.com/whilein/javabyte/pulls">
     <img src="https://img.shields.io/github/issues-pr/whilein/javabyte">
   </a>
+
+  <a href="https://search.maven.org/artifact/io.github.whilein/javabyte">
+    <img src="https://img.shields.io/maven-central/v/io.github.whilein/javabyte">
+  </a>
 </div>
 
 ## About the project
