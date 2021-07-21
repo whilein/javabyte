@@ -16,7 +16,6 @@
 
 package javabyte.util;
 
-import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import org.jetbrains.annotations.NotNull;
 import org.objectweb.asm.Type;
@@ -27,22 +26,19 @@ import org.objectweb.asm.Type;
 @UtilityClass
 public class AsmUtils {
 
-    public @NotNull Type getType(final @NotNull String @NonNull [] name) {
-        if (name.length == 1) {
-            switch (name[0]) {
-                case "void": return Type.VOID_TYPE;
-                case "boolean": return Type.BOOLEAN_TYPE;
-                case "byte": return Type.BYTE_TYPE;
-                case "char": return Type.CHAR_TYPE;
-                case "short": return Type.SHORT_TYPE;
-                case "int": return Type.INT_TYPE;
-                case "long": return Type.LONG_TYPE;
-                case "float": return Type.FLOAT_TYPE;
-                case "double": return Type.DOUBLE_TYPE;
-            }
+    public @NotNull Type getType(final @NotNull String name) {
+        switch (name) {
+            case "void": return Type.VOID_TYPE;
+            case "boolean": return Type.BOOLEAN_TYPE;
+            case "byte": return Type.BYTE_TYPE;
+            case "char": return Type.CHAR_TYPE;
+            case "short": return Type.SHORT_TYPE;
+            case "int": return Type.INT_TYPE;
+            case "long": return Type.LONG_TYPE;
+            case "float": return Type.FLOAT_TYPE;
+            case "double": return Type.DOUBLE_TYPE;
+            default: return Type.getObjectType(name);
         }
-
-        return Type.getObjectType(String.join("/", name));
     }
 
 }

@@ -66,6 +66,12 @@ public interface InstructionSet extends Instruction {
     void callBox();
     void callMath(@NotNull MathOpcode opcode);
 
+    void callNewArray(@NotNull Name arrayType, int knownDims);
+    void callNewArray(@NotNull Type arrayType, int knownDims);
+
+    void callNewArray(@NotNull Name arrayType);
+    void callNewArray(@NotNull Type arrayType);
+
     void callCast(@NotNull Type to);
     void callCast(@NotNull Name to);
 

@@ -14,34 +14,23 @@
  *    limitations under the License.
  */
 
-package javabyte.name;
+package javabyte;
 
-import org.jetbrains.annotations.NotNull;
-import org.objectweb.asm.Type;
+import javabyte.name.Names;
+import lombok.val;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * @author whilein
  */
-public interface Name extends Parameter {
+class NamesTests {
 
-    int getDimensions();
-    boolean isArray();
-
-    @NotNull Name getComponent();
-    @NotNull Name dimensions(int dimensions);
-
-    int getPrimitive();
-    boolean isPrimitive();
-
-    @NotNull Type toType();
-    @NotNull Class<?> toClass();
-
-    @NotNull String getInternalName();
-    @NotNull String getName();
-
-    void getName(@NotNull StringBuilder out);
-    void getInternalName(@NotNull StringBuilder out);
-
-    int getSize();
-
+    @Test
+    void arrayNames() {
+        val intArray = Names.of(int[].class);
+        assertEquals("int[]", intArray.getName());
+        assertEquals("[I", intArray.getInternalName());
+    }
 }

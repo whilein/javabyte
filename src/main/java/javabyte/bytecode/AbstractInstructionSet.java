@@ -218,6 +218,29 @@ public abstract class AbstractInstructionSet implements InstructionSet {
     }
 
     @Override
+    public void callNewArray(@NotNull final Name arrayType, final int knownDims) {
+        _callInsn(Instructions.newArrayInsn(arrayType, knownDims));
+    }
+
+    @Override
+    public void callNewArray(@NotNull final Type arrayType, final int knownDims) {
+        _callInsn(Instructions.newArrayInsn(Names.of(arrayType), knownDims));
+    }
+
+    @Override
+    public void callNewArray(@NotNull final Name arrayType) {
+        _callInsn(Instructions.newArrayInsn(arrayType, arrayType.getDimensions()));
+    }
+
+    @Override
+    public void callNewArray(@NotNull final Type arrayType) {
+        val name = Names.of(arrayType);
+
+        _callInsn(Instructions.newArrayInsn(name, name.getDimensions()));
+    }
+
+
+    @Override
     public final void callCast(final @NonNull Name to) {
         _callInsn(Instructions.castInsn(to));
     }

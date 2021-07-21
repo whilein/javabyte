@@ -367,6 +367,11 @@ public class Names {
         }
 
         @Override
+        public @NotNull Name getComponent() {
+            return rawName.getComponent();
+        }
+
+        @Override
         public int getPrimitive() {
             return rawName.getPrimitive();
         }
@@ -645,13 +650,22 @@ public class Names {
         }
 
         @Override
+        public @NotNull Name getComponent() {
+            if (dimensions < 1) {
+                throw new IllegalStateException(this + " should be an array");
+            }
+
+            return dimensions(dimensions - 1);
+        }
+
+        @Override
         public boolean isPrimitive() {
             return primitive != -1;
         }
 
         @Override
         public @NotNull org.objectweb.asm.Type toType() {
-            return AsmUtils.getType(array);
+            return AsmUtils.getType(getInternalName());
         }
 
         @Override
@@ -671,13 +685,23 @@ public class Names {
                 if (i != 0) out.append('.');
                 out.append(array[i]);
             }
+
+            for (int i = 0; i < dimensions; i++)
+                out.append('[').append(']');
         }
 
         @Override
         public void getInternalName(final @NonNull StringBuilder out) {
-            for (int i = 0, j = array.length; i < j; i++) {
-                if (i != 0) out.append('/');
-                out.append(array[i]);
+            if (getDimensions() > 0) {
+                out.append('[');
+
+                val component = getComponent();
+                component.getSignature(out);
+            } else {
+                for (int i = 0, j = array.length; i < j; i++) {
+                    if (i != 0) out.append('/');
+                    out.append(array[i]);
+                }
             }
         }
 
@@ -692,7 +716,7 @@ public class Names {
             if (dimensions > 0) {
                 out.append('[');
 
-                val component = dimensions(dimensions - 1);
+                val component = getComponent();
                 component.getSignature(out);
             } else {
                 out.append('L');
@@ -709,9 +733,6 @@ public class Names {
         @Override
         public void toString(final @NonNull StringBuilder out) {
             getName(out);
-
-            for (int i = 0; i < dimensions; i++)
-                out.append('[').append(']');
         }
 
         @Override
@@ -751,17 +772,17 @@ public class Names {
         public @NotNull ExactName dimensions(final int dimensions) {
             if (dimensions == this.dimensions) return this;
 
-            val originalClass = _originalWithDims(this.dimensions, dimensions);
+            val originalClass = this.originalClass != null
+                    ? _originalWithDims(this.dimensions, dimensions)
+                    : null;
 
             return dimensions == 0
-                    ? _getCacheOrInit(getName(), 0, false, originalClass)
+                    ? _getCacheOrInit(String.join(".", array), 0, false, originalClass)
                     : new ExactNameImpl(primitive, dimensions, array, originalClass);
         }
 
         @SneakyThrows
         private Class<?> _originalWithDims(final int originalDims, final int dims) {
-            if (originalClass == null) return null;
-
             Class<?> result = originalClass;
 
             int diff = Math.abs(originalDims - dims);

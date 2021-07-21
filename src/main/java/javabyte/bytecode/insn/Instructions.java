@@ -44,6 +44,18 @@ import static org.objectweb.asm.Opcodes.*;
 @UtilityClass
 public final class Instructions {
 
+    public @NotNull Instruction newArrayInsn(final @NonNull Name name, final int knownDims) {
+        if (!name.isArray()) {
+            throw new IllegalArgumentException("Name should be an array");
+        }
+
+        if (knownDims > name.getDimensions()) {
+            throw new IllegalArgumentException("knownDims > array.getDimensions");
+        }
+
+        return new NewArrayInsn(name, knownDims);
+    }
+
     public @NotNull Instruction castInsn(final @NonNull Name name) {
         return new CastInsn(name);
     }
@@ -270,6 +282,75 @@ public final class Instructions {
             return "[SYSTEM.OUT.PRINTLN]";
         }
     }
+
+
+    @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+    private static final class NewArrayInsn implements Instruction {
+
+        Name name;
+        int knownDims;
+
+        private int arrayCode(final Name componentType) {
+            if (componentType.isArray())
+                return 1;
+
+            if (!componentType.isPrimitive())
+                return 0;
+
+            switch (componentType.getPrimitive()) {
+                case Names.BOOL_TYPE:
+                    return 4;
+                case Names.CHAR_TYPE:
+                    return 5;
+                case Names.FLOAT_TYPE:
+                    return 6;
+                case Names.DOUBLE_TYPE:
+                    return 7;
+                case Names.BYTE_TYPE:
+                    return 8;
+                case Names.SHORT_TYPE:
+                    return 9;
+                case Names.INT_TYPE:
+                    return 10;
+                case Names.LONG_TYPE:
+                    return 11;
+                default:
+                    throw new IllegalArgumentException("Cannot create array: " + name);
+            }
+        }
+
+        /**
+         * http://hg.openjdk.java.net/jdk8/jdk8/langtools/file/30db5e0aaf83/src/share/classes/com/sun/tools/javac/jvm/Gen.java#l1750
+         */
+        @Override
+        public void compile(final @NonNull CompileContext ctx) {
+            val mv = ctx.getMethodVisitor();
+
+            for (int i = 0; i < knownDims; i++) {
+                ctx.popStack();
+            }
+
+            val component = name.getComponent();
+            val arrayCode = arrayCode(component);
+
+            if (arrayCode == 0 || (arrayCode == 1 && knownDims == 1)) {
+                mv.visitTypeInsn(ANEWARRAY, component.getInternalName());
+            } else if (arrayCode == 1) {
+                mv.visitMultiANewArrayInsn(name.getInternalName(), knownDims);
+            } else {
+                mv.visitIntInsn(NEWARRAY, arrayCode);
+            }
+
+            ctx.pushStack(name);
+        }
+
+        @Override
+        public String toString() {
+            return "[NEWARRAY " + name.toString() + " (knownDims: " + knownDims + ")]";
+        }
+    }
+
 
     @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)

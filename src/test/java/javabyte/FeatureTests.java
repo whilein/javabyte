@@ -43,7 +43,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author whilein
  */
-final class Tests {
+final class FeatureTests {
 
     Random random;
     char[] alphabet;
