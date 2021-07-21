@@ -127,6 +127,26 @@ CaseBranch branchAorBorC = switchCase.branch("C");
 branchAorBorC.loadString("A or B or C");
 branchAorBorC.callReturn();
 ```
+> Init new object
+```java
+// no args constructor
+// public SomeType() {}
+code.callInit(SomeType.class);
+
+// constructor with args
+// public SomeType(String x, int y, double z) {}
+InitInsn insn = code.callInit(SomeType.class);
+insn.parameters(String.class, int.class, double.class);
+// We can't get rid of initializer because
+// we should to write NEW & DUP first
+// and only then we can write a parameters
+insn.init(initializer -> {
+    initializer.pushString("First parameter");
+    initializer.pushInt(2);
+    initializer.pushDouble(3.3);
+});
+
+```
 ## Contact
 [Vkontakte](https://vk.com/id623151994),
 [Telegram](https://t.me/whilein)
