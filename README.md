@@ -22,6 +22,10 @@
   <a href="https://search.maven.org/artifact/io.github.whilein/javabyte">
     <img src="https://img.shields.io/maven-central/v/io.github.whilein/javabyte">
   </a>
+
+  <a href="https://github.com/whilein/javabyte/actions">
+    <img src="https://img.shields.io/github/workflow/status/whilein/javabyte/test">
+  </a>
 </div>
 
 ## About the project
