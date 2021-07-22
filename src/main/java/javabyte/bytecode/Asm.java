@@ -18,6 +18,8 @@ package javabyte.bytecode;
 
 import javabyte.bytecode.insn.Instruction;
 import javabyte.make.MakeExecutable;
+import javabyte.opcode.MethodOpcode;
+import javabyte.signature.MethodSignature;
 import javabyte.type.TypeName;
 import javabyte.type.Types;
 import lombok.*;
@@ -228,7 +230,7 @@ public class Asm {
         }
 
         @Override
-        public void visitString(@NotNull final String value) {
+        public void visitString(final @NonNull String value) {
             methodVisitor.visitLdcInsn(value);
         }
 
@@ -240,6 +242,35 @@ public class Asm {
         @Override
         public void jump(final int opcode, final @NotNull Position position) {
             position.jump(methodVisitor, opcode);
+        }
+
+        @Override
+        public void visitMethodInsn(
+                final @NonNull MethodOpcode opcode,
+                final @NonNull TypeName owner,
+                final @NonNull String name,
+                final @NonNull MethodSignature descriptor
+        ) {
+            for (int i = 0, j = descriptor.getParameterTypes().length; i < j; i++) {
+                popStack();
+            }
+
+            switch (opcode) {
+                case SPECIAL:
+                case VIRTUAL:
+                case INTERFACE:
+                    popStack();
+                    break;
+            }
+
+            getMethodVisitor().visitMethodInsn(
+                    opcode.getOpcode(), owner.getInternalName(),
+                    name, descriptor.getDescriptor(), opcode == MethodOpcode.INTERFACE
+            );
+
+            if (!descriptor.getReturnType().equals(Types.VOID)) {
+                pushStack(descriptor.getReturnType());
+            }
         }
 
         @Override
@@ -360,7 +391,7 @@ public class Asm {
         }
 
         @Override
-        public @NotNull Local pushLocal(@NotNull final TypeName name) {
+        public @NotNull Local pushLocal(final @NonNull TypeName name) {
             return _pushLocal(new LocalIndexImpl(), name);
         }
 

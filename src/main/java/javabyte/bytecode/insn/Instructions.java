@@ -1448,19 +1448,7 @@ public final class Instructions {
                 throw new IllegalStateException("You should to specify descriptor using MethodInsn#descriptor method!");
             }
 
-            compile.requireStack(descriptor.getParameterTypes());
-
-            compile.getMethodVisitor().visitMethodInsn(
-                    opcode.getOpcode(), owner.apply(compile).getInternalName(),
-                    name, descriptor.getDescriptor(), opcode == MethodOpcode.INTERFACE
-            );
-
-            for (int i = 0, j = descriptor.getParameterTypes().length; i < j; i++) {
-                compile.popStack();
-            }
-
-            if (!descriptor.getReturnType().equals(Types.VOID))
-                compile.pushStack(descriptor.getReturnType());
+            compile.visitMethodInsn(opcode, owner.apply(compile), name, descriptor);
         }
 
         @Override

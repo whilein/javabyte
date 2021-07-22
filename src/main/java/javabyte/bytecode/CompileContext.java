@@ -17,6 +17,8 @@
 package javabyte.bytecode;
 
 import javabyte.make.MakeExecutable;
+import javabyte.opcode.MethodOpcode;
+import javabyte.signature.MethodSignature;
 import javabyte.type.TypeName;
 import org.jetbrains.annotations.NotNull;
 import org.objectweb.asm.MethodVisitor;
@@ -30,6 +32,11 @@ public interface CompileContext {
     void requireStrictStack(@NotNull TypeName @NotNull ... types);
 
     void jump(int opcode, @NotNull Position position);
+
+    void visitMethodInsn(
+            @NotNull MethodOpcode opcode, @NotNull TypeName owner,
+            @NotNull String name, @NotNull MethodSignature descriptor
+    );
 
     void visitInt(int value);
     void visitLong(long value);

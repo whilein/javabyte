@@ -18,6 +18,7 @@ package javabyte;
 
 import javabyte.bytecode.Asm;
 import javabyte.bytecode.Bytecode;
+import javabyte.bytecode.CompileContext;
 import javabyte.make.*;
 import javabyte.opcode.MethodOpcode;
 import javabyte.signature.MethodSignature;
@@ -358,6 +359,17 @@ public class Javabyte {
             return executable;
         }
 
+
+        @Override
+        public @NotNull MakeToString addToStringMethod() {
+            val method = _addExecutable(_initMethod("toString"));
+
+            val toString = new MakeToStringImpl(this, method);
+            toString.initMethod();
+
+            return toString;
+        }
+
         @Override
         public @NotNull MakeConstructor addConstructor() {
             return _addExecutable(_initConstructor(false));
@@ -508,6 +520,168 @@ public class Javabyte {
             this.interfaces.addAll(interfaces);
         }
 
+    }
+
+    @Getter
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+    private static final class MakeToStringImpl implements MakeToString {
+        final AbstractMakeClass type;
+        final MakeMethod handle;
+
+        String label;
+        String[] fieldNames;
+
+        boolean includeSuper;
+
+        private void append(final CompileContext ctx, final TypeName type) {
+            val sb = Types.STRING_BUILDER;
+
+            final TypeName argument;
+
+            if (type.isArray()) {
+                argument = Types.STRING;
+
+                val component = type.getComponent();
+
+                val signature = Signatures.methodSignature(
+                        argument,
+                        !component.isPrimitive()
+                                ? Types.of(Object[].class)
+                                : type
+                );
+
+                val methodName = component.isArray() ? "deepToString" : "toString";
+
+                ctx.visitMethodInsn(MethodOpcode.STATIC, Types.of(Arrays.class),
+                        methodName, signature);
+            } else if (type.isPrimitive() || type.equals(Types.STRING)) {
+                argument = type;
+            } else {
+                argument = Types.OBJECT;
+            }
+
+            ctx.visitMethodInsn(MethodOpcode.VIRTUAL, sb, "append",
+                    Signatures.methodSignature(sb, argument));
+        }
+
+        private void initMethod() {
+            val sb = Types.STRING_BUILDER;
+
+            handle.setReturnType(String.class);
+
+            val code = handle.getBytecode();
+            code.callInit(StringBuilder.class);
+
+            code.callInsn(ctx -> {
+                val label = this.label == null
+                        ? this.type.name.getSimpleName()
+                        : this.label;
+
+                val mv = ctx.getMethodVisitor();
+
+                ctx.pushStack(Types.STRING);
+
+                if (type.fields.isEmpty()) {
+                    mv.visitLdcInsn(label);
+                } else {
+                    val fields = new ArrayList<MakeField>();
+
+                    if (fieldNames == null) {
+                        fields.addAll(type.fields);
+                    } else {
+                        for (val fieldName : fieldNames) {
+                            for (val field : type.fields) {
+                                if (field.getName().equals(fieldName)) {
+                                    fields.add(field);
+                                }
+                            }
+                        }
+                    }
+
+                    boolean separator = false;
+                    boolean prevString = false;
+
+                    for (val field : fields) {
+                        val isString = Types.STRING.equals(field.getType());
+
+                        val fieldLabel = new StringBuilder();
+                        if (prevString) fieldLabel.append('\'');
+                        if (separator) fieldLabel.append(", ");
+                        else fieldLabel.append(label).append("[");
+                        fieldLabel.append(field.getName());
+                        fieldLabel.append('=');
+                        if (isString) fieldLabel.append('\'');
+                        ctx.pushStack(Types.STRING);
+                        mv.visitLdcInsn(fieldLabel.toString());
+
+                        append(ctx, Types.STRING);
+
+                        val fieldType = field.getType();
+
+                        ctx.pushStack(type.name);
+                        mv.visitVarInsn(Opcodes.ALOAD, 0);
+
+                        ctx.popStack();
+                        mv.visitFieldInsn(Opcodes.GETFIELD, type.name.getInternalName(),
+                                field.getName(), fieldType.getDescriptor());
+                        ctx.pushStack(fieldType);
+
+                        append(ctx, fieldType);
+
+                        prevString = isString;
+                        separator = true;
+                    }
+
+                    if (!type.superName.equals(Types.OBJECT) && includeSuper) {
+                        val fieldLabel = new StringBuilder();
+                        if (prevString) fieldLabel.append('\'');
+                        if (separator) fieldLabel.append(", ");
+                        fieldLabel.append("@super=");
+                        ctx.pushStack(Types.STRING);
+                        mv.visitLdcInsn(fieldLabel.toString());
+
+                        append(ctx, Types.STRING);
+
+                        ctx.pushStack(type.superName);
+                        mv.visitVarInsn(Opcodes.ALOAD, 0);
+
+                        ctx.visitMethodInsn(MethodOpcode.SPECIAL, type.superName, "toString",
+                                Signatures.methodSignature(Types.STRING));
+
+                        append(ctx, type.superName);
+                        prevString = false;
+                    }
+
+                    ctx.pushStack(Types.STRING);
+                    mv.visitLdcInsn(prevString ? "']" : "]");
+                }
+
+                ctx.visitMethodInsn(MethodOpcode.VIRTUAL, sb, "append",
+                        Signatures.methodSignature(sb, Types.STRING));
+            });
+
+            code.methodInsn(MethodOpcode.VIRTUAL, "toString")
+                    .in(StringBuilder.class)
+                    .descriptor(String.class);
+            code.callReturn();
+            code.pop();
+        }
+
+        @Override
+        public void includeSuper() {
+            this.includeSuper = true;
+        }
+
+        @Override
+        public void setLabel(final @NonNull String label) {
+            this.label = label;
+        }
+
+        @Override
+        public void setAllowedFields(final @NotNull String @NonNull ... fieldNames) {
+            this.fieldNames = fieldNames;
+        }
     }
 
     @Getter
