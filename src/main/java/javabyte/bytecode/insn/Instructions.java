@@ -84,6 +84,10 @@ public final class Instructions {
         return PushNullInsn.INSTANCE;
     }
 
+    public @NotNull Instruction pushDefaultInsn(final @NonNull TypeName type) {
+        return new PushDefaultInsn(type);
+    }
+
     public @NotNull Instruction pushIntInsn(final int value) {
         return new PushIntInsn(value);
     }
@@ -1589,6 +1593,7 @@ public final class Instructions {
         }
     }
 
+
     @NoArgsConstructor(access = AccessLevel.PRIVATE)
     private static final class PushNullInsn implements Instruction {
 
@@ -1605,6 +1610,42 @@ public final class Instructions {
             return "[PUSHNULL]";
         }
     }
+
+    @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+    private static final class PushDefaultInsn implements Instruction {
+
+        TypeName type;
+
+        @Override
+        public void compile(final @NonNull CompileContext ctx) {
+            ctx.pushStack(type);
+
+            if (type.isPrimitive()) {
+                switch (type.getPrimitive()) {
+                    default:
+                        ctx.visitInt(0);
+                        break;
+                    case Types.FLOAT_TYPE:
+                        ctx.visitFloat(0);
+                        break;
+                    case Types.DOUBLE_TYPE:
+                        ctx.visitDouble(0);
+                    case Types.LONG_TYPE:
+                        ctx.visitLong(0);
+                        break;
+                }
+            } else {
+                ctx.visitNull();
+            }
+        }
+
+        @Override
+        public String toString() {
+            return "[PUSHDEFAULT " + type + "]";
+        }
+    }
+
 
     @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)

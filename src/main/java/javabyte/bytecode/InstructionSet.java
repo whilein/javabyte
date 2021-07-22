@@ -58,6 +58,8 @@ public interface InstructionSet extends Instruction {
     void pushLong(long value);
     void pushNull();
 
+    void pushDefault(@NotNull TypeName type);
+
     void loadFromArray();
     void loadArrayLength();
 

@@ -203,6 +203,11 @@ public abstract class AbstractInstructionSet implements InstructionSet {
     }
 
     @Override
+    public void pushDefault(final @NonNull TypeName type) {
+        _callInsn(Instructions.pushDefaultInsn(type));
+    }
+
+    @Override
     public final void callMath(final @NonNull MathOpcode opcode) {
         _callInsn(Instructions.mathInsn(opcode));
     }
