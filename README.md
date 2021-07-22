@@ -184,6 +184,33 @@ insn.init(initializer -> {
 code.pushInt(arraySize);
 code.callNewArray(String[].class);
 ```
+> toString & hashCode
+```java
+MakeClass type = Javabyte.make("Entity");
+type.setPublicFinal();
+
+// equals() temporary is unavailable
+        
+// generates new hashCode method with contents
+//   int hash = 1;
+//   hash = 31 * hash + Objects.hashCode(field);
+//   hash = 31 * hash + Arrays.hashCode(stringField);
+//   hash = 31 * hash + Long.hashCode(longField);
+//   return hash;
+MakeHashCode hashCode = type.addHashCodeMethod();
+// empty if all fields
+hashCode.setFields(...);
+// add hash = 31 * hash + super.hashCode()
+hashCode.includeSuper();
+
+// generates new toString method with contents:
+//   return "<class name>[str='...', field=..., array=[...], @super=...]
+MakeToString toString = type.addToStringMethod();
+// empty if all fields
+toString.setFields(...);
+// add "@super=" + super.toString() into result
+toString.includeSuper();
+```
 ## Contact
 [Vkontakte](https://vk.com/id623151994),
 [Telegram](https://t.me/whilein)
