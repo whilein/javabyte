@@ -1380,12 +1380,12 @@ public final class Instructions {
                 throw new IllegalStateException("You should to specify descriptor using FieldInsn#descriptor method!");
             }
 
-            if (opcode == FieldOpcode.PUT || opcode == FieldOpcode.GET) {
-                compile.popStack(); // pop instance
-            }
-
             if (opcode == FieldOpcode.PUT || opcode == FieldOpcode.PUT_STATIC) {
                 compile.popStack(); // pop new field value
+            }
+
+            if (opcode == FieldOpcode.PUT || opcode == FieldOpcode.GET) {
+                compile.popStack(); // pop instance
             }
 
             compile.getMethodVisitor().visitFieldInsn(
@@ -1393,7 +1393,8 @@ public final class Instructions {
                     name, descriptor.getDescriptor()
             );
 
-            compile.pushStack(descriptor);
+            if (opcode == FieldOpcode.GET || opcode == FieldOpcode.GET_STATIC)
+                compile.pushStack(descriptor);
         }
 
         @Override
