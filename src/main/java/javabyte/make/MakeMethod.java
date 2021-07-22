@@ -16,6 +16,7 @@
 
 package javabyte.make;
 
+import javabyte.signature.MethodSignature;
 import javabyte.type.TypeName;
 import org.jetbrains.annotations.NotNull;
 
@@ -28,6 +29,8 @@ public interface MakeMethod extends MakeExecutable {
 
     void setReturnType(@NotNull TypeName type);
     void setReturnType(@NotNull Type type);
+
+    void setSignature(@NotNull MethodSignature signature);
 
     void setOverrides(
             @NotNull Class<?> type

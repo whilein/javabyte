@@ -920,6 +920,13 @@ public class Javabyte {
         }
 
         @Override
+        public void setSignature(@NotNull final MethodSignature signature) {
+            this.returnType = signature.getReturnType();
+
+            _setParameters(Arrays.asList(signature.getParameterTypes()));
+        }
+
+        @Override
         public void setReturnType(final @NonNull TypeName type) {
             this.returnType = type;
         }
@@ -1107,12 +1114,12 @@ public class Javabyte {
             _setParameters(Arrays.asList(parameters));
         }
 
-        private void _setParameters(final Collection<TypeName> parameters) {
+        protected void _setParameters(final Collection<TypeName> parameters) {
             this.parameters.clear();
             this.parameters.addAll(parameters);
         }
 
-        private void _setExceptions(final Collection<ExactTypeName> exceptions) {
+        protected void _setExceptions(final Collection<ExactTypeName> exceptions) {
             this.exceptions.clear();
             this.exceptions.addAll(exceptions);
         }
