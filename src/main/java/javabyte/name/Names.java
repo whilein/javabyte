@@ -431,7 +431,7 @@ public class Names {
 
         @Override
         public void toString(final @NonNull StringBuilder out) {
-            out.append(rawName.getName());
+            rawName.dimensions(0).getName(out);
             out.append('<');
             for (int i = 0, j = parameters.length; i < j; i++) {
                 if (i != 0) out.append(',').append(' ');

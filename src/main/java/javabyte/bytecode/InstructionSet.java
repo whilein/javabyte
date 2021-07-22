@@ -64,6 +64,7 @@ public interface InstructionSet extends Instruction {
     @NotNull IterateOverInsn iterateOverInsn();
 
     void callBox();
+
     void callMath(@NotNull MathOpcode opcode);
 
     void callNewArray(@NotNull Name arrayType, int knownDims);
