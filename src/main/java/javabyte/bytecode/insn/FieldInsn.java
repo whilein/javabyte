@@ -16,7 +16,7 @@
 
 package javabyte.bytecode.insn;
 
-import javabyte.name.Name;
+import javabyte.type.TypeName;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Type;
@@ -27,10 +27,10 @@ import java.lang.reflect.Type;
 public interface FieldInsn extends Instruction {
 
     @NotNull FieldInsn descriptor(@NotNull Type type);
-    @NotNull FieldInsn descriptor(@NotNull Name type);
+    @NotNull FieldInsn descriptor(@NotNull TypeName type);
 
     @NotNull FieldInsn in(@NotNull Type owner);
-    @NotNull FieldInsn in(@NotNull Name owner);
+    @NotNull FieldInsn in(@NotNull TypeName owner);
 
     @NotNull FieldInsn inCurrent();
 

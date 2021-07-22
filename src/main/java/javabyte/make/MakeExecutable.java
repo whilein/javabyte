@@ -17,9 +17,9 @@
 package javabyte.make;
 
 import javabyte.bytecode.Bytecode;
-import javabyte.name.ExactName;
-import javabyte.name.Name;
 import javabyte.signature.MethodSignature;
+import javabyte.type.ExactTypeName;
+import javabyte.type.TypeName;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Type;
@@ -33,23 +33,23 @@ public interface MakeExecutable extends MakeClassElement {
 
     @NotNull String getName();
 
-    @NotNull Name getReturnType();
+    @NotNull TypeName getReturnType();
 
     @NotNull Bytecode getBytecode();
 
     @NotNull MethodSignature getSignature();
 
     void addException(@NotNull Class<?> type);
-    void addException(@NotNull ExactName name);
+    void addException(@NotNull ExactTypeName name);
 
     void setExceptionTypes(@NotNull Collection<@NotNull Class<?>> types);
     void setExceptionTypes(@NotNull Class<?> @NotNull ... types);
 
-    void setExceptions(@NotNull Collection<@NotNull ExactName> names);
-    void setExceptions(@NotNull ExactName @NotNull ... names);
+    void setExceptions(@NotNull Collection<@NotNull ExactTypeName> names);
+    void setExceptions(@NotNull ExactTypeName @NotNull ... names);
 
-    void addParameter(@NotNull Name name);
-    void addParameter(int i, @NotNull Name name);
+    void addParameter(@NotNull TypeName name);
+    void addParameter(int i, @NotNull TypeName name);
 
     void addParameter(@NotNull Type type);
     void addParameter(int i, @NotNull Type type);
@@ -60,19 +60,19 @@ public interface MakeExecutable extends MakeClassElement {
     void setParameterTypes(@NotNull Collection<@NotNull Type> types);
     void setParameterTypes(@NotNull Type @NotNull ... types);
 
-    void setParameters(@NotNull Collection<@NotNull Name> names);
-    void setParameters(@NotNull Name @NotNull ... names);
+    void setParameters(@NotNull Collection<@NotNull TypeName> names);
+    void setParameters(@NotNull TypeName @NotNull ... names);
 
     /**
      * Return modifiable list of parameters
      * @return Parameters
      */
-    @NotNull List<@NotNull Name> getParameters();
+    @NotNull List<@NotNull TypeName> getParameters();
 
     /**
      * Return modifiable list of exceptions
      * @return Exceptions
      */
-    @NotNull List<@NotNull ExactName> getExceptions();
+    @NotNull List<@NotNull ExactTypeName> getExceptions();
 
 }

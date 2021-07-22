@@ -22,16 +22,17 @@ import javabyte.opcode.JumpOpcode;
 import javabyte.opcode.MathOpcode;
 import javabyte.opcode.MethodOpcode;
 import javabyte.opcode.StringsSwitchImplementation;
-import javabyte.type.Access;
 import lombok.SneakyThrows;
 import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.Random;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -83,15 +84,25 @@ final class FeatureTests {
 
     @SneakyThrows
     private MultifunctionalInterface<?> makeInterface(
+            final String testName,
             final Consumer<MakeClass> init
     ) {
-        val impl = Javabyte.make("gen.MultifunctionalInterfaceImpl");
+        val impl = Javabyte.make("gen.Test_" + testName);
 
         impl.addInterface(MultifunctionalInterface.class);
         impl.setPublicFinal();
 
         init.accept(impl);
 
+        if ("true".equals(System.getenv("WRITE_CLASSES"))) {
+            val out = Optional.ofNullable(System.getenv("WRITE_LOCATION"))
+                    .orElse("out");
+            val outDir = new File(out);
+
+            if (outDir.isDirectory() || outDir.mkdirs()) {
+                impl.writeTo(outDir);
+            }
+        }
         val classLoader = new URLClassLoader(new URL[0], getClass().getClassLoader());
 
         return (MultifunctionalInterface<?>) impl.load(classLoader)
@@ -130,7 +141,7 @@ final class FeatureTests {
     void searchInList() {
         val strings = Arrays.asList(randomTexts(256, 100));
 
-        val result = makeInterface(impl -> {
+        val result = makeInterface("searchInList", impl -> {
             val method = impl.addMethod("searchInList");
             method.setPublic();
 
@@ -159,7 +170,7 @@ final class FeatureTests {
         val intList = IntStream.of(ints).boxed()
                 .collect(Collectors.toList());
 
-        val result = makeInterface(impl -> {
+        val result = makeInterface("searchInIntArray", impl -> {
             val method = impl.addMethod("searchInIntArray");
             method.setPublic();
 
@@ -205,7 +216,7 @@ final class FeatureTests {
         val strings = randomTexts(256, 100);
         val stringList = Arrays.asList(strings);
 
-        val result = makeInterface(impl -> {
+        val result = makeInterface("searchInArray", impl -> {
             val method = impl.addMethod("searchInArray");
             method.setPublic();
 
@@ -232,7 +243,7 @@ final class FeatureTests {
         val x = random.nextInt(10000) - 5000;
         val y = random.nextInt(10000) - 5000;
 
-        val result = makeInterface(impl -> {
+        val result = makeInterface("calc", impl -> {
             val method = impl.addMethod("calc");
             method.setPublic();
 
@@ -255,7 +266,7 @@ final class FeatureTests {
 
     @Test
     void switchCaseInts_0() {
-        val result = makeInterface(impl -> {
+        val result = makeInterface("switchCaseInts_0", impl -> {
             val method = impl.addMethod("switchCaseInts");
             method.setPublic();
 
@@ -289,7 +300,7 @@ final class FeatureTests {
 
     @Test
     void switchCaseInts_1() {
-        val result = makeInterface(impl -> {
+        val result = makeInterface("switchCaseInts_1", impl -> {
             val method = impl.addMethod("switchCaseInts");
             method.setPublic();
             method.setReturnType(String.class);
@@ -321,7 +332,7 @@ final class FeatureTests {
     }
 
     @Test
-    void switchCaseInts_2() {
+    void switchCase_2() {
         val randomBranches = randomTexts(100, 100);
         val randomBranchList = Arrays.asList(randomBranches);
 
@@ -330,7 +341,7 @@ final class FeatureTests {
                 "BBAaAa", "BBAaBB", "BBBBAa", "BBBBBB"
         };
 
-        val result = makeInterface(impl -> {
+        val result = makeInterface("switchCase_2", impl -> {
             val method = impl.addMethod("switchCaseStrings");
             method.setPublic();
 
@@ -384,7 +395,7 @@ final class FeatureTests {
     void castLongToByte() {
         val value = random.nextLong();
 
-        val result = makeInterface(impl -> {
+        val result = makeInterface("castLongToByte", impl -> {
             val method = impl.addMethod("castLongToByte");
             method.setPublic();
 
@@ -406,7 +417,7 @@ final class FeatureTests {
     void box() {
         val value = random.nextInt();
 
-        val result = makeInterface(impl -> {
+        val result = makeInterface("box", impl -> {
             val method = impl.addMethod("box");
             method.setPublic();
 
@@ -428,7 +439,7 @@ final class FeatureTests {
     void unbox() {
         val value = random.nextInt();
 
-        val result = makeInterface(impl -> {
+        val result = makeInterface("unbox", impl -> {
             val method = impl.addMethod("unbox");
             method.setPublic();
 

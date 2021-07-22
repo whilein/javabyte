@@ -19,15 +19,13 @@ package javabyte;
 import javabyte.bytecode.Asm;
 import javabyte.bytecode.Bytecode;
 import javabyte.make.*;
-import javabyte.name.ExactName;
-import javabyte.name.Name;
-import javabyte.name.Names;
-import javabyte.name.TypeParameter;
 import javabyte.opcode.MethodOpcode;
 import javabyte.signature.MethodSignature;
 import javabyte.signature.Signatures;
-import javabyte.type.Access;
-import javabyte.type.Version;
+import javabyte.type.ExactTypeName;
+import javabyte.type.TypeName;
+import javabyte.type.TypeParameter;
+import javabyte.type.Types;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.UtilityClass;
@@ -59,13 +57,13 @@ public class Javabyte {
 
     private MakeClass _make(
             final Version version,
-            final ExactName name
+            final ExactTypeName name
     ) {
         return new MakeClassImpl(
                 version, name,
                 new ArrayList<>(), new ArrayList<>(),
                 new ArrayList<>(), new ArrayList<>(),
-                Names.OBJECT
+                Types.OBJECT
         );
     }
 
@@ -73,24 +71,24 @@ public class Javabyte {
             final @NonNull Version version,
             final @NonNull String name
     ) {
-        return _make(version, Names.of(name));
+        return _make(version, Types.of(name));
     }
 
     public @NotNull MakeClass make(
             final @NonNull String name
     ) {
-        return _make(Version.V1_8, Names.of(name));
+        return _make(Version.V1_8, Types.of(name));
     }
 
     public @NotNull MakeClass make(
             final @NonNull Version version,
-            final @NonNull ExactName name
+            final @NonNull ExactTypeName name
     ) {
         return _make(version, name);
     }
 
     public @NotNull MakeClass make(
-            final @NonNull ExactName name
+            final @NonNull ExactTypeName name
     ) {
         return _make(Version.V1_8, name);
     }
@@ -191,10 +189,10 @@ public class Javabyte {
         final Version version;
 
         @Getter
-        final ExactName name;
+        final ExactTypeName name;
 
         @Getter
-        final List<Name> interfaces;
+        final List<TypeName> interfaces;
 
         final List<MakeFieldImpl> fields;
 
@@ -205,7 +203,7 @@ public class Javabyte {
 
         @Getter
         @NotNull
-        Name superName;
+        TypeName superName;
 
         MakeConstructorImpl staticConstructor;
 
@@ -224,7 +222,7 @@ public class Javabyte {
 
             if (!interfaces.isEmpty()) {
                 interfaceNames = interfaces.stream()
-                        .map(Name::getInternalName)
+                        .map(TypeName::getInternalName)
                         .toArray(String[]::new);
             } else {
                 interfaceNames = null;
@@ -232,10 +230,10 @@ public class Javabyte {
 
             final String classSignature;
 
-            if (superName.hasParameterizedTypes() || Names.hasParameterizedTypes(interfaces)) {
+            if (superName.hasParameterizedTypes() || Types.hasParameterizedTypes(interfaces)) {
                 classSignature = Signatures.classSignature(
                         new TypeParameter[0], superName,
-                        interfaces.toArray(new Name[0])
+                        interfaces.toArray(new TypeName[0])
                 ).getSignature();
             } else {
                 classSignature = null;
@@ -286,11 +284,11 @@ public class Javabyte {
 
         private void addExecutable(final ClassWriter writer, final MakeExecutableImpl executable) {
             val exceptions = executable.getExceptions().stream()
-                    .map(ExactName::getName)
+                    .map(ExactTypeName::getName)
                     .toArray(String[]::new);
 
             val methodSignature = Signatures.methodSignature(executable.getReturnType(),
-                    executable.getParameters().toArray(new Name[0]));
+                    executable.getParameters().toArray(new TypeName[0]));
 
             val signature = methodSignature.hasParameterizedTypes()
                     ? methodSignature.getSignature()
@@ -346,13 +344,13 @@ public class Javabyte {
 
         private MakeConstructorImpl _initConstructor(final boolean isStatic) {
             return new MakeConstructorImpl(Asm.bytecode(), this,
-                    isStatic ? "<clinit>" : "<init>", Names.VOID,
+                    isStatic ? "<clinit>" : "<init>", Types.VOID,
                     new ArrayList<>(), new ArrayList<>(), isStatic);
         }
 
         private MakeMethodImpl _initMethod(final String name) {
             return new MakeMethodImpl(Asm.bytecode(), this,
-                    name, Names.VOID, new ArrayList<>(), new ArrayList<>());
+                    name, Types.VOID, new ArrayList<>(), new ArrayList<>());
         }
 
         private <T extends MakeExecutableImpl> T _addExecutable(final T executable) {
@@ -385,16 +383,16 @@ public class Javabyte {
         @Override
         public @NotNull MakeInnerClass addInner(final @NonNull String name) {
             val inner = new MakeInnerClassImpl(
-                    version, Names.of(this.name.getName() + "$" + name), name,
+                    version, Types.of(this.name.getName() + "$" + name), name,
                     new ArrayList<>(), new ArrayList<>(),
                     new ArrayList<>(), new ArrayList<>(),
-                    this, Names.OBJECT
+                    this, Types.OBJECT
             );
             innerClasses.add(inner);
             return inner;
         }
 
-        private MakeField _addField(final String name, final Name type) {
+        private MakeField _addField(final String name, final TypeName type) {
             val field = new MakeFieldImpl(this, name, type);
             fields.add(field);
 
@@ -402,55 +400,55 @@ public class Javabyte {
         }
 
         @Override
-        public @NotNull MakeField addField(final @NonNull String name, final @NonNull Name type) {
+        public @NotNull MakeField addField(final @NonNull String name, final @NonNull TypeName type) {
             return _addField(name, type);
         }
 
         @Override
         public @NotNull MakeField addField(final @NonNull String name, final @NonNull Type type) {
-            return _addField(name, Names.of(type));
+            return _addField(name, Types.of(type));
         }
 
         @Override
         public void setSuperName(final @NonNull Type type) {
-            this.superName = Names.of(type);
+            this.superName = Types.of(type);
         }
 
         @Override
-        public void setSuperName(final @NonNull Name name) {
+        public void setSuperName(final @NonNull TypeName name) {
             this.superName = name;
         }
 
         @Override
-        public void addInterface(final @NonNull Name name) {
+        public void addInterface(final @NonNull TypeName name) {
             this.interfaces.add(name);
         }
 
         @Override
         public void addInterface(final @NonNull Type type) {
-            this.interfaces.add(Names.of(type));
+            this.interfaces.add(Types.of(type));
         }
 
         @Override
-        public void setInterfaces(final @NotNull Name @NotNull ... interfaces) {
+        public void setInterfaces(final @NotNull TypeName @NotNull ... interfaces) {
             this.interfaces.clear();
             this.interfaces.addAll(Arrays.asList(interfaces));
         }
 
         @Override
-        public void setInterfaces(final @NonNull Collection<@NotNull Name> interfaces) {
+        public void setInterfaces(final @NonNull Collection<@NotNull TypeName> interfaces) {
             this.interfaces.clear();
             this.interfaces.addAll(interfaces);
         }
 
         @Override
         public void setInterfaceTypes(final @NotNull Type @NotNull ... interfaces) {
-            _setInterfaces(Arrays.stream(interfaces).map(Names::of).collect(Collectors.toList()));
+            _setInterfaces(Arrays.stream(interfaces).map(Types::of).collect(Collectors.toList()));
         }
 
         @Override
         public void setInterfaceTypes(final @NonNull Collection<@NotNull Type> interfaces) {
-            _setInterfaces(interfaces.stream().map(Names::of).collect(Collectors.toList()));
+            _setInterfaces(interfaces.stream().map(Types::of).collect(Collectors.toList()));
         }
 
         @Override
@@ -505,7 +503,7 @@ public class Javabyte {
             }
         }
 
-        private void _setInterfaces(final Collection<Name> interfaces) {
+        private void _setInterfaces(final Collection<TypeName> interfaces) {
             this.interfaces.clear();
             this.interfaces.addAll(interfaces);
         }
@@ -521,14 +519,14 @@ public class Javabyte {
 
         private MakeInnerClassImpl(
                 final Version version,
-                final ExactName name,
+                final ExactTypeName name,
                 final String innerName,
-                final List<Name> interfaces,
+                final List<TypeName> interfaces,
                 final List<MakeFieldImpl> fields,
                 final List<MakeExecutableImpl> executables,
                 final List<MakeInnerClassImpl> innerClasses,
                 final MakeClass declaringClass,
-                final Name superName
+                final TypeName superName
         ) {
             super(version, name, interfaces, fields, executables, innerClasses, superName);
 
@@ -542,12 +540,12 @@ public class Javabyte {
 
         private MakeClassImpl(
                 final Version version,
-                final ExactName name,
-                final List<Name> interfaces,
+                final ExactTypeName name,
+                final List<TypeName> interfaces,
                 final List<MakeFieldImpl> fields,
                 final List<MakeExecutableImpl> executables,
                 final List<MakeInnerClassImpl> innerClasses,
-                final Name superName
+                final TypeName superName
         ) {
             super(version, name, interfaces, fields, executables, innerClasses, superName);
         }
@@ -560,7 +558,7 @@ public class Javabyte {
     private static final class MakeFieldImpl extends AbstractMakeElement implements MakeField {
         MakeClass declaringClass;
         String name;
-        Name type;
+        TypeName type;
     }
 
     @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -572,9 +570,9 @@ public class Javabyte {
                 final Bytecode bytecode,
                 final MakeClass declaringClass,
                 final String name,
-                final Name returnType,
-                final List<Name> parameters,
-                final List<ExactName> exceptions,
+                final TypeName returnType,
+                final List<TypeName> parameters,
+                final List<ExactTypeName> exceptions,
                 final boolean isStatic
         ) {
             super(bytecode, declaringClass, name, returnType, parameters, exceptions);
@@ -602,21 +600,21 @@ public class Javabyte {
                 final Bytecode bytecode,
                 final MakeClass declaringClass,
                 final String name,
-                final Name returnType,
-                final List<Name> parameters,
-                final List<ExactName> exceptions
+                final TypeName returnType,
+                final List<TypeName> parameters,
+                final List<ExactTypeName> exceptions
         ) {
             super(bytecode, declaringClass, name, returnType, parameters, exceptions);
         }
 
         @Override
-        public void setReturnType(final @NonNull Name type) {
+        public void setReturnType(final @NonNull TypeName type) {
             this.returnType = type;
         }
 
         @Override
         public void setReturnType(final @NonNull Type type) {
-            this.returnType = Names.of(type);
+            this.returnType = Types.of(type);
         }
 
         @Override
@@ -645,8 +643,8 @@ public class Javabyte {
 
         public void _setOverrides(
                 final Class<?> type,
-                final Name returnType,
-                final Name... parameterTypes
+                final TypeName returnType,
+                final TypeName... parameterTypes
         ) {
             this.overrides = new Overrides(type, returnType, parameterTypes);
         }
@@ -656,7 +654,7 @@ public class Javabyte {
                 final Class<?> returnType,
                 final Class<?>... parameterTypes
         ) {
-            _setOverrides(type, Names.of(returnType), Names.of(parameterTypes));
+            _setOverrides(type, Types.of(returnType), Types.of(parameterTypes));
         }
 
         @Override
@@ -671,8 +669,8 @@ public class Javabyte {
         @Override
         public void setOverrides(
                 final @NonNull Class<?> type,
-                final @NonNull Name returnType,
-                final @NotNull Name @NotNull ... parameterTypes
+                final @NonNull TypeName returnType,
+                final @NotNull TypeName @NotNull ... parameterTypes
         ) {
             _setOverrides(type, returnType, parameterTypes);
         }
@@ -702,107 +700,107 @@ public class Javabyte {
 
         @Getter
         @NotNull
-        Name returnType;
+        TypeName returnType;
 
         @Getter
-        final List<Name> parameters;
+        final List<TypeName> parameters;
 
         @Getter
-        final List<ExactName> exceptions;
+        final List<ExactTypeName> exceptions;
 
         Overrides overrides;
 
         @Override
         public final @NotNull MethodSignature getSignature() {
-            return Signatures.methodSignature(returnType, parameters.toArray(new Name[0]));
+            return Signatures.methodSignature(returnType, parameters.toArray(new TypeName[0]));
         }
 
         @Override
         public final void addException(final @NonNull Class<?> type) {
-            exceptions.add(Names.of(type));
+            exceptions.add(Types.of(type));
         }
 
         @Override
-        public final void addException(final @NonNull ExactName name) {
+        public final void addException(final @NonNull ExactTypeName name) {
             exceptions.add(name);
         }
 
         @Override
         public final void setExceptionTypes(final @NonNull Collection<@NotNull Class<?>> types) {
-            _setExceptions(types.stream().map(Names::of).collect(Collectors.toList()));
+            _setExceptions(types.stream().map(Types::of).collect(Collectors.toList()));
         }
 
         @Override
         public final void setExceptionTypes(final @NotNull Class<?> @NotNull ... types) {
-            _setExceptions(Arrays.stream(types).map(Names::of).collect(Collectors.toList()));
+            _setExceptions(Arrays.stream(types).map(Types::of).collect(Collectors.toList()));
         }
 
         @Override
-        public final void setExceptions(final @NonNull Collection<@NotNull ExactName> names) {
+        public final void setExceptions(final @NonNull Collection<@NotNull ExactTypeName> names) {
             _setExceptions(names);
         }
 
         @Override
-        public final void setExceptions(final @NotNull ExactName @NotNull ... names) {
+        public final void setExceptions(final @NotNull ExactTypeName @NotNull ... names) {
             _setExceptions(Arrays.asList(names));
         }
 
         @Override
-        public final void addParameter(final @NonNull Name type) {
+        public final void addParameter(final @NonNull TypeName type) {
             parameters.add(type);
         }
 
         @Override
-        public final void addParameter(final int i, final @NonNull Name parameter) {
+        public final void addParameter(final int i, final @NonNull TypeName parameter) {
             parameters.add(i, parameter);
         }
 
         @Override
         public final void addParameter(final @NonNull Type type) {
-            parameters.add(Names.of(type));
+            parameters.add(Types.of(type));
         }
 
         @Override
         public final void addParameter(final int i, final @NonNull Type type) {
-            parameters.add(i, Names.of(type));
+            parameters.add(i, Types.of(type));
         }
 
         @Override
         public final void addParameter(final @NonNull String name) {
-            parameters.add(Names.of(name));
+            parameters.add(Types.of(name));
         }
 
         @Override
         public final void addParameter(final int i, final @NonNull String name) {
-            parameters.add(i, Names.of(name));
+            parameters.add(i, Types.of(name));
         }
 
         @Override
         public final void setParameterTypes(final @NonNull Collection<@NotNull Type> types) {
-            this._setParameters(types.stream().map(Names::of).collect(Collectors.toList()));
+            this._setParameters(types.stream().map(Types::of).collect(Collectors.toList()));
         }
 
         @Override
         public final void setParameterTypes(final @NotNull Type @NonNull ... types) {
-            this._setParameters(Arrays.stream(types).map(Names::of).collect(Collectors.toList()));
+            this._setParameters(Arrays.stream(types).map(Types::of).collect(Collectors.toList()));
         }
 
         @Override
-        public final void setParameters(final @NonNull Collection<@NotNull Name> parameters) {
+        public final void setParameters(final @NonNull Collection<@NotNull TypeName> parameters) {
             _setParameters(parameters);
         }
 
         @Override
-        public final void setParameters(final @NotNull Name @NotNull ... parameters) {
+        public final void setParameters(final @NotNull TypeName @NotNull ... parameters) {
             _setParameters(Arrays.asList(parameters));
         }
 
-        private void _setParameters(final Collection<Name> parameters) {
+        private void _setParameters(final Collection<TypeName> parameters) {
             this.parameters.clear();
             this.parameters.addAll(parameters);
         }
 
-        private void _setExceptions(final Collection<ExactName> exceptions) {
+        private void _setExceptions(final Collection<ExactTypeName> exceptions) {
             this.exceptions.clear();
             this.exceptions.addAll(exceptions);
         }
@@ -813,8 +811,8 @@ public class Javabyte {
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     private static final class Overrides {
         Class<?> type;
-        Name returnType;
-        Name[] parameterTypes;
+        TypeName returnType;
+        TypeName[] parameterTypes;
     }
 
 }

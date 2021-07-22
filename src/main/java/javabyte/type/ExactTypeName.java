@@ -14,18 +14,23 @@
  *    limitations under the License.
  */
 
-package javabyte.name;
+package javabyte.type;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import java.lang.reflect.Type;
 
 /**
  * @author whilein
  */
-public interface ParameterizedName extends Name {
+public interface ExactTypeName extends TypeName {
 
-    @NotNull ExactName getRawName();
-    @NotNull Parameter @NotNull [] getParameters();
+    @NotNull String @Nullable [] split();
 
-    @NotNull ParameterizedName dimensions(int dimensions);
+    @NotNull ParameterizedTypeName parameterized(@NotNull Parameter @NotNull ... parameters);
+    @NotNull ParameterizedTypeName parameterized(@NotNull Type @NotNull ... parameters);
+
+    @NotNull ExactTypeName dimensions(int dimensions);
 
 }

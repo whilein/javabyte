@@ -19,11 +19,11 @@ package javabyte.bytecode.insn;
 import javabyte.bytecode.*;
 import javabyte.bytecode.branch.CaseBranch;
 import javabyte.bytecode.branch.LoopBranch;
-import javabyte.name.Name;
-import javabyte.name.Names;
 import javabyte.opcode.*;
 import javabyte.signature.MethodSignature;
 import javabyte.signature.Signatures;
+import javabyte.type.TypeName;
+import javabyte.type.Types;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.UtilityClass;
@@ -44,7 +44,7 @@ import static org.objectweb.asm.Opcodes.*;
 @UtilityClass
 public final class Instructions {
 
-    public @NotNull Instruction newArrayInsn(final @NonNull Name name, final int knownDims) {
+    public @NotNull Instruction newArrayInsn(final @NonNull TypeName name, final int knownDims) {
         if (!name.isArray()) {
             throw new IllegalArgumentException("Name should be an array");
         }
@@ -60,7 +60,7 @@ public final class Instructions {
         return ThrowInsn.INSTANCE;
     }
 
-    public @NotNull Instruction castInsn(final @NonNull Name name) {
+    public @NotNull Instruction castInsn(final @NonNull TypeName name) {
         return new CastInsn(name);
     }
 
@@ -128,7 +128,7 @@ public final class Instructions {
         return UnboxInsn.INSTANCE;
     }
 
-    public @NotNull InitInsn initInsn(final @NonNull Name name) {
+    public @NotNull InitInsn initInsn(final @NonNull TypeName name) {
         return new InitInsnImpl(name);
     }
 
@@ -185,21 +185,21 @@ public final class Instructions {
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     private static final class InitInsnImpl implements InitInsn {
 
-        final Name type;
+        final TypeName type;
 
         Consumer<InstructionSet> init;
-        Name[] parameters;
+        TypeName[] parameters;
 
         @Override
         public void compile(final @NonNull CompileContext ctx) {
             val parameters = this.parameters != null
                     ? this.parameters
-                    : new Name[0];
+                    : new TypeName[0];
 
             val mv = ctx.getMethodVisitor();
 
-            ctx.pushStack(Names.OBJECT);
-            ctx.pushStack(Names.OBJECT);
+            ctx.pushStack(Types.OBJECT);
+            ctx.pushStack(Types.OBJECT);
 
             mv.visitTypeInsn(NEW, type.getInternalName());
             mv.visitInsn(DUP);
@@ -220,7 +220,7 @@ public final class Instructions {
 
             mv.visitMethodInsn(
                     INVOKESPECIAL, type.getInternalName(), "<init>",
-                    Signatures.methodSignature(Names.VOID, parameters).getDescriptor(), false
+                    Signatures.methodSignature(Types.VOID, parameters).getDescriptor(), false
             );
 
             ctx.pushStack(type);
@@ -229,7 +229,7 @@ public final class Instructions {
         @Override
         public @NotNull String toString() {
             return "[INIT " + type + "(" + (parameters != null
-                    ? Arrays.stream(parameters).map(Name::toString).collect(Collectors.joining(", "))
+                    ? Arrays.stream(parameters).map(TypeName::toString).collect(Collectors.joining(", "))
                     : "") + ")";
         }
 
@@ -241,12 +241,12 @@ public final class Instructions {
 
         @Override
         public @NotNull InitInsn parameters(final @NotNull Type @NonNull ... parameters) {
-            this.parameters = Names.of(parameters);
+            this.parameters = Types.of(parameters);
             return this;
         }
 
         @Override
-        public @NotNull InitInsn parameters(final @NotNull Name @NonNull ... parameters) {
+        public @NotNull InitInsn parameters(final @NotNull TypeName @NonNull ... parameters) {
             this.parameters = parameters;
             return this;
         }
@@ -270,7 +270,7 @@ public final class Instructions {
             mv.visitFieldInsn(GETSTATIC, "java/lang/System", "out",
                     "Ljava/io/PrintStream;");
 
-            ctx.pushStack(Names.of("java/lang/PrintStream"));
+            ctx.pushStack(Types.of("java/lang/PrintStream"));
 
             mv.visitInsn(SWAP);
 
@@ -292,10 +292,10 @@ public final class Instructions {
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     private static final class NewArrayInsn implements Instruction {
 
-        Name name;
+        TypeName name;
         int knownDims;
 
-        private int arrayCode(final Name componentType) {
+        private int arrayCode(final TypeName componentType) {
             if (componentType.isArray())
                 return 1;
 
@@ -303,21 +303,21 @@ public final class Instructions {
                 return 0;
 
             switch (componentType.getPrimitive()) {
-                case Names.BOOL_TYPE:
+                case Types.BOOL_TYPE:
                     return 4;
-                case Names.CHAR_TYPE:
+                case Types.CHAR_TYPE:
                     return 5;
-                case Names.FLOAT_TYPE:
+                case Types.FLOAT_TYPE:
                     return 6;
-                case Names.DOUBLE_TYPE:
+                case Types.DOUBLE_TYPE:
                     return 7;
-                case Names.BYTE_TYPE:
+                case Types.BYTE_TYPE:
                     return 8;
-                case Names.SHORT_TYPE:
+                case Types.SHORT_TYPE:
                     return 9;
-                case Names.INT_TYPE:
+                case Types.INT_TYPE:
                     return 10;
-                case Names.LONG_TYPE:
+                case Types.LONG_TYPE:
                     return 11;
                 default:
                     throw new IllegalArgumentException("Cannot create array: " + name);
@@ -411,21 +411,21 @@ public final class Instructions {
 
         @Override
         public void compile(final @NonNull CompileContext ctx) {
-            final Name type;
+            final TypeName type;
 
             switch (opcode) {
                 default:
                 case IADD: case ISUB: case IMUL: case IDIV: case IREM: case INEG:
-                    type = Names.INT;
+                    type = Types.INT;
                     break;
                 case LADD: case LSUB: case LMUL: case LDIV: case LREM: case LNEG:
-                    type = Names.LONG;
+                    type = Types.LONG;
                     break;
                 case FADD: case FSUB: case FMUL: case FDIV: case FREM: case FNEG:
-                    type = Names.FLOAT;
+                    type = Types.FLOAT;
                     break;
                 case DADD: case DSUB: case DMUL: case DDIV: case DREM: case DNEG:
-                    type = Names.DOUBLE;
+                    type = Types.DOUBLE;
                     break;
             }
 
@@ -485,7 +485,7 @@ public final class Instructions {
 
         @Override
         public void compile(final @NonNull CompileContext ctx) {
-            if (ctx.getExecutable().getReturnType().equals(Names.VOID)) {
+            if (ctx.getExecutable().getReturnType().equals(Types.VOID)) {
                 ctx.getMethodVisitor().visitInsn(RETURN);
             } else {
                 val stack = ctx.popStack();
@@ -647,12 +647,12 @@ public final class Instructions {
         @Getter
         final LoopBranchImpl body;
 
-        Name elementType;
+        TypeName elementType;
         LocalIndex iterableIndex;
 
         @Override
         public void compile(final @NonNull CompileContext compile) {
-            final Name iterable;
+            final TypeName iterable;
             final LocalIndex iterableIndex;
 
             val mv = compile.getMethodVisitor();
@@ -671,25 +671,25 @@ public final class Instructions {
             }
 
             if (iterable.isArray()) {
-                val position = compile.pushLocal(Names.INT);
+                val position = compile.pushLocal(Types.INT);
                 compile.visitInt(0);
-                compile.pushStack(Names.INT);
+                compile.pushStack(Types.INT);
                 compile.popStack();
                 mv.visitVarInsn(ISTORE, position.getOffset());
 
-                val end = compile.pushLocal(Names.INT);
+                val end = compile.pushLocal(Types.INT);
                 compile.pushStack(iterable);
                 mv.visitVarInsn(ALOAD, iterableIndex.getValue());
                 compile.popStack();
-                compile.pushStack(Names.INT);
+                compile.pushStack(Types.INT);
                 mv.visitInsn(ARRAYLENGTH);
                 compile.popStack();
                 mv.visitVarInsn(ISTORE, end.getOffset());
 
                 mv.visitLabel(body.insideLoop);
 
-                compile.pushStack(Names.INT);
-                compile.pushStack(Names.INT);
+                compile.pushStack(Types.INT);
+                compile.pushStack(Types.INT);
                 mv.visitVarInsn(ILOAD, position.getOffset());
                 mv.visitVarInsn(ILOAD, end.getOffset());
 
@@ -698,7 +698,7 @@ public final class Instructions {
                 mv.visitJumpInsn(IF_ICMPGE, body.afterLoop);
 
                 compile.pushStack(iterable);
-                compile.pushStack(Names.INT);
+                compile.pushStack(Types.INT);
 
                 mv.visitVarInsn(ALOAD, iterableIndex.getValue());
                 mv.visitVarInsn(ILOAD, position.getOffset());
@@ -743,12 +743,12 @@ public final class Instructions {
 
                 mv.visitMethodInsn(
                         INVOKEINTERFACE,
-                        Names.ITERABLE.getInternalName(),
-                        "iterator", "()" + Names.ITERATOR.getDescriptor(),
+                        Types.ITERABLE.getInternalName(),
+                        "iterator", "()" + Types.ITERATOR.getDescriptor(),
                         true
                 );
 
-                compile.pushLocal(iteratorIndex, Names.ITERABLE);
+                compile.pushLocal(iteratorIndex, Types.ITERABLE);
                 mv.visitVarInsn(ASTORE, iteratorIndex.getValue());
 
                 mv.visitLabel(body.insideLoop);
@@ -756,7 +756,7 @@ public final class Instructions {
 
                 mv.visitMethodInsn(
                         INVOKEINTERFACE,
-                        Names.ITERATOR.getInternalName(),
+                        Types.ITERATOR.getInternalName(),
                         "hasNext", "()Z",
                         true
                 );
@@ -766,8 +766,8 @@ public final class Instructions {
 
                 mv.visitMethodInsn(
                         INVOKEINTERFACE,
-                        Names.ITERATOR.getInternalName(),
-                        "next", "()" + Names.OBJECT.getDescriptor(),
+                        Types.ITERATOR.getInternalName(),
+                        "next", "()" + Types.OBJECT.getDescriptor(),
                         true
                 );
 
@@ -775,7 +775,7 @@ public final class Instructions {
                     mv.visitTypeInsn(CHECKCAST, elementType.getInternalName());
                     compile.pushLocal(elementLocal, elementType);
                 } else {
-                    compile.pushLocal(elementLocal, Names.OBJECT);
+                    compile.pushLocal(elementLocal, Types.OBJECT);
                 }
 
                 mv.visitVarInsn(ASTORE, elementLocal.getValue());
@@ -806,7 +806,7 @@ public final class Instructions {
         }
 
         @Override
-        public @NotNull IterateOverInsn element(final @NonNull Name type) {
+        public @NotNull IterateOverInsn element(final @NonNull TypeName type) {
             this.elementType = type;
 
             return this;
@@ -814,7 +814,7 @@ public final class Instructions {
 
         @Override
         public @NotNull IterateOverInsn element(final @NonNull Type type) {
-            this.elementType = Names.of(type);
+            this.elementType = Types.of(type);
 
             return this;
         }
@@ -950,7 +950,7 @@ public final class Instructions {
             }
 
             ctx.popStack();
-            ctx.pushStack(Names.INT);
+            ctx.pushStack(Types.INT);
 
             mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "hashCode",
                     "()I", false);
@@ -1007,8 +1007,8 @@ public final class Instructions {
                 mv.visitLabel(hashBranches[hashCounter]);
 
                 for (val branch : branches) {
-                    ctx.pushStack(Names.STRING);
-                    ctx.pushStack(Names.STRING);
+                    ctx.pushStack(Types.STRING);
+                    ctx.pushStack(Types.STRING);
 
                     mv.visitVarInsn(ALOAD, switchItemLocal.getOffset());
                     mv.visitLdcInsn(branch);
@@ -1016,7 +1016,7 @@ public final class Instructions {
                     ctx.popStack();
                     ctx.popStack();
 
-                    ctx.pushStack(Names.INT);
+                    ctx.pushStack(Types.INT);
 
                     mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "equals",
                             "(Ljava/lang/Object;)Z", false);
@@ -1057,18 +1057,18 @@ public final class Instructions {
             }
 
             ctx.visitInt(-1); // push switch index
-            ctx.pushStack(Names.INT);
+            ctx.pushStack(Types.INT);
 
-            val switchIndexLocal = ctx.pushLocal(Asm.index(), Names.INT);
+            val switchIndexLocal = ctx.pushLocal(Asm.index(), Types.INT);
             mv.visitVarInsn(ISTORE, switchIndexLocal.getOffset());
             ctx.popStack(); // pop switch index
 
-            ctx.pushStack(Names.STRING); // push switch subject
+            ctx.pushStack(Types.STRING); // push switch subject
 
             mv.visitVarInsn(ALOAD, switchItemLocal.getOffset());
 
             ctx.popStack(); // pop switch subject
-            ctx.pushStack(Names.INT); // push switch subject hashCode
+            ctx.pushStack(Types.INT); // push switch subject hashCode
 
             mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "hashCode",
                     "()I", false);
@@ -1133,8 +1133,8 @@ public final class Instructions {
                 for (val branch : branches) {
                     mv.visitLabel(hashIfBranches[counter]);
 
-                    ctx.pushStack(Names.STRING);
-                    ctx.pushStack(Names.STRING);
+                    ctx.pushStack(Types.STRING);
+                    ctx.pushStack(Types.STRING);
 
                     mv.visitVarInsn(ALOAD, switchItemLocal.getOffset());
                     mv.visitLdcInsn(branch);
@@ -1142,7 +1142,7 @@ public final class Instructions {
                     ctx.popStack();
                     ctx.popStack();
 
-                    ctx.pushStack(Names.INT);
+                    ctx.pushStack(Types.INT);
 
                     mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "equals",
                             "(Ljava/lang/Object;)Z", false);
@@ -1154,7 +1154,7 @@ public final class Instructions {
                             : hashIfBranches[counter + 1]);
 
                     ctx.visitInt(counter);
-                    ctx.pushStack(Names.INT);
+                    ctx.pushStack(Types.INT);
 
                     mv.visitVarInsn(ISTORE, switchIndexLocal.getOffset());
                     ctx.popStack();
@@ -1170,7 +1170,7 @@ public final class Instructions {
             mv.visitLabel(endFirstSwitchLabel);
             mv.visitVarInsn(ILOAD, switchIndexLocal.getOffset());
 
-            ctx.pushStack(Names.INT);
+            ctx.pushStack(Types.INT);
 
             if (nLabels > 1) {
                 val branches = new Label[nLabels];
@@ -1359,8 +1359,8 @@ public final class Instructions {
         final String name;
         final FieldOpcode opcode;
 
-        Function<CompileContext, Name> owner;
-        Name descriptor;
+        Function<CompileContext, TypeName> owner;
+        TypeName descriptor;
 
         @Override
         public void compile(final @NonNull CompileContext compile) {
@@ -1389,23 +1389,23 @@ public final class Instructions {
         }
 
         @Override
-        public @NotNull FieldInsn descriptor(final @NonNull Name descriptor) {
+        public @NotNull FieldInsn descriptor(final @NonNull TypeName descriptor) {
             this.descriptor = descriptor;
             return this;
         }
 
         @Override
         public @NotNull FieldInsn descriptor(final @NonNull Type type) {
-            return descriptor(Names.of(type));
+            return descriptor(Types.of(type));
         }
 
         @Override
         public @NotNull FieldInsn in(final @NonNull Type owner) {
-            return in(Names.of(owner));
+            return in(Types.of(owner));
         }
 
         @Override
-        public @NotNull FieldInsn in(final @NonNull Name owner) {
+        public @NotNull FieldInsn in(final @NonNull TypeName owner) {
             this.owner = __ -> owner;
 
             return this;
@@ -1426,7 +1426,7 @@ public final class Instructions {
         final String name;
         final MethodOpcode opcode;
 
-        Function<CompileContext, Name> owner;
+        Function<CompileContext, TypeName> owner;
         MethodSignature descriptor;
 
         @Override
@@ -1450,7 +1450,7 @@ public final class Instructions {
                 compile.popStack();
             }
 
-            if (!descriptor.getReturnType().equals(Names.VOID))
+            if (!descriptor.getReturnType().equals(Types.VOID))
                 compile.pushStack(descriptor.getReturnType());
         }
 
@@ -1466,17 +1466,17 @@ public final class Instructions {
         }
 
         @Override
-        public @NotNull MethodInsn descriptor(final @NonNull Name returnType, final @NotNull Name @NotNull ... parameters) {
+        public @NotNull MethodInsn descriptor(final @NonNull TypeName returnType, final @NotNull TypeName @NotNull ... parameters) {
             return descriptor(Signatures.methodSignature(returnType, parameters));
         }
 
         @Override
         public @NotNull MethodInsn in(final @NonNull Type owner) {
-            return in(Names.of(owner));
+            return in(Types.of(owner));
         }
 
         @Override
-        public @NotNull MethodInsn in(final @NonNull Name owner) {
+        public @NotNull MethodInsn in(final @NonNull TypeName owner) {
             this.owner = __ -> owner;
 
             return this;
@@ -1516,31 +1516,31 @@ public final class Instructions {
 
             final String methodName;
 
-            val primitive = Names.getPrimitive(stack);
+            val primitive = Types.getPrimitive(stack);
 
             switch (primitive.getPrimitive()) {
-                case Names.BOOL_TYPE:
+                case Types.BOOL_TYPE:
                     methodName = "booleanValue";
                     break;
-                case Names.BYTE_TYPE:
+                case Types.BYTE_TYPE:
                     methodName = "byteValue";
                     break;
-                case Names.CHAR_TYPE:
+                case Types.CHAR_TYPE:
                     methodName = "charValue";
                     break;
-                case Names.SHORT_TYPE:
+                case Types.SHORT_TYPE:
                     methodName = "shortValue";
                     break;
-                case Names.INT_TYPE:
+                case Types.INT_TYPE:
                     methodName = "intValue";
                     break;
-                case Names.LONG_TYPE:
+                case Types.LONG_TYPE:
                     methodName = "longValue";
                     break;
-                case Names.FLOAT_TYPE:
+                case Types.FLOAT_TYPE:
                     methodName = "floatValue";
                     break;
-                case Names.DOUBLE_TYPE:
+                case Types.DOUBLE_TYPE:
                     methodName = "doubleValue";
                     break;
                 default:
@@ -1577,7 +1577,7 @@ public final class Instructions {
                 throw new IllegalStateException("Cannot box an array");
             }
 
-            val wrapper = Names.getWrapper(stack);
+            val wrapper = Types.getWrapper(stack);
 
             ctx.getMethodVisitor().visitMethodInsn(INVOKESTATIC, wrapper.getInternalName(), "valueOf",
                     "(" + stack.getDescriptor() + ")" + wrapper.getDescriptor(),
@@ -1599,7 +1599,7 @@ public final class Instructions {
 
         @Override
         public void compile(final @NonNull CompileContext ctx) {
-            ctx.pushStack(Names.OBJECT);
+            ctx.pushStack(Types.OBJECT);
             ctx.visitNull();
         }
 
@@ -1617,7 +1617,7 @@ public final class Instructions {
 
         @Override
         public void compile(final @NonNull CompileContext ctx) {
-            ctx.pushStack(Names.STRING);
+            ctx.pushStack(Types.STRING);
             ctx.visitString(value);
         }
 
@@ -1636,7 +1636,7 @@ public final class Instructions {
 
         @Override
         public void compile(final @NonNull CompileContext ctx) {
-            ctx.pushStack(Names.FLOAT);
+            ctx.pushStack(Types.FLOAT);
             ctx.visitFloat(value);
         }
 
@@ -1654,7 +1654,7 @@ public final class Instructions {
 
         @Override
         public void compile(final @NonNull CompileContext ctx) {
-            ctx.pushStack(Names.DOUBLE);
+            ctx.pushStack(Types.DOUBLE);
             ctx.visitDouble(value);
         }
 
@@ -1672,7 +1672,7 @@ public final class Instructions {
 
         @Override
         public void compile(final @NonNull CompileContext ctx) {
-            ctx.pushStack(Names.INT);
+            ctx.pushStack(Types.INT);
             ctx.visitInt(value);
         }
 
@@ -1690,7 +1690,7 @@ public final class Instructions {
 
         @Override
         public void compile(final @NonNull CompileContext ctx) {
-            ctx.pushStack(Names.LONG);
+            ctx.pushStack(Types.LONG);
             ctx.visitLong(value);
         }
 
@@ -1728,7 +1728,7 @@ public final class Instructions {
         public void compile(final @NonNull CompileContext ctx) {
             ctx.popStack();
             ctx.getMethodVisitor().visitInsn(ARRAYLENGTH);
-            ctx.pushStack(Names.INT);
+            ctx.pushStack(Types.INT);
         }
 
         @Override
@@ -1757,7 +1757,7 @@ public final class Instructions {
     @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     private static final class CastInsn implements Instruction {
-        Name name;
+        TypeName name;
 
         @Override
         public void compile(final @NonNull CompileContext ctx) {

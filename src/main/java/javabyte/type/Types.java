@@ -14,7 +14,7 @@
  *    limitations under the License.
  */
 
-package javabyte.name;
+package javabyte.type;
 
 import javabyte.util.AsmUtils;
 import javabyte.util.StringUtils;
@@ -34,10 +34,10 @@ import java.util.Map;
  * @author whilein
  */
 @UtilityClass
-public class Names {
+public class Types {
 
-    private static final Map<String, ExactName> CACHE_INTERNAL = new HashMap<>();
-    private static final Map<String, ExactName> CACHE = new HashMap<>();
+    private static final Map<String, ExactTypeName> CACHE_INTERNAL = new HashMap<>();
+    private static final Map<String, ExactTypeName> CACHE = new HashMap<>();
 
     private static final char[] PRIMITIVE_DESCRIPTORS = "VZBSCIJFD".toCharArray();
 
@@ -53,33 +53,33 @@ public class Names {
             FLOAT_TYPE  = 7,
             DOUBLE_TYPE = 8;
 
-    public static final ExactName
-            VOID        = Names._putCache(VOID_TYPE, Void.TYPE),
-            VOID_OBJ    = Names._putCache(Void.class),
-            BOOL        = Names._putCache(BOOL_TYPE, Boolean.TYPE),
-            BOOL_OBJ    = Names._putCache(Boolean.class),
-            BYTE        = Names._putCache(BYTE_TYPE, Byte.TYPE),
-            BYTE_OBJ    = Names._putCache(Byte.class),
-            CHAR        = Names._putCache(CHAR_TYPE, Character.TYPE),
-            CHAR_OBJ    = Names._putCache(Character.class),
-            SHORT       = Names._putCache(SHORT_TYPE, Short.TYPE),
-            SHORT_OBJ   = Names._putCache(Short.class),
-            INT         = Names._putCache(INT_TYPE, Integer.TYPE),
-            INT_OBJ     = Names._putCache(Integer.class),
-            LONG        = Names._putCache(LONG_TYPE, Long.TYPE),
-            LONG_OBJ    = Names._putCache(Long.class),
-            FLOAT       = Names._putCache(FLOAT_TYPE, Float.TYPE),
-            FLOAT_OBJ   = Names._putCache(Float.class),
-            DOUBLE      = Names._putCache(DOUBLE_TYPE, Double.TYPE),
-            DOUBLE_OBJ  = Names._putCache(Double.class),
-            STRING      = Names._putCache(String.class),
-            NUMBER      = Names._putCache(Number.class),
-            OBJECT      = Names._putCache(Object.class),
-            ITERABLE    = Names._putCache(Iterable.class),
-            ITERATOR    = Names._putCache(Iterator.class);
+    public static final ExactTypeName
+            VOID        = Types._putCache(VOID_TYPE, Void.TYPE),
+            VOID_OBJ    = Types._putCache(Void.class),
+            BOOL        = Types._putCache(BOOL_TYPE, Boolean.TYPE),
+            BOOL_OBJ    = Types._putCache(Boolean.class),
+            BYTE        = Types._putCache(BYTE_TYPE, Byte.TYPE),
+            BYTE_OBJ    = Types._putCache(Byte.class),
+            CHAR        = Types._putCache(CHAR_TYPE, Character.TYPE),
+            CHAR_OBJ    = Types._putCache(Character.class),
+            SHORT       = Types._putCache(SHORT_TYPE, Short.TYPE),
+            SHORT_OBJ   = Types._putCache(Short.class),
+            INT         = Types._putCache(INT_TYPE, Integer.TYPE),
+            INT_OBJ     = Types._putCache(Integer.class),
+            LONG        = Types._putCache(LONG_TYPE, Long.TYPE),
+            LONG_OBJ    = Types._putCache(Long.class),
+            FLOAT       = Types._putCache(FLOAT_TYPE, Float.TYPE),
+            FLOAT_OBJ   = Types._putCache(Float.class),
+            DOUBLE      = Types._putCache(DOUBLE_TYPE, Double.TYPE),
+            DOUBLE_OBJ  = Types._putCache(Double.class),
+            STRING      = Types._putCache(String.class),
+            NUMBER      = Types._putCache(Number.class),
+            OBJECT      = Types._putCache(Object.class),
+            ITERABLE    = Types._putCache(Iterable.class),
+            ITERATOR    = Types._putCache(Iterator.class);
     // @formatter:on
 
-    private final ExactName[] WRAPPERS = {
+    private final ExactTypeName[] WRAPPERS = {
             VOID_OBJ, BOOL_OBJ,
             BYTE_OBJ, CHAR_OBJ,
             SHORT_OBJ, INT_OBJ,
@@ -87,7 +87,7 @@ public class Names {
             DOUBLE_OBJ
     };
 
-    private final ExactName[] PRIMITIVES = {
+    private final ExactTypeName[] PRIMITIVES = {
             VOID, BOOL,
             BYTE, CHAR,
             SHORT, INT,
@@ -98,11 +98,11 @@ public class Names {
     public final Wildcard WILDCARD_ANY
             = new WildcardImpl(null, null);
 
-    public @NotNull ExactName getWrapper(final int primitive) {
+    public @NotNull ExactTypeName getWrapper(final int primitive) {
         return WRAPPERS[primitive];
     }
 
-    public @NotNull ExactName getPrimitive(final @NonNull Name wrapper) {
+    public @NotNull ExactTypeName getPrimitive(final @NonNull TypeName wrapper) {
         for (int i = 0, j = WRAPPERS.length; i < j; i++)
             if (WRAPPERS[i].equals(wrapper))
                 return PRIMITIVES[i];
@@ -110,15 +110,15 @@ public class Names {
         throw new IllegalStateException(wrapper + " isn't wrapper");
     }
 
-    public @NotNull ExactName getWrapper(final @NonNull Name primitive) {
+    public @NotNull ExactTypeName getWrapper(final @NonNull TypeName primitive) {
         return WRAPPERS[primitive.getPrimitive()];
     }
 
-    public @NotNull ExactName of(final @NonNull Class<?> cls) {
+    public @NotNull ExactTypeName of(final @NonNull Class<?> cls) {
         return _of(cls);
     }
 
-    private ExactName _of(final Class<?> cls) {
+    private ExactTypeName _of(final Class<?> cls) {
         int dimensions = 0;
         Class<?> component = cls;
 
@@ -130,54 +130,54 @@ public class Names {
         return _getCacheOrInit(component.getName(), dimensions, false, cls);
     }
 
-    public @NotNull Name of(final @NonNull Type type) {
+    public @NotNull TypeName of(final @NonNull Type type) {
         return _fromType(type);
     }
 
-    public @NotNull Name @NotNull [] of(final @NotNull Type @NonNull ... types) {
+    public @NotNull TypeName @NotNull [] of(final @NotNull Type @NonNull ... types) {
         return _fromArray(types);
     }
 
-    public @NotNull ExactName of(final @NonNull String name) {
+    public @NotNull ExactTypeName of(final @NonNull String name) {
         return _fromName(name, 0, null);
     }
 
-    public @NotNull ExactName ofInternal(final @NonNull String internalName) {
+    public @NotNull ExactTypeName ofInternal(final @NonNull String internalName) {
         return _getCacheOrInit(internalName, 0, true, null);
     }
 
-    public @NotNull ExactName @NotNull [] of(final @NotNull String @NonNull [] names) {
+    public @NotNull ExactTypeName @NotNull [] of(final @NotNull String @NonNull [] names) {
         return _fromArray(names, false);
     }
 
-    public @NotNull ExactName @NotNull [] of(final @NotNull Class<?> @NonNull [] types) {
+    public @NotNull ExactTypeName @NotNull [] of(final @NotNull Class<?> @NonNull [] types) {
         return _fromArray(types);
     }
 
 
-    public @NotNull ExactName @NotNull [] ofInternal(final @NonNull String @NotNull [] internalNames) {
+    public @NotNull ExactTypeName @NotNull [] ofInternal(final @NonNull String @NotNull [] internalNames) {
         return _fromArray(internalNames, true);
     }
 
     public @NotNull TypeParameter variable(
             final @NonNull String label,
-            final @NotNull Name @NonNull [] bounds
+            final @NotNull TypeName @NonNull [] bounds
     ) {
         return new TypeParameterImpl(label, bounds);
     }
 
-    public @NotNull ParameterizedName parameterized(
-            final @NonNull ExactName name,
+    public @NotNull ParameterizedTypeName parameterized(
+            final @NonNull ExactTypeName name,
             final @NotNull Parameter @NonNull ... parameters
     ) {
         if (parameters.length < 1) {
             throw new IllegalStateException("You should specify at least one parameter");
         }
 
-        return new ParameterizedNameImpl(name, parameters);
+        return new ParameterizedTypeNameImpl(name, parameters);
     }
 
-    public @NotNull Wildcard wildcardUpper(final @NotNull Name @NonNull ... names) {
+    public @NotNull Wildcard wildcardUpper(final @NotNull TypeName @NonNull ... names) {
         if (names.length < 1) {
             throw new IllegalStateException("You should specify at least one name");
         }
@@ -185,7 +185,7 @@ public class Names {
         return new WildcardImpl(names, null);
     }
 
-    public @NotNull Wildcard wildcardLower(final @NotNull Name @NonNull ... names) {
+    public @NotNull Wildcard wildcardLower(final @NotNull TypeName @NonNull ... names) {
         if (names.length < 1) {
             throw new IllegalStateException("You should specify at least one name");
         }
@@ -193,7 +193,7 @@ public class Names {
         return new WildcardImpl(null, names);
     }
 
-    public boolean hasParameterizedTypes(final @NonNull Iterable<@NotNull Name> names) {
+    public boolean hasParameterizedTypes(final @NonNull Iterable<@NotNull TypeName> names) {
         for (val name : names)
             if (name.hasParameterizedTypes())
                 return true;
@@ -201,7 +201,7 @@ public class Names {
         return false;
     }
 
-    public boolean hasParameterizedTypes(final @NotNull Name @NonNull ... names) {
+    public boolean hasParameterizedTypes(final @NotNull TypeName @NonNull ... names) {
         for (val name : names)
             if (name.hasParameterizedTypes())
                 return true;
@@ -209,11 +209,11 @@ public class Names {
         return false;
     }
 
-    private ExactName _putCache(final Class<?> type) {
+    private ExactTypeName _putCache(final Class<?> type) {
         return _putCache(-1, type);
     }
 
-    private ExactName _putCache(final int primitive, final Class<?> type) {
+    private ExactTypeName _putCache(final int primitive, final Class<?> type) {
         val name = _fromName(type.getName(), primitive, 0, "\\.", type);
 
         CACHE.put(type.getName(), name);
@@ -222,8 +222,8 @@ public class Names {
         return name;
     }
 
-    private ExactName _getCacheOrInit(final String type, final int dimensions, final boolean internal,
-                                      final Class<?> originalClass) {
+    private ExactTypeName _getCacheOrInit(final String type, final int dimensions, final boolean internal,
+                                          final Class<?> originalClass) {
         if (dimensions == 0) {
             val cache = internal ? CACHE_INTERNAL.get(type) : CACHE.get(type);
             if (cache != null) return cache;
@@ -232,12 +232,12 @@ public class Names {
         return _fromName(type, -1, dimensions, internal ? "/" : "\\.", originalClass);
     }
 
-    private ExactName _fromName(final String name, final int primitive, final int dimensions, final String separator,
-                                final Class<?> originalClass) {
-        return new ExactNameImpl(primitive, dimensions, name.split(separator), originalClass);
+    private ExactTypeName _fromName(final String name, final int primitive, final int dimensions, final String separator,
+                                    final Class<?> originalClass) {
+        return new ExactTypeNameImpl(primitive, dimensions, name.split(separator), originalClass);
     }
 
-    private ExactName _fromName(final String name, final int dimensions, final Class<?> originalClass) {
+    private ExactTypeName _fromName(final String name, final int dimensions, final Class<?> originalClass) {
         return _fromName(name, -1, dimensions, "\\.", originalClass);
     }
 
@@ -263,7 +263,7 @@ public class Names {
         return _fromType(type);
     }
 
-    private Name _fromType(final Type type) {
+    private TypeName _fromType(final Type type) {
         if (type instanceof Class<?>) {
             return _of((Class<?>) type);
         } else if (type instanceof ParameterizedType) {
@@ -275,7 +275,7 @@ public class Names {
             val raw = _fromType(rawType);
             val parameters = _getParams(parameterTypes);
 
-            return new ParameterizedNameImpl((ExactName) raw, parameters);
+            return new ParameterizedTypeNameImpl((ExactTypeName) raw, parameters);
         } else {
             throw new IllegalArgumentException(type.getClass().getName() + " is not supported");
         }
@@ -290,8 +290,8 @@ public class Names {
         return params;
     }
 
-    private Name[] _fromArray(final Type... types) {
-        val names = new Name[types.length];
+    private TypeName[] _fromArray(final Type... types) {
+        val names = new TypeName[types.length];
 
         for (int i = 0, j = names.length; i < j; i++)
             names[i] = _fromType(types[i]);
@@ -299,17 +299,17 @@ public class Names {
         return names;
     }
 
-    private ExactName[] _fromArray(final String[] names, final boolean internal) {
-        val exactNames = new ExactName[names.length];
+    private ExactTypeName[] _fromArray(final String[] names, final boolean internal) {
+        val exactNames = new ExactTypeName[names.length];
 
         for (int i = 0, j = names.length; i < j; i++)
-            exactNames[i] = Names._getCacheOrInit(names[i], 0, internal, null);
+            exactNames[i] = Types._getCacheOrInit(names[i], 0, internal, null);
 
         return exactNames;
     }
 
-    private ExactName[] _fromArray(final Class<?>[] types) {
-        val exactNames = new ExactName[types.length];
+    private ExactTypeName[] _fromArray(final Class<?>[] types) {
+        val exactNames = new ExactTypeName[types.length];
 
         for (int i = 0, j = types.length; i < j; i++)
             exactNames[i] = _of(types[i]);
@@ -336,7 +336,7 @@ public class Names {
     }
 
     @NoArgsConstructor(access = AccessLevel.PROTECTED)
-    private static abstract class AbstractName extends AbstractParameter implements Name {
+    private static abstract class AbstractTypeName extends AbstractParameter implements TypeName {
         @Override
         public final @NotNull String getInternalName() {
             return StringUtils.from(this::getInternalName);
@@ -351,9 +351,9 @@ public class Names {
     @Getter
     @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-    private static final class ParameterizedNameImpl extends AbstractName implements ParameterizedName {
+    private static final class ParameterizedTypeNameImpl extends AbstractTypeName implements ParameterizedTypeName {
 
-        ExactName rawName;
+        ExactTypeName rawName;
         Parameter[] parameters;
 
         @Override
@@ -367,7 +367,7 @@ public class Names {
         }
 
         @Override
-        public @NotNull Name getComponent() {
+        public @NotNull TypeName getComponent() {
             return rawName.getComponent();
         }
 
@@ -453,8 +453,8 @@ public class Names {
         }
 
         @Override
-        public @NotNull ParameterizedName dimensions(final int dimensions) {
-            return new ParameterizedNameImpl(rawName.dimensions(dimensions), parameters);
+        public @NotNull ParameterizedTypeName dimensions(final int dimensions) {
+            return new ParameterizedTypeNameImpl(rawName.dimensions(dimensions), parameters);
         }
     }
 
@@ -464,8 +464,8 @@ public class Names {
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     private static final class WildcardImpl extends AbstractParameter implements Wildcard {
 
-        Name[] upper;
-        Name[] lower;
+        TypeName[] upper;
+        TypeName[] lower;
 
         @Override
         public int hashCode() {
@@ -551,7 +551,7 @@ public class Names {
 
         @Override
         public boolean hasParameterizedTypes() {
-            return Names.hasParameterizedTypes(upper) || Names.hasParameterizedTypes(lower);
+            return Types.hasParameterizedTypes(upper) || Types.hasParameterizedTypes(lower);
         }
 
     }
@@ -563,7 +563,7 @@ public class Names {
     private static final class TypeParameterImpl extends AbstractParameter implements TypeParameter {
 
         String label;
-        Name[] bounds;
+        TypeName[] bounds;
 
         @Override
         public boolean equals(final Object obj) {
@@ -627,7 +627,7 @@ public class Names {
     @Getter
     @FieldDefaults(level = AccessLevel.PRIVATE)
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
-    private static final class ExactNameImpl extends AbstractName implements ExactName {
+    private static final class ExactTypeNameImpl extends AbstractTypeName implements ExactTypeName {
 
         final int primitive;
         final int dimensions;
@@ -638,9 +638,9 @@ public class Names {
         @Override
         public boolean equals(final Object obj) {
             if (obj == this) return true;
-            if (!(obj instanceof ExactName)) return false;
+            if (!(obj instanceof ExactTypeName)) return false;
 
-            val that = (ExactName) obj;
+            val that = (ExactTypeName) obj;
             return Arrays.equals(split(), that.split());
         }
 
@@ -655,7 +655,7 @@ public class Names {
         }
 
         @Override
-        public @NotNull Name getComponent() {
+        public @NotNull TypeName getComponent() {
             if (dimensions < 1) {
                 throw new IllegalStateException(this + " should be an array");
             }
@@ -761,25 +761,25 @@ public class Names {
         }
 
         @Override
-        public @NotNull ParameterizedName parameterized(final @NotNull Parameter @NonNull ... parameters) {
+        public @NotNull ParameterizedTypeName parameterized(final @NotNull Parameter @NonNull ... parameters) {
             if (parameters.length < 1) {
                 throw new IllegalStateException("You should specify at least one parameter");
             }
 
-            return new ParameterizedNameImpl(this, parameters);
+            return new ParameterizedTypeNameImpl(this, parameters);
         }
 
         @Override
-        public @NotNull ParameterizedName parameterized(final @NotNull Type @NonNull ... parameters) {
+        public @NotNull ParameterizedTypeName parameterized(final @NotNull Type @NonNull ... parameters) {
             if (parameters.length < 1) {
                 throw new IllegalStateException("You should specify at least one parameter");
             }
 
-            return new ParameterizedNameImpl(this, _fromArray(parameters));
+            return new ParameterizedTypeNameImpl(this, _fromArray(parameters));
         }
 
         @Override
-        public @NotNull ExactName dimensions(final int dimensions) {
+        public @NotNull ExactTypeName dimensions(final int dimensions) {
             if (dimensions == this.dimensions) return this;
 
             val originalClass = this.originalClass != null
@@ -788,7 +788,7 @@ public class Names {
 
             return dimensions == 0
                     ? _getCacheOrInit(String.join(".", array), 0, false, originalClass)
-                    : new ExactNameImpl(primitive, dimensions, array, originalClass);
+                    : new ExactTypeNameImpl(primitive, dimensions, array, originalClass);
         }
 
         @SneakyThrows

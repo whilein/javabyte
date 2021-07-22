@@ -14,19 +14,18 @@
  *    limitations under the License.
  */
 
-package javabyte.name;
+package javabyte.type;
 
 import org.jetbrains.annotations.NotNull;
 
 /**
  * @author whilein
  */
-public interface TypeParameter extends Parameter {
+public interface ParameterizedTypeName extends TypeName {
 
-    @NotNull String getLabel();
-    @NotNull Name @NotNull [] getBounds();
+    @NotNull ExactTypeName getRawName();
+    @NotNull Parameter @NotNull [] getParameters();
 
-    @NotNull String getDefinitionSignature();
-    void getDefinitionSignature(@NotNull StringBuilder out);
+    @NotNull ParameterizedTypeName dimensions(int dimensions);
 
 }

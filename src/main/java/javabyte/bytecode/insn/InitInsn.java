@@ -17,7 +17,7 @@
 package javabyte.bytecode.insn;
 
 import javabyte.bytecode.InstructionSet;
-import javabyte.name.Name;
+import javabyte.type.TypeName;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Type;
@@ -31,6 +31,6 @@ public interface InitInsn extends Instruction {
     @NotNull InitInsn init(@NotNull Consumer<@NotNull InstructionSet> init);
 
     @NotNull InitInsn parameters(@NotNull Type @NotNull ... parameters);
-    @NotNull InitInsn parameters(@NotNull Name @NotNull ... parameters);
+    @NotNull InitInsn parameters(@NotNull TypeName @NotNull ... parameters);
 
 }

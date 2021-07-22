@@ -18,7 +18,7 @@ package javabyte.bytecode.insn;
 
 import javabyte.bytecode.LocalIndex;
 import javabyte.bytecode.branch.LoopBranch;
-import javabyte.name.Name;
+import javabyte.type.TypeName;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Type;
@@ -31,7 +31,7 @@ public interface IterateOverInsn extends Instruction {
     @NotNull IterateOverInsn source(@NotNull LocalIndex index);
     @NotNull IterateOverInsn source(int index);
 
-    @NotNull IterateOverInsn element(@NotNull Name type);
+    @NotNull IterateOverInsn element(@NotNull TypeName type);
     @NotNull IterateOverInsn element(@NotNull Type type);
 
     @NotNull LocalIndex getElementLocal();

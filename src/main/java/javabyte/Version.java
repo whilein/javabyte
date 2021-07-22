@@ -14,23 +14,33 @@
  *    limitations under the License.
  */
 
-package javabyte.name;
+package javabyte;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import java.lang.reflect.Type;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 
 /**
  * @author whilein
  */
-public interface ExactName extends Name {
+@Getter
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+public enum Version {
 
-    @NotNull String @Nullable [] split();
+    V1_8(52),
+    V9(53),
+    V10(54),
+    V11(55),
+    V12(56),
+    V13(57),
+    V14(58),
+    V15(59),
+    V16(60),
+    V17(61),
+    V18(62);
 
-    @NotNull ParameterizedName parameterized(@NotNull Parameter @NotNull ... parameters);
-    @NotNull ParameterizedName parameterized(@NotNull Type @NotNull ... parameters);
-
-    @NotNull ExactName dimensions(int dimensions);
+    int number;
 
 }

@@ -16,7 +16,7 @@
 
 package javabyte.make;
 
-import javabyte.type.Access;
+import javabyte.Access;
 import org.jetbrains.annotations.NotNull;
 
 /**

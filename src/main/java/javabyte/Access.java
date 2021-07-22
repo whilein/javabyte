@@ -14,17 +14,25 @@
  *    limitations under the License.
  */
 
-package javabyte.name;
+package javabyte;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 
 /**
  * @author whilein
  */
-public interface Wildcard extends Parameter {
+@Getter
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+public enum Access {
+    PACKAGE(0),
+    PUBLIC(1),
+    PRIVATE(2),
+    PROTECTED(4);
 
-    @NotNull Name @Nullable [] getUpper();
-    @NotNull Name @Nullable [] getLower();
+    int opcode;
 
 }

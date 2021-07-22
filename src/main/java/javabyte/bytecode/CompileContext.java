@@ -17,7 +17,7 @@
 package javabyte.bytecode;
 
 import javabyte.make.MakeExecutable;
-import javabyte.name.Name;
+import javabyte.type.TypeName;
 import org.jetbrains.annotations.NotNull;
 import org.objectweb.asm.MethodVisitor;
 
@@ -26,8 +26,8 @@ import org.objectweb.asm.MethodVisitor;
  */
 public interface CompileContext {
 
-    void requireStack(@NotNull Name @NotNull ... types);
-    void requireStrictStack(@NotNull Name @NotNull ... types);
+    void requireStack(@NotNull TypeName @NotNull ... types);
+    void requireStrictStack(@NotNull TypeName @NotNull ... types);
 
     void jump(int opcode, @NotNull Position position);
 
@@ -40,15 +40,15 @@ public interface CompileContext {
     void visitString(@NotNull String value);
     void visitNull();
 
-    void callCast(@NotNull Name from, @NotNull Name to);
-    @NotNull Name callArrayLoad(@NotNull Name array);
+    void callCast(@NotNull TypeName from, @NotNull TypeName to);
+    @NotNull TypeName callArrayLoad(@NotNull TypeName array);
 
-    void pushStack(@NotNull Name name);
-    @NotNull Name popStack();
+    void pushStack(@NotNull TypeName name);
+    @NotNull TypeName popStack();
 
-    @NotNull Local replaceLocal(@NotNull LocalIndex index, @NotNull Name name);
-    @NotNull Local pushLocal(@NotNull LocalIndex index, @NotNull Name name);
-    @NotNull Local pushLocal(@NotNull Name name);
+    @NotNull Local replaceLocal(@NotNull LocalIndex index, @NotNull TypeName name);
+    @NotNull Local pushLocal(@NotNull LocalIndex index, @NotNull TypeName name);
+    @NotNull Local pushLocal(@NotNull TypeName name);
     @NotNull Local popLocal();
 
     @NotNull Local getLocal(@NotNull LocalIndex index);

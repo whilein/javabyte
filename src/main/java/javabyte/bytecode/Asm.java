@@ -18,8 +18,8 @@ package javabyte.bytecode;
 
 import javabyte.bytecode.insn.Instruction;
 import javabyte.make.MakeExecutable;
-import javabyte.name.Name;
-import javabyte.name.Names;
+import javabyte.type.TypeName;
+import javabyte.type.Types;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.UtilityClass;
@@ -142,7 +142,7 @@ public class Asm {
     @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     private static final class LocalImpl implements Local {
-        Name name;
+        TypeName name;
         LocalIndex index;
 
         int offset;
@@ -162,10 +162,10 @@ public class Asm {
         @Getter
         final MethodVisitor methodVisitor;
 
-        final LinkedList<Name> stack;
+        final LinkedList<TypeName> stack;
         final List<Local> locals;
 
-        private void _requireStack(final Name... params) {
+        private void _requireStack(final TypeName... params) {
             if (stack.size() < params.length) {
                 throw new IllegalStateException("Not enough stack elements, required: "
                         + Arrays.toString(params) + ", but found: " + stack);
@@ -173,12 +173,12 @@ public class Asm {
         }
 
         @Override
-        public void requireStack(final @NotNull Name @NonNull ... params) {
+        public void requireStack(final @NotNull TypeName @NonNull ... params) {
             _requireStack(params);
         }
 
         @Override
-        public void requireStrictStack(final @NotNull Name @NonNull ... params) {
+        public void requireStrictStack(final @NotNull TypeName @NonNull ... params) {
             _requireStack(params);
 
             int counter = 0;
@@ -256,7 +256,7 @@ public class Asm {
         }
 
         @Override
-        public @NotNull Name callArrayLoad(final @NonNull Name array) {
+        public @NotNull TypeName callArrayLoad(final @NonNull TypeName array) {
             if (!array.isArray()) {
                 throw new IllegalStateException("Type " + array + " is not array!");
             }
@@ -267,26 +267,26 @@ public class Asm {
                 methodVisitor.visitInsn(AALOAD);
             } else {
                 switch (component.getPrimitive()) {
-                    case Names.BYTE_TYPE:
-                    case Names.BOOL_TYPE:
+                    case Types.BYTE_TYPE:
+                    case Types.BOOL_TYPE:
                         methodVisitor.visitInsn(BALOAD);
                         break;
-                    case Names.CHAR_TYPE:
+                    case Types.CHAR_TYPE:
                         methodVisitor.visitInsn(CALOAD);
                         break;
-                    case Names.SHORT_TYPE:
+                    case Types.SHORT_TYPE:
                         methodVisitor.visitInsn(SALOAD);
                         break;
-                    case Names.INT_TYPE:
+                    case Types.INT_TYPE:
                         methodVisitor.visitInsn(IALOAD);
                         break;
-                    case Names.LONG_TYPE:
+                    case Types.LONG_TYPE:
                         methodVisitor.visitInsn(LALOAD);
                         break;
-                    case Names.FLOAT_TYPE:
+                    case Types.FLOAT_TYPE:
                         methodVisitor.visitInsn(FALOAD);
                         break;
-                    case Names.DOUBLE_TYPE:
+                    case Types.DOUBLE_TYPE:
                         methodVisitor.visitInsn(DALOAD);
                         break;
                 }
@@ -296,7 +296,7 @@ public class Asm {
         }
 
         @Override
-        public void pushStack(final @NonNull Name name) {
+        public void pushStack(final @NonNull TypeName name) {
             this.stack.push(name);
             this.stackSize += name.getSize();
 
@@ -304,7 +304,7 @@ public class Asm {
         }
 
         @Override
-        public @NotNull Local replaceLocal(final @NonNull LocalIndex localIndex, final @NonNull Name name) {
+        public @NotNull Local replaceLocal(final @NonNull LocalIndex localIndex, final @NonNull TypeName name) {
             if (!localIndex.isInitialized()) {
                 throw new IllegalStateException("Index should be initiailized!");
             }
@@ -312,7 +312,7 @@ public class Asm {
             val index = localIndex.getValue();
 
             while (index >= locals.size()) {
-                pushLocal(Names.OBJECT);
+                pushLocal(Types.OBJECT);
             }
 
             val oldLocal = this.locals.get(index);
@@ -341,7 +341,7 @@ public class Asm {
             return local;
         }
 
-        private Local _pushLocal(final LocalIndex index, final Name name) {
+        private Local _pushLocal(final LocalIndex index, final TypeName name) {
             index.setValue(locals.size());
 
             val local = new LocalImpl(name, index, localSize);
@@ -355,12 +355,12 @@ public class Asm {
         }
 
         @Override
-        public @NotNull Local pushLocal(final @NonNull LocalIndex index, final @NonNull Name name) {
+        public @NotNull Local pushLocal(final @NonNull LocalIndex index, final @NonNull TypeName name) {
             return _pushLocal(index, name);
         }
 
         @Override
-        public @NotNull Local pushLocal(@NotNull final Name name) {
+        public @NotNull Local pushLocal(@NotNull final TypeName name) {
             return _pushLocal(new LocalIndexImpl(), name);
         }
 
@@ -388,96 +388,96 @@ public class Asm {
         }
 
         @Override
-        public void callCast(final @NonNull Name from, final @NonNull Name to) {
+        public void callCast(final @NonNull TypeName from, final @NonNull TypeName to) {
             if (!from.isArray()
                     && from.isPrimitive() && to.isPrimitive()
-                    && from.getPrimitive() != Names.BOOL_TYPE
-                    && to.getPrimitive() != Names.BOOL_TYPE) {
+                    && from.getPrimitive() != Types.BOOL_TYPE
+                    && to.getPrimitive() != Types.BOOL_TYPE) {
                 switch (from.getPrimitive()) {
-                    case Names.BYTE_TYPE:
-                    case Names.SHORT_TYPE:
-                    case Names.CHAR_TYPE:
-                    case Names.INT_TYPE:
+                    case Types.BYTE_TYPE:
+                    case Types.SHORT_TYPE:
+                    case Types.CHAR_TYPE:
+                    case Types.INT_TYPE:
                         switch (to.getPrimitive()) {
-                            case Names.FLOAT_TYPE:
+                            case Types.FLOAT_TYPE:
                                 methodVisitor.visitInsn(I2F);
                                 break;
-                            case Names.DOUBLE_TYPE:
+                            case Types.DOUBLE_TYPE:
                                 methodVisitor.visitInsn(I2D);
                                 break;
-                            case Names.LONG_TYPE:
+                            case Types.LONG_TYPE:
                                 methodVisitor.visitInsn(I2L);
                                 break;
                         }
-                    case Names.FLOAT_TYPE:
+                    case Types.FLOAT_TYPE:
                         switch (to.getPrimitive()) {
-                            case Names.BYTE_TYPE:
+                            case Types.BYTE_TYPE:
                                 methodVisitor.visitInsn(F2I);
                                 methodVisitor.visitInsn(I2B);
                                 break;
-                            case Names.CHAR_TYPE:
+                            case Types.CHAR_TYPE:
                                 methodVisitor.visitInsn(F2I);
                                 methodVisitor.visitInsn(I2C);
                                 break;
-                            case Names.SHORT_TYPE:
+                            case Types.SHORT_TYPE:
                                 methodVisitor.visitInsn(F2I);
                                 methodVisitor.visitInsn(I2S);
                                 break;
-                            case Names.INT_TYPE:
+                            case Types.INT_TYPE:
                                 methodVisitor.visitInsn(F2I);
                                 break;
-                            case Names.DOUBLE_TYPE:
+                            case Types.DOUBLE_TYPE:
                                 methodVisitor.visitInsn(F2D);
                                 break;
-                            case Names.LONG_TYPE:
+                            case Types.LONG_TYPE:
                                 methodVisitor.visitInsn(F2L);
                                 break;
                         }
-                    case Names.DOUBLE_TYPE:
+                    case Types.DOUBLE_TYPE:
                         switch (to.getPrimitive()) {
-                            case Names.BYTE_TYPE:
+                            case Types.BYTE_TYPE:
                                 methodVisitor.visitInsn(D2I);
                                 methodVisitor.visitInsn(I2B);
                                 break;
-                            case Names.CHAR_TYPE:
+                            case Types.CHAR_TYPE:
                                 methodVisitor.visitInsn(D2I);
                                 methodVisitor.visitInsn(I2C);
                                 break;
-                            case Names.SHORT_TYPE:
+                            case Types.SHORT_TYPE:
                                 methodVisitor.visitInsn(D2I);
                                 methodVisitor.visitInsn(I2S);
                                 break;
-                            case Names.INT_TYPE:
+                            case Types.INT_TYPE:
                                 methodVisitor.visitInsn(D2I);
                                 break;
-                            case Names.FLOAT_TYPE:
+                            case Types.FLOAT_TYPE:
                                 methodVisitor.visitInsn(D2F);
                                 break;
-                            case Names.LONG_TYPE:
+                            case Types.LONG_TYPE:
                                 methodVisitor.visitInsn(D2L);
                                 break;
                         }
-                    case Names.LONG_TYPE:
+                    case Types.LONG_TYPE:
                         switch (to.getPrimitive()) {
-                            case Names.BYTE_TYPE:
+                            case Types.BYTE_TYPE:
                                 methodVisitor.visitInsn(L2I);
                                 methodVisitor.visitInsn(I2B);
                                 break;
-                            case Names.CHAR_TYPE:
+                            case Types.CHAR_TYPE:
                                 methodVisitor.visitInsn(L2I);
                                 methodVisitor.visitInsn(I2C);
                                 break;
-                            case Names.SHORT_TYPE:
+                            case Types.SHORT_TYPE:
                                 methodVisitor.visitInsn(L2I);
                                 methodVisitor.visitInsn(I2S);
                                 break;
-                            case Names.INT_TYPE:
+                            case Types.INT_TYPE:
                                 methodVisitor.visitInsn(L2I);
                                 break;
-                            case Names.FLOAT_TYPE:
+                            case Types.FLOAT_TYPE:
                                 methodVisitor.visitInsn(L2F);
                                 break;
-                            case Names.DOUBLE_TYPE:
+                            case Types.DOUBLE_TYPE:
                                 methodVisitor.visitInsn(L2D);
                                 break;
                         }
@@ -490,7 +490,7 @@ public class Asm {
         }
 
         @Override
-        public @NotNull Name popStack() {
+        public @NotNull TypeName popStack() {
             if (stack.isEmpty()) {
                 throw new IllegalStateException("No more elements in the stack");
             }

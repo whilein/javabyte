@@ -14,35 +14,17 @@
  *    limitations under the License.
  */
 
-package javabyte.name;
+package javabyte.type;
 
 import org.jetbrains.annotations.NotNull;
-import org.objectweb.asm.Type;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author whilein
  */
-public interface Name extends Parameter {
+public interface Wildcard extends Parameter {
 
-    int getDimensions();
-    boolean isArray();
-
-    @NotNull Name getComponent();
-    @NotNull Name dimensions(int dimensions);
-
-    int getPrimitive();
-    boolean isPrimitive();
-
-    @NotNull Type toType();
-    @NotNull Class<?> toClass();
-
-    @NotNull String getSimpleName();
-    @NotNull String getInternalName();
-    @NotNull String getName();
-
-    void getName(@NotNull StringBuilder out);
-    void getInternalName(@NotNull StringBuilder out);
-
-    int getSize();
+    @NotNull TypeName @Nullable [] getUpper();
+    @NotNull TypeName @Nullable [] getLower();
 
 }

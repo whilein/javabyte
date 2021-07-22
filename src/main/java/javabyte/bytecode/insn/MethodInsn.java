@@ -16,8 +16,8 @@
 
 package javabyte.bytecode.insn;
 
-import javabyte.name.Name;
 import javabyte.signature.MethodSignature;
+import javabyte.type.TypeName;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Type;
@@ -29,10 +29,10 @@ public interface MethodInsn extends Instruction {
 
     @NotNull MethodInsn descriptor(@NotNull MethodSignature signature);
     @NotNull MethodInsn descriptor(@NotNull Type returnType, @NotNull Type @NotNull ... parameters);
-    @NotNull MethodInsn descriptor(@NotNull Name returnType, @NotNull Name @NotNull ... parameters);
+    @NotNull MethodInsn descriptor(@NotNull TypeName returnType, @NotNull TypeName @NotNull ... parameters);
 
     @NotNull MethodInsn in(@NotNull Type owner);
-    @NotNull MethodInsn in(@NotNull Name owner);
+    @NotNull MethodInsn in(@NotNull TypeName owner);
 
     @NotNull MethodInsn inCurrent();
     @NotNull MethodInsn inSuper();

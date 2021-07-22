@@ -16,23 +16,19 @@
 
 package javabyte.type;
 
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * @author whilein
  */
-@Getter
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-public enum Access {
-    PACKAGE(0),
-    PUBLIC(1),
-    PRIVATE(2),
-    PROTECTED(4);
+public interface Parameter {
+    @NotNull String getSignature();
+    @NotNull String getDescriptor();
+    @NotNull String toString();
 
-    int opcode;
+    void getSignature(@NotNull StringBuilder out);
+    void getDescriptor(@NotNull StringBuilder out);
+    void toString(@NotNull StringBuilder out);
 
+    boolean hasParameterizedTypes();
 }

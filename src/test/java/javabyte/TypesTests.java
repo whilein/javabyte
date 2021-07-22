@@ -16,9 +16,9 @@
 
 package javabyte;
 
-import javabyte.name.ExactName;
-import javabyte.name.Names;
-import javabyte.name.ParameterizedName;
+import javabyte.type.ExactTypeName;
+import javabyte.type.ParameterizedTypeName;
+import javabyte.type.Types;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
 import org.junit.jupiter.api.BeforeAll;
@@ -32,21 +32,21 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author whilein
  */
 @FieldDefaults(level = AccessLevel.PRIVATE)
-class NamesTests {
+class TypesTests {
 
-    static ExactName intClass;
-    static ExactName intArray;
-    static ExactName stringArray;
-    static ExactName colClass;
-    static ParameterizedName colOfStrings;
-    static ParameterizedName colOfStringsArray;
+    static ExactTypeName intClass;
+    static ExactTypeName intArray;
+    static ExactTypeName stringArray;
+    static ExactTypeName colClass;
+    static ParameterizedTypeName colOfStrings;
+    static ParameterizedTypeName colOfStringsArray;
 
     @BeforeAll
     static void init() {
-        intClass = Names.of(int.class);
-        intArray = Names.of(int[].class);
-        stringArray = Names.of(String[].class);
-        colClass = Names.of(Collection.class);
+        intClass = Types.of(int.class);
+        intArray = Types.of(int[].class);
+        stringArray = Types.of(String[].class);
+        colClass = Types.of(Collection.class);
         colOfStrings = colClass.parameterized(String.class);
         colOfStringsArray = colOfStrings.dimensions(1);
     }

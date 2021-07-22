@@ -17,11 +17,11 @@
 package javabyte.bytecode;
 
 import javabyte.bytecode.insn.*;
-import javabyte.name.Name;
 import javabyte.opcode.FieldOpcode;
 import javabyte.opcode.JumpOpcode;
 import javabyte.opcode.MathOpcode;
 import javabyte.opcode.MethodOpcode;
+import javabyte.type.TypeName;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Type;
@@ -67,19 +67,19 @@ public interface InstructionSet extends Instruction {
 
     void callMath(@NotNull MathOpcode opcode);
 
-    void callNewArray(@NotNull Name arrayType, int knownDims);
+    void callNewArray(@NotNull TypeName arrayType, int knownDims);
     void callNewArray(@NotNull Type arrayType, int knownDims);
 
     void callThrow();
 
-    void callNewArray(@NotNull Name arrayType);
+    void callNewArray(@NotNull TypeName arrayType);
     void callNewArray(@NotNull Type arrayType);
 
     void callCast(@NotNull Type to);
-    void callCast(@NotNull Name to);
+    void callCast(@NotNull TypeName to);
 
     @NotNull InitInsn callInit(@NotNull Type type);
-    @NotNull InitInsn callInit(@NotNull Name name);
+    @NotNull InitInsn callInit(@NotNull TypeName name);
 
     void callUnbox();
 

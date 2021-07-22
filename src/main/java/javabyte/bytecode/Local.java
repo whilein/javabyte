@@ -16,7 +16,7 @@
 
 package javabyte.bytecode;
 
-import javabyte.name.Name;
+import javabyte.type.TypeName;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -24,7 +24,7 @@ import org.jetbrains.annotations.NotNull;
  */
 public interface Local {
 
-    @NotNull Name getName();
+    @NotNull TypeName getName();
 
     @NotNull LocalIndex getIndex();
 

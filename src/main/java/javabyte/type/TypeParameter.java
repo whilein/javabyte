@@ -16,31 +16,17 @@
 
 package javabyte.type;
 
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * @author whilein
  */
-@Getter
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-public enum Version {
+public interface TypeParameter extends Parameter {
 
-    V1_8(52),
-    V9(53),
-    V10(54),
-    V11(55),
-    V12(56),
-    V13(57),
-    V14(58),
-    V15(59),
-    V16(60),
-    V17(61),
-    V18(62);
+    @NotNull String getLabel();
+    @NotNull TypeName @NotNull [] getBounds();
 
-    int number;
+    @NotNull String getDefinitionSignature();
+    void getDefinitionSignature(@NotNull StringBuilder out);
 
 }

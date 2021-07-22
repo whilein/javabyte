@@ -16,8 +16,8 @@
 
 package javabyte.signature;
 
-import javabyte.name.Name;
-import javabyte.name.TypeParameter;
+import javabyte.type.TypeName;
+import javabyte.type.TypeParameter;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -27,9 +27,9 @@ public interface MethodSignature extends Signature {
 
     @NotNull TypeParameter @NotNull [] getGeneric();
 
-    @NotNull Name getReturnType();
+    @NotNull TypeName getReturnType();
 
-    @NotNull Name @NotNull [] getParameterTypes();
+    @NotNull TypeName @NotNull [] getParameterTypes();
 
     @NotNull String getDescriptor();
     void getDescriptor(@NotNull StringBuilder out);

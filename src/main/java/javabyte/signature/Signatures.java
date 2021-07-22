@@ -16,9 +16,9 @@
 
 package javabyte.signature;
 
-import javabyte.name.Name;
-import javabyte.name.Names;
-import javabyte.name.TypeParameter;
+import javabyte.type.TypeName;
+import javabyte.type.TypeParameter;
+import javabyte.type.Types;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.UtilityClass;
@@ -41,30 +41,30 @@ public class Signatures {
 
         for (int i = 0, j = typeParameterNames.length; i < j; i++) {
             val typeParameter = typeParameters[i];
-            typeParameterNames[i] = Names.variable(typeParameter.getName(), Names.of(typeParameter.getBounds()));
+            typeParameterNames[i] = Types.variable(typeParameter.getName(), Types.of(typeParameter.getBounds()));
         }
 
         return typeParameterNames;
     }
 
     private static MethodSignature _methodSignature(
-            final Name returnType,
-            final Name[] parameters
+            final TypeName returnType,
+            final TypeName[] parameters
     ) {
         return new MethodSignatureImpl(new TypeParameter[0], returnType, parameters);
     }
 
     public static @NotNull MethodSignature methodSignature(
             final @NotNull TypeParameter @NonNull [] variables,
-            final @NonNull Name returnType,
-            final @NotNull Name @NonNull [] parameters
+            final @NonNull TypeName returnType,
+            final @NotNull TypeName @NonNull [] parameters
     ) {
         return new MethodSignatureImpl(variables, returnType, parameters);
     }
 
     public static @NotNull MethodSignature methodSignature(
-            final @NonNull Name returnType,
-            final @NotNull Name @NonNull ... parameters
+            final @NonNull TypeName returnType,
+            final @NotNull TypeName @NonNull ... parameters
     ) {
         return _methodSignature(returnType, parameters);
     }
@@ -73,28 +73,28 @@ public class Signatures {
             final @NonNull Type returnType,
             final @NotNull Type @NonNull ... parameters
     ) {
-        return _methodSignature(Names.of(returnType), Names.of(parameters));
+        return _methodSignature(Types.of(returnType), Types.of(parameters));
     }
 
     public static @NotNull ClassSignature classSignature(
             final @NotNull TypeParameter @NonNull [] variables,
-            final @NonNull Name superName,
-            final @NotNull Name @Nullable [] interfaces
+            final @NonNull TypeName superName,
+            final @NotNull TypeName @Nullable [] interfaces
     ) {
         return new ClassSignatureImpl(variables, superName, interfaces);
     }
 
     public static @NotNull ClassSignature classSignature(
-            final @NonNull Name superName,
-            final @NotNull Name @Nullable [] interfaces
+            final @NonNull TypeName superName,
+            final @NotNull TypeName @Nullable [] interfaces
     ) {
         return new ClassSignatureImpl(new TypeParameter[0], superName, interfaces);
     }
 
 
     public static @NotNull ClassSignature ofClass(final @NonNull Class<?> cls) {
-        val superName = Names.of(cls.getGenericSuperclass());
-        val interfaces = Names.of(cls.getGenericInterfaces());
+        val superName = Types.of(cls.getGenericSuperclass());
+        val interfaces = Types.of(cls.getGenericInterfaces());
 
         val typeParameters = getTypeParameters(cls);
 
@@ -102,8 +102,8 @@ public class Signatures {
     }
 
     public static @NotNull MethodSignature ofMethod(final @NonNull Method method) {
-        val returnName = Names.of(method.getGenericReturnType());
-        val parameterNames = Names.of(method.getGenericParameterTypes());
+        val returnName = Types.of(method.getGenericReturnType());
+        val parameterNames = Types.of(method.getGenericParameterTypes());
 
         val typeParameters = getTypeParameters(method);
 
@@ -116,8 +116,8 @@ public class Signatures {
     private static final class ClassSignatureImpl implements ClassSignature {
 
         TypeParameter[] generic;
-        Name superName;
-        Name[] interfaces;
+        TypeName superName;
+        TypeName[] interfaces;
 
         @Override
         public @NotNull String getSignature() {
@@ -161,7 +161,7 @@ public class Signatures {
                 out.append('>');
             }
 
-            if (superName != null && !Names.OBJECT.equals(superName)) {
+            if (superName != null && !Types.OBJECT.equals(superName)) {
                 out.append(" extends ");
                 superName.toString(out);
             }
@@ -185,8 +185,8 @@ public class Signatures {
     private static final class MethodSignatureImpl implements MethodSignature {
 
         TypeParameter[] generic;
-        Name returnType;
-        Name[] parameterTypes;
+        TypeName returnType;
+        TypeName[] parameterTypes;
 
         @Override
         public @NotNull String getSignature() {
@@ -254,7 +254,7 @@ public class Signatures {
 
         @Override
         public boolean hasParameterizedTypes() {
-            return returnType.hasParameterizedTypes() || Names.hasParameterizedTypes(parameterTypes);
+            return returnType.hasParameterizedTypes() || Types.hasParameterizedTypes(parameterTypes);
         }
     }
 

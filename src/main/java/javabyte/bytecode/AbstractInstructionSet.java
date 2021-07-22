@@ -17,12 +17,12 @@
 package javabyte.bytecode;
 
 import javabyte.bytecode.insn.*;
-import javabyte.name.Name;
-import javabyte.name.Names;
 import javabyte.opcode.FieldOpcode;
 import javabyte.opcode.JumpOpcode;
 import javabyte.opcode.MathOpcode;
 import javabyte.opcode.MethodOpcode;
+import javabyte.type.TypeName;
+import javabyte.type.Types;
 import lombok.AccessLevel;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -57,7 +57,7 @@ public abstract class AbstractInstructionSet implements InstructionSet {
     public final @NotNull InitInsn callInit(
             final @NonNull Type type
     ) {
-        val init = Instructions.initInsn(Names.of(type));
+        val init = Instructions.initInsn(Types.of(type));
         _callInsn(init);
 
         return init;
@@ -65,7 +65,7 @@ public abstract class AbstractInstructionSet implements InstructionSet {
 
     @Override
     public final @NotNull InitInsn callInit(
-            final @NonNull Name name
+            final @NonNull TypeName name
     ) {
         val init = Instructions.initInsn(name);
         _callInsn(init);
@@ -214,21 +214,21 @@ public abstract class AbstractInstructionSet implements InstructionSet {
 
     @Override
     public final void callCast(final @NonNull Type to) {
-        _callInsn(Instructions.castInsn(Names.of(to)));
+        _callInsn(Instructions.castInsn(Types.of(to)));
     }
 
     @Override
-    public void callNewArray(@NotNull final Name arrayType, final int knownDims) {
+    public void callNewArray(@NotNull final TypeName arrayType, final int knownDims) {
         _callInsn(Instructions.newArrayInsn(arrayType, knownDims));
     }
 
     @Override
     public void callNewArray(@NotNull final Type arrayType, final int knownDims) {
-        _callInsn(Instructions.newArrayInsn(Names.of(arrayType), knownDims));
+        _callInsn(Instructions.newArrayInsn(Types.of(arrayType), knownDims));
     }
 
     @Override
-    public void callNewArray(@NotNull final Name arrayType) {
+    public void callNewArray(@NotNull final TypeName arrayType) {
         _callInsn(Instructions.newArrayInsn(arrayType, arrayType.getDimensions()));
     }
 
@@ -239,14 +239,14 @@ public abstract class AbstractInstructionSet implements InstructionSet {
 
     @Override
     public void callNewArray(@NotNull final Type arrayType) {
-        val name = Names.of(arrayType);
+        val name = Types.of(arrayType);
 
         _callInsn(Instructions.newArrayInsn(name, name.getDimensions()));
     }
 
 
     @Override
-    public final void callCast(final @NonNull Name to) {
+    public final void callCast(final @NonNull TypeName to) {
         _callInsn(Instructions.castInsn(to));
     }
 

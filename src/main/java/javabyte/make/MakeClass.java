@@ -16,9 +16,9 @@
 
 package javabyte.make;
 
-import javabyte.name.ExactName;
-import javabyte.name.Name;
-import javabyte.type.Version;
+import javabyte.Version;
+import javabyte.type.ExactTypeName;
+import javabyte.type.TypeName;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
@@ -43,27 +43,27 @@ public interface MakeClass extends MakeElement {
     @NotNull MakeMethod addMethod(@NotNull String name);
     @NotNull MakeInnerClass addInner(@NotNull String name);
 
-    @NotNull MakeField addField(@NotNull String name, @NotNull Name type);
+    @NotNull MakeField addField(@NotNull String name, @NotNull TypeName type);
     @NotNull MakeField addField(@NotNull String name, @NotNull Type type);
 
     @NotNull Version getVersion();
-    @NotNull ExactName getName();
+    @NotNull ExactTypeName getName();
 
     void setSuperName(@NotNull Type type);
-    void setSuperName(@NotNull Name name);
+    void setSuperName(@NotNull TypeName name);
 
-    @NotNull Name getSuperName();
+    @NotNull TypeName getSuperName();
 
-    void addInterface(@NotNull Name name);
+    void addInterface(@NotNull TypeName name);
     void addInterface(@NotNull Type type);
 
-    void setInterfaces(@NotNull Name @NotNull ... interfaces);
-    void setInterfaces(@NotNull Collection<@NotNull Name> interfaces);
+    void setInterfaces(@NotNull TypeName @NotNull ... interfaces);
+    void setInterfaces(@NotNull Collection<@NotNull TypeName> interfaces);
 
     void setInterfaceTypes(@NotNull Type @NotNull ... interfaces);
     void setInterfaceTypes(@NotNull Collection<@NotNull Type> interfaces);
 
-    @NotNull List<@NotNull Name> getInterfaces();
+    @NotNull List<@NotNull TypeName> getInterfaces();
 
     @NotNull Class<?> load(@NotNull ClassLoader loader);
 

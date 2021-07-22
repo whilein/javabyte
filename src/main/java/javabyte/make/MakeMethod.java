@@ -16,7 +16,7 @@
 
 package javabyte.make;
 
-import javabyte.name.Name;
+import javabyte.type.TypeName;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Type;
@@ -26,7 +26,7 @@ import java.lang.reflect.Type;
  */
 public interface MakeMethod extends MakeExecutable {
 
-    void setReturnType(@NotNull Name type);
+    void setReturnType(@NotNull TypeName type);
     void setReturnType(@NotNull Type type);
 
     void setOverrides(
@@ -41,8 +41,8 @@ public interface MakeMethod extends MakeExecutable {
 
     void setOverrides(
             @NotNull Class<?> type,
-            @NotNull Name returnType,
-            @NotNull Name @NotNull ... parameterTypes
+            @NotNull TypeName returnType,
+            @NotNull TypeName @NotNull ... parameterTypes
     );
 
 }

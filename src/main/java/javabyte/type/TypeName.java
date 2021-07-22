@@ -14,21 +14,35 @@
  *    limitations under the License.
  */
 
-package javabyte.name;
+package javabyte.type;
 
 import org.jetbrains.annotations.NotNull;
+import org.objectweb.asm.Type;
 
 /**
  * @author whilein
  */
-public interface Parameter {
-    @NotNull String getSignature();
-    @NotNull String getDescriptor();
-    @NotNull String toString();
+public interface TypeName extends Parameter {
 
-    void getSignature(@NotNull StringBuilder out);
-    void getDescriptor(@NotNull StringBuilder out);
-    void toString(@NotNull StringBuilder out);
+    int getDimensions();
+    boolean isArray();
 
-    boolean hasParameterizedTypes();
+    @NotNull TypeName getComponent();
+    @NotNull TypeName dimensions(int dimensions);
+
+    int getPrimitive();
+    boolean isPrimitive();
+
+    @NotNull Type toType();
+    @NotNull Class<?> toClass();
+
+    @NotNull String getSimpleName();
+    @NotNull String getInternalName();
+    @NotNull String getName();
+
+    void getName(@NotNull StringBuilder out);
+    void getInternalName(@NotNull StringBuilder out);
+
+    int getSize();
+
 }
