@@ -539,6 +539,14 @@ public final class Instructions {
                     ctx.popStack();
                     ctx.popStack();
                     break;
+                case IFEQ:
+                case IFNE:
+                case IFLT:
+                case IFGE:
+                case IFGT:
+                case IFLE:
+                    ctx.popStack();
+                    break;
             }
 
             ctx.jump(opcode.getOpcode(), position);
