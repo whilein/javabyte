@@ -21,10 +21,9 @@ import org.jetbrains.annotations.NotNull;
 /**
  * @author whilein
  */
-public interface MakeToString {
+public interface MakeHashCode {
 
     void includeSuper();
-    void setLabel(@NotNull String label);
     void setFields(@NotNull String @NotNull ... fieldNames);
 
 }

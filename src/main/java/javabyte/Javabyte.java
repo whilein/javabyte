@@ -44,10 +44,7 @@ import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.ProtectionDomain;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -359,10 +356,22 @@ public class Javabyte {
             return executable;
         }
 
+        @Override
+        public @NotNull MakeHashCode addHashCodeMethod() {
+            val method = _addExecutable(_initMethod("hashCode"));
+            method.setReturnType(int.class);
+
+            val hashCode = new MakeHashCodeImpl(this, method);
+            hashCode.initMethod();
+
+            return hashCode;
+        }
+
 
         @Override
         public @NotNull MakeToString addToStringMethod() {
             val method = _addExecutable(_initMethod("toString"));
+            method.setReturnType(String.class);
 
             val toString = new MakeToStringImpl(this, method);
             toString.initMethod();
@@ -522,6 +531,132 @@ public class Javabyte {
 
     }
 
+
+    @Getter
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+    private static final class MakeHashCodeImpl implements MakeHashCode {
+        final AbstractMakeClass type;
+        final MakeMethod handle;
+
+        String[] fieldNames;
+        boolean includeSuper;
+
+        private List<MakeField> getFields() {
+            val fields = new ArrayList<MakeField>();
+
+            if (fieldNames == null) {
+                fields.addAll(type.fields);
+            } else {
+                for (val fieldName : fieldNames) {
+                    for (val field : type.fields) {
+                        if (field.getName().equals(fieldName)) {
+                            fields.add(field);
+                        }
+                    }
+                }
+            }
+
+            return fields;
+        }
+
+        private void initMethod() {
+            val code = handle.getBytecode();
+
+            code.callInsn(ctx -> {
+                val mv = ctx.getMethodVisitor();
+                val fields = getFields();
+
+                if (fields.isEmpty() && !includeSuper) {
+                    ctx.pushStack(Types.INT);
+                    mv.visitInsn(Opcodes.ICONST_0);
+                } else {
+                    val includeSuper = this.includeSuper && !type.superName.equals(Types.OBJECT);
+
+                    for (int i = 0, j = fields.size() + (includeSuper ? 1 : 0); i < j; i++) {
+                        mv.visitIntInsn(Opcodes.BIPUSH, 31);
+                        ctx.pushStack(Types.INT);
+                    }
+
+                    boolean shouldMultiply = false;
+
+                    if (includeSuper) {
+                        ctx.pushStack(type.name);
+                        mv.visitVarInsn(Opcodes.ALOAD, 0);
+
+                        ctx.visitMethodInsn(MethodOpcode.SPECIAL, type.superName, "hashCode",
+                                Signatures.methodSignature(int.class));
+
+                        ctx.popStack();
+                        ctx.popStack();
+                        mv.visitInsn(Opcodes.IADD);
+                        ctx.pushStack(Types.INT);
+                        shouldMultiply = true;
+                    }
+
+                    for (val field : fields) {
+                        if (shouldMultiply) {
+                            mv.visitInsn(Opcodes.IMUL);
+                        }
+
+                        val fieldType = field.getType();
+
+                        ctx.pushStack(type.name);
+                        mv.visitVarInsn(Opcodes.ALOAD, 0);
+                        mv.visitFieldInsn(Opcodes.GETFIELD, type.name.getInternalName(),
+                                field.getName(), fieldType.getDescriptor());
+                        ctx.pushStack(fieldType);
+
+                        if (fieldType.isArray()) {
+                            val component = fieldType.getComponent();
+
+                            val signature = Signatures.methodSignature(
+                                    Types.INT,
+                                    !component.isPrimitive()
+                                            ? Types.of(Object[].class)
+                                            : fieldType
+                            );
+
+                            val methodName = component.isArray() ? "deepHashCode" : "hashCode";
+
+                            ctx.visitMethodInsn(MethodOpcode.STATIC, Types.of(Arrays.class),
+                                    methodName, signature);
+                        } else if (fieldType.isPrimitive()) {
+                            switch (fieldType.getPrimitive()) {
+                                case Types.BOOL_TYPE:
+                                case Types.FLOAT_TYPE:
+                                case Types.DOUBLE_TYPE:
+                                case Types.LONG_TYPE:
+                                    ctx.visitMethodInsn(MethodOpcode.STATIC, Types.getWrapper(fieldType),
+                                            "hashCode", Signatures.methodSignature(Types.INT, fieldType));
+                                    break;
+                            }
+                        } else {
+                            ctx.visitMethodInsn(MethodOpcode.STATIC, Types.of(Objects.class),
+                                    "hashCode", Signatures.methodSignature(Types.INT, fieldType));
+                        }
+
+                        mv.visitInsn(Opcodes.IADD);
+
+                        shouldMultiply = true;
+                    }
+                }
+            });
+
+            code.callReturn();
+        }
+
+        @Override
+        public void includeSuper() {
+            this.includeSuper = true;
+        }
+
+        @Override
+        public void setFields(final @NotNull String @NonNull ... fieldNames) {
+            this.fieldNames = fieldNames;
+        }
+    }
+
     @Getter
     @FieldDefaults(level = AccessLevel.PRIVATE)
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
@@ -565,40 +700,43 @@ public class Javabyte {
                     Signatures.methodSignature(sb, argument));
         }
 
+        private List<MakeField> getFields() {
+            val fields = new ArrayList<MakeField>();
+
+            if (fieldNames == null) {
+                fields.addAll(type.fields);
+            } else {
+                for (val fieldName : fieldNames) {
+                    for (val field : type.fields) {
+                        if (field.getName().equals(fieldName)) {
+                            fields.add(field);
+                        }
+                    }
+                }
+            }
+
+            return fields;
+        }
+
         private void initMethod() {
             val sb = Types.STRING_BUILDER;
-
-            handle.setReturnType(String.class);
 
             val code = handle.getBytecode();
             code.callInit(StringBuilder.class);
 
             code.callInsn(ctx -> {
+                val fields = getFields();
+
                 val label = this.label == null
                         ? this.type.name.getSimpleName()
                         : this.label;
 
                 val mv = ctx.getMethodVisitor();
-
                 ctx.pushStack(Types.STRING);
 
-                if (type.fields.isEmpty()) {
+                if (fields.isEmpty() && !includeSuper) {
                     mv.visitLdcInsn(label);
                 } else {
-                    val fields = new ArrayList<MakeField>();
-
-                    if (fieldNames == null) {
-                        fields.addAll(type.fields);
-                    } else {
-                        for (val fieldName : fieldNames) {
-                            for (val field : type.fields) {
-                                if (field.getName().equals(fieldName)) {
-                                    fields.add(field);
-                                }
-                            }
-                        }
-                    }
-
                     boolean separator = false;
                     boolean prevString = false;
 
@@ -679,7 +817,7 @@ public class Javabyte {
         }
 
         @Override
-        public void setAllowedFields(final @NotNull String @NonNull ... fieldNames) {
+        public void setFields(final @NotNull String @NonNull ... fieldNames) {
             this.fieldNames = fieldNames;
         }
     }

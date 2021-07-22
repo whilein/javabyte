@@ -47,6 +47,7 @@ public interface MakeClass extends MakeElement {
     @NotNull MakeField addField(@NotNull String name, @NotNull Type type);
 
     @NotNull MakeToString addToStringMethod();
+    @NotNull MakeHashCode addHashCodeMethod();
 
     @NotNull Version getVersion();
     @NotNull ExactTypeName getName();
