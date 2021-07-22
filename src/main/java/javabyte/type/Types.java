@@ -43,40 +43,41 @@ public class Types {
 
     // @formatter:off
     public static final int
-            VOID_TYPE   = 0,
-            BOOL_TYPE   = 1,
-            BYTE_TYPE   = 2,
-            SHORT_TYPE  = 3,
-            CHAR_TYPE   = 4,
-            INT_TYPE    = 5,
-            LONG_TYPE   = 6,
-            FLOAT_TYPE  = 7,
-            DOUBLE_TYPE = 8;
+            VOID_TYPE       = 0,
+            BOOL_TYPE       = 1,
+            BYTE_TYPE       = 2,
+            SHORT_TYPE      = 3,
+            CHAR_TYPE       = 4,
+            INT_TYPE        = 5,
+            LONG_TYPE       = 6,
+            FLOAT_TYPE      = 7,
+            DOUBLE_TYPE     = 8;
 
     public static final ExactTypeName
-            VOID        = Types._putCache(VOID_TYPE, Void.TYPE),
-            VOID_OBJ    = Types._putCache(Void.class),
-            BOOL        = Types._putCache(BOOL_TYPE, Boolean.TYPE),
-            BOOL_OBJ    = Types._putCache(Boolean.class),
-            BYTE        = Types._putCache(BYTE_TYPE, Byte.TYPE),
-            BYTE_OBJ    = Types._putCache(Byte.class),
-            CHAR        = Types._putCache(CHAR_TYPE, Character.TYPE),
-            CHAR_OBJ    = Types._putCache(Character.class),
-            SHORT       = Types._putCache(SHORT_TYPE, Short.TYPE),
-            SHORT_OBJ   = Types._putCache(Short.class),
-            INT         = Types._putCache(INT_TYPE, Integer.TYPE),
-            INT_OBJ     = Types._putCache(Integer.class),
-            LONG        = Types._putCache(LONG_TYPE, Long.TYPE),
-            LONG_OBJ    = Types._putCache(Long.class),
-            FLOAT       = Types._putCache(FLOAT_TYPE, Float.TYPE),
-            FLOAT_OBJ   = Types._putCache(Float.class),
-            DOUBLE      = Types._putCache(DOUBLE_TYPE, Double.TYPE),
-            DOUBLE_OBJ  = Types._putCache(Double.class),
-            STRING      = Types._putCache(String.class),
-            NUMBER      = Types._putCache(Number.class),
-            OBJECT      = Types._putCache(Object.class),
-            ITERABLE    = Types._putCache(Iterable.class),
-            ITERATOR    = Types._putCache(Iterator.class);
+            VOID            = Types._putCache(VOID_TYPE, Void.TYPE),
+            VOID_OBJ        = Types._putCache(Void.class),
+            BOOL            = Types._putCache(BOOL_TYPE, Boolean.TYPE),
+            BOOL_OBJ        = Types._putCache(Boolean.class),
+            BYTE            = Types._putCache(BYTE_TYPE, Byte.TYPE),
+            BYTE_OBJ        = Types._putCache(Byte.class),
+            CHAR            = Types._putCache(CHAR_TYPE, Character.TYPE),
+            CHAR_OBJ        = Types._putCache(Character.class),
+            SHORT           = Types._putCache(SHORT_TYPE, Short.TYPE),
+            SHORT_OBJ       = Types._putCache(Short.class),
+            INT             = Types._putCache(INT_TYPE, Integer.TYPE),
+            INT_OBJ         = Types._putCache(Integer.class),
+            LONG            = Types._putCache(LONG_TYPE, Long.TYPE),
+            LONG_OBJ        = Types._putCache(Long.class),
+            FLOAT           = Types._putCache(FLOAT_TYPE, Float.TYPE),
+            FLOAT_OBJ       = Types._putCache(Float.class),
+            DOUBLE          = Types._putCache(DOUBLE_TYPE, Double.TYPE),
+            DOUBLE_OBJ      = Types._putCache(Double.class),
+            STRING          = Types._putCache(String.class),
+            STRING_BUILDER  = Types._putCache(StringBuilder.class),
+            NUMBER          = Types._putCache(Number.class),
+            OBJECT          = Types._putCache(Object.class),
+            ITERABLE        = Types._putCache(Iterable.class),
+            ITERATOR        = Types._putCache(Iterator.class);
     // @formatter:on
 
     private final ExactTypeName[] WRAPPERS = {
@@ -641,7 +642,10 @@ public class Types {
             if (!(obj instanceof ExactTypeName)) return false;
 
             val that = (ExactTypeName) obj;
-            return Arrays.equals(split(), that.split());
+            
+            return dimensions == that.getDimensions()
+                    && primitive == that.getPrimitive()
+                    && Arrays.equals(split(), that.split());
         }
 
         @Override
