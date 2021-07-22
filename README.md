@@ -28,6 +28,32 @@
 
 Javabyte - Simple library that helps you to create new classes
 
+## Add as dependency
+
+<div>
+  <a href="https://search.maven.org/artifact/io.github.whilein/javabyte">
+    <img src="https://img.shields.io/maven-central/v/io.github.whilein/javabyte">
+  </a>
+</div>
+
+### Maven
+```xml
+<dependencies>
+    <dependency>
+        <groupId>io.github.whilein</groupId>
+        <artifactId>javabyte</artifactId>
+        <version>1.0.0</version>
+    </dependency>
+</dependencies>
+```
+
+### Gradle
+```groovy
+dependencies {
+    implementation 'io.github.whilein:javabyte:1.0.0'
+}
+```
+
 ## Examples
 > Hello World
 ```java
