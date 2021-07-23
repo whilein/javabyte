@@ -188,24 +188,29 @@ code.callNewArray(String[].class);
 ```java
 MakeClass type = Javabyte.make("Entity");
 type.setPublicFinal();
-
-// equals() temporary is unavailable
-        
-// generates new hashCode method with contents
+ 
+// generates new hashCode method with following code
 //   int hash = 1;
-//   hash = 31 * hash + Objects.hashCode(field);
-//   hash = 31 * hash + Arrays.hashCode(stringField);
-//   hash = 31 * hash + Long.hashCode(longField);
+//   hash = 31 * hash + Objects.hashCode(object);
+//   hash = 31 * hash + Arrays.hashCode(array);
+//   hash = 31 * hash + Long.hashCode(primitiveLong);
 //   return hash;
-MakeHashCode hashCode = type.addHashCodeMethod();
+// and equals method:
+//   if (subject == this) return true;
+//   if (!(subject instanceof <type>)) return false;
+//   <type> that = (<type>) that;
+//   return primitive == that.primitive 
+//          && Objects.equals(object, that.object) 
+//          && Arrays.equals(array, that.array);
+MakeHashCodeAndEquals hashCodeAndEquals = type.addHashCodeAndEquals();
 // empty if all fields
-hashCode.setFields(...);
+hashCodeAndEquals.setFields(...);
 // add hash = 31 * hash + super.hashCode()
-hashCode.includeSuper();
+hashCodeAndEquals.includeSuper();
 
 // generates new toString method with contents:
 //   return "<class name>[str='...', field=..., array=[...], @super=...]
-MakeToString toString = type.addToStringMethod();
+MakeToString toString = type.addToString();
 // empty if all fields
 toString.setFields(...);
 // add "@super=" + super.toString() into result

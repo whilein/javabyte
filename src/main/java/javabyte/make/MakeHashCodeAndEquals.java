@@ -21,7 +21,7 @@ import org.jetbrains.annotations.NotNull;
 /**
  * @author whilein
  */
-public interface MakeHashCode {
+public interface MakeHashCodeAndEquals {
 
     void includeSuper();
     void setFields(@NotNull String @NotNull ... fieldNames);

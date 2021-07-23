@@ -20,6 +20,9 @@ import javabyte.bytecode.Asm;
 import javabyte.bytecode.Bytecode;
 import javabyte.bytecode.CompileContext;
 import javabyte.make.*;
+import javabyte.opcode.CompareOpcode;
+import javabyte.opcode.FieldOpcode;
+import javabyte.opcode.JumpOpcode;
 import javabyte.opcode.MethodOpcode;
 import javabyte.signature.MethodSignature;
 import javabyte.signature.Signatures;
@@ -357,19 +360,23 @@ public class Javabyte {
         }
 
         @Override
-        public @NotNull MakeHashCode addHashCodeMethod() {
-            val method = _addExecutable(_initMethod("hashCode"));
-            method.setReturnType(int.class);
+        public @NotNull MakeHashCodeAndEquals addHashCodeAndEquals() {
+            val hashCodeMethod = _addExecutable(_initMethod("hashCode"));
+            hashCodeMethod.setReturnType(int.class);
 
-            val hashCode = new MakeHashCodeImpl(this, method);
-            hashCode.initMethod();
+            val equalsMethod = _addExecutable(_initMethod("equals"));
+            equalsMethod.addParameter(Object.class);
+            equalsMethod.setReturnType(boolean.class);
+
+            val hashCode = new MakeHashCodeAndEqualsImpl(this, hashCodeMethod, equalsMethod);
+            hashCode.initMethods();
 
             return hashCode;
         }
 
 
         @Override
-        public @NotNull MakeToString addToStringMethod() {
+        public @NotNull MakeToString addToString() {
             val method = _addExecutable(_initMethod("toString"));
             method.setReturnType(String.class);
 
@@ -535,9 +542,11 @@ public class Javabyte {
     @Getter
     @FieldDefaults(level = AccessLevel.PRIVATE)
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-    private static final class MakeHashCodeImpl implements MakeHashCode {
+    private static final class MakeHashCodeAndEqualsImpl implements MakeHashCodeAndEquals {
         final AbstractMakeClass type;
-        final MakeMethod handle;
+
+        final MakeMethod hashCode;
+        final MakeMethod equals;
 
         String[] fieldNames;
         boolean includeSuper;
@@ -560,8 +569,131 @@ public class Javabyte {
             return fields;
         }
 
-        private void initMethod() {
-            val code = handle.getBytecode();
+        private void initMethods() {
+            initHashCode();
+            initEquals();
+        }
+
+        private void initEquals() {
+            val code = equals.getBytecode();
+
+            val afterEqualTest = Asm.position();
+            val afterInstanceTest = Asm.position();
+
+            code.loadLocal(1);
+            code.loadLocal(0);
+            code.jump(JumpOpcode.IF_ACMPNE, afterEqualTest);
+            code.pushInt(1);
+            code.callReturn();
+
+            code.visit(afterEqualTest);
+
+            code.loadLocal(1);
+            code.callInstanceOf(type.name);
+
+            code.jump(JumpOpcode.IFNE, afterInstanceTest);
+
+            code.pushInt(0);
+            code.callReturn();
+
+            code.visit(afterInstanceTest);
+
+            code.whenCompile(() -> {
+                val fields = getFields();
+
+                if (!fields.isEmpty() || includeSuper) {
+                    val afterComparisons = Asm.position();
+
+                    code.loadLocal(1);
+                    code.callCast(type.name);
+
+                    val that = code.storeLocal();
+
+                    if (includeSuper && !type.superName.equals(Types.OBJECT)) {
+                        code.loadLocal(0);
+                        code.loadLocal(that);
+                        code.methodInsn(MethodOpcode.SPECIAL, "equals")
+                                .descriptor(equals.getSignature())
+                                .inSuper();
+
+                        if (!fields.isEmpty())
+                            code.jump(JumpOpcode.IFEQ, afterComparisons);
+                    }
+
+                    for (val field : fields) {
+                        val fieldType = field.getType();
+
+                        code.loadLocal(0);
+                        code.fieldInsn(FieldOpcode.GET, field.getName()).inCurrent().descriptor(fieldType);
+                        code.loadLocal(that);
+                        code.fieldInsn(FieldOpcode.GET, field.getName()).inCurrent().descriptor(fieldType);
+
+                        if (fieldType.isPrimitive()) {
+                            switch (fieldType.getPrimitive()) {
+                                case Types.BOOL_TYPE:
+                                case Types.BYTE_TYPE:
+                                case Types.CHAR_TYPE:
+                                case Types.SHORT_TYPE:
+                                case Types.INT_TYPE:
+                                    code.jump(JumpOpcode.IF_ICMPNE, afterComparisons);
+                                    break;
+                                case Types.LONG_TYPE:
+                                    code.callCompare(CompareOpcode.LCMP);
+                                    code.jump(JumpOpcode.IFNE, afterComparisons);
+                                    break;
+                                case Types.FLOAT_TYPE:
+                                    code.callCompare(CompareOpcode.FCMPL);
+                                    code.jump(JumpOpcode.IFNE, afterComparisons);
+                                    break;
+                                case Types.DOUBLE_TYPE:
+                                    code.callCompare(CompareOpcode.DCMPL);
+                                    code.jump(JumpOpcode.IFNE, afterComparisons);
+                                    break;
+                            }
+                        } else {
+                            if (fieldType.isArray()) {
+                                val component = fieldType.getComponent();
+
+                                val equalSubject = !component.isPrimitive()
+                                        ? Types.of(Object[].class)
+                                        : fieldType;
+
+                                val signature = Signatures.methodSignature(
+                                        Types.BOOL,
+                                        equalSubject,
+                                        equalSubject
+                                );
+
+                                val methodName = component.isArray() ? "deepEquals" : "equals";
+
+                                code.methodInsn(MethodOpcode.STATIC, methodName)
+                                        .descriptor(signature)
+                                        .in(Arrays.class);
+                            } else {
+                                code.methodInsn(MethodOpcode.STATIC, "equals")
+                                        .descriptor(Types.BOOL, Types.OBJECT, Types.OBJECT)
+                                        .in(Objects.class);
+                            }
+
+                            code.jump(JumpOpcode.IFEQ, afterComparisons);
+                        }
+                    }
+
+                    if (!fields.isEmpty())
+                        code.pushInt(1);
+
+                    code.callReturn();
+
+                    code.visit(afterComparisons);
+                }
+
+                code.pushInt(fields.isEmpty() ? 1 : 0);
+                code.callReturn();
+            });
+        }
+
+        private void initHashCode() {
+            val code = hashCode.getBytecode();
 
             code.callInsn(ctx -> {
                 val mv = ctx.getMethodVisitor();
