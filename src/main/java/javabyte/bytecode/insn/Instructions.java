@@ -64,6 +64,10 @@ public final class Instructions {
         return new CastInsn(name);
     }
 
+    public @NotNull Instruction instanceOfInsn(final @NonNull TypeName name) {
+        return new InstanceOfInsn(name);
+    }
+
     public @NotNull Instruction arrayLengthInsn() {
         return ArrayLengthInsn.INSTANCE;
     }
@@ -1789,6 +1793,26 @@ public final class Instructions {
         @Override
         public String toString() {
             return "[ARRAYLENGTH]";
+        }
+    }
+
+    @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+    private static final class InstanceOfInsn implements Instruction {
+        TypeName name;
+
+        @Override
+        public void compile(final @NonNull CompileContext ctx) {
+            val mv = ctx.getMethodVisitor();
+
+            ctx.popStack();
+            mv.visitTypeInsn(INSTANCEOF, name.getInternalName());
+            ctx.pushStack(Types.BOOL);
+        }
+
+        @Override
+        public String toString() {
+            return "[INSTANCEOF \"" + name + "\"]";
         }
     }
 

@@ -80,6 +80,9 @@ public interface InstructionSet extends Instruction {
     void callCast(@NotNull Type to);
     void callCast(@NotNull TypeName to);
 
+    void callInstanceOf(@NotNull Type type);
+    void callInstanceOf(@NotNull TypeName name);
+
     @NotNull InitInsn callInit(@NotNull Type type);
     @NotNull InitInsn callInit(@NotNull TypeName name);
 

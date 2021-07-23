@@ -256,6 +256,17 @@ public abstract class AbstractInstructionSet implements InstructionSet {
     }
 
     @Override
+    public void callInstanceOf(@NotNull final Type type) {
+        _callInsn(Instructions.instanceOfInsn(Types.of(type)));
+
+    }
+
+    @Override
+    public void callInstanceOf(@NotNull final TypeName name) {
+        _callInsn(Instructions.instanceOfInsn(name));
+    }
+
+    @Override
     public final void callUnbox() {
         _callInsn(Instructions.unboxInsn());
     }
