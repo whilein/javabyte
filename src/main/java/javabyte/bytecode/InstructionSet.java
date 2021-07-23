@@ -17,10 +17,7 @@
 package javabyte.bytecode;
 
 import javabyte.bytecode.insn.*;
-import javabyte.opcode.FieldOpcode;
-import javabyte.opcode.JumpOpcode;
-import javabyte.opcode.MathOpcode;
-import javabyte.opcode.MethodOpcode;
+import javabyte.opcode.*;
 import javabyte.type.TypeName;
 import org.jetbrains.annotations.NotNull;
 
@@ -37,7 +34,6 @@ public interface InstructionSet extends Instruction {
     void pop();
     void dup();
 
-    @NotNull Position initPosition();
     void visit(@NotNull Position position);
     void jump(@NotNull JumpOpcode opcode, @NotNull Position position);
 
@@ -73,6 +69,7 @@ public interface InstructionSet extends Instruction {
     void callNewArray(@NotNull Type arrayType, int knownDims);
 
     void callThrow();
+    void callCompare(@NotNull CompareOpcode opcode);
 
     void callNewArray(@NotNull TypeName arrayType);
     void callNewArray(@NotNull Type arrayType);

@@ -116,6 +116,10 @@ public final class Instructions {
         return new MathInsn(opcode);
     }
 
+    public @NotNull Instruction compareInsn(final @NonNull CompareOpcode opcode) {
+        return new CompareInsn(opcode);
+    }
+
     public @NotNull Instruction jumpInsn(final @NonNull JumpOpcode opcode, final @NonNull Position position) {
         return new JumpInsn(opcode, position);
     }
@@ -408,6 +412,43 @@ public final class Instructions {
         @Override
         public String toString() {
             return "[LOADLOCAL " + index + "]";
+        }
+    }
+
+
+    @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+    private static final class CompareInsn implements Instruction {
+
+        CompareOpcode opcode;
+
+        @Override
+        public void compile(final @NonNull CompileContext ctx) {
+            final TypeName type;
+
+            switch (opcode) {
+                default:
+                case LCMP:
+                    type = Types.LONG;
+                    break;
+                case FCMPL: case FCMPG:
+                    type = Types.FLOAT;
+                    break;
+                case DCMPL: case DCMPG:
+                    type = Types.DOUBLE;
+                    break;
+            }
+
+            ctx.requireStrictStack(type, type);
+            ctx.popStack();
+            ctx.popStack();
+            ctx.getMethodVisitor().visitInsn(opcode.getOpcode());
+            ctx.pushStack(Types.INT);
+        }
+
+        @Override
+        public String toString() {
+            return "[" + opcode + "]";
         }
     }
 
@@ -1807,7 +1848,7 @@ public final class Instructions {
 
             ctx.popStack();
             mv.visitTypeInsn(INSTANCEOF, name.getInternalName());
-            ctx.pushStack(Types.BOOL);
+            ctx.pushStack(Types.INT);
         }
 
         @Override

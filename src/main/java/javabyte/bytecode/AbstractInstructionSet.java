@@ -17,10 +17,7 @@
 package javabyte.bytecode;
 
 import javabyte.bytecode.insn.*;
-import javabyte.opcode.FieldOpcode;
-import javabyte.opcode.JumpOpcode;
-import javabyte.opcode.MathOpcode;
-import javabyte.opcode.MethodOpcode;
+import javabyte.opcode.*;
 import javabyte.type.TypeName;
 import javabyte.type.Types;
 import lombok.AccessLevel;
@@ -29,7 +26,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
-import org.objectweb.asm.Label;
 
 import java.lang.reflect.Type;
 import java.util.List;
@@ -43,13 +39,17 @@ public abstract class AbstractInstructionSet implements InstructionSet {
 
     List<Instruction> instructions;
 
+    protected final void _callInsn(final Instruction instruction) {
+        instructions.add(instruction);
+    }
+
     @Override
-    public void pop() {
+    public final void pop() {
         _callInsn(Instructions.popInsn());
     }
 
     @Override
-    public void dup() {
+    public final void dup() {
         _callInsn(Instructions.dupInsn());
     }
 
@@ -85,10 +85,6 @@ public abstract class AbstractInstructionSet implements InstructionSet {
         _callInsn(instruction);
     }
 
-    protected final void _callInsn(final Instruction instruction) {
-        instructions.add(instruction);
-    }
-
     @Override
     public final void callSout() {
         instructions.add(Instructions.sout());
@@ -110,11 +106,6 @@ public abstract class AbstractInstructionSet implements InstructionSet {
     @Override
     public final void loadFromArray() {
         _callInsn(Instructions.arrayLoadInsn());
-    }
-
-    @Override
-    public final @NotNull Position initPosition() {
-        return Asm.position(new Label());
     }
 
     @Override
@@ -203,13 +194,18 @@ public abstract class AbstractInstructionSet implements InstructionSet {
     }
 
     @Override
-    public void pushDefault(final @NonNull TypeName type) {
+    public final void pushDefault(final @NonNull TypeName type) {
         _callInsn(Instructions.pushDefaultInsn(type));
     }
 
     @Override
     public final void callMath(final @NonNull MathOpcode opcode) {
         _callInsn(Instructions.mathInsn(opcode));
+    }
+
+    @Override
+    public final void callCompare(final @NonNull CompareOpcode opcode) {
+        _callInsn(Instructions.compareInsn(opcode));
     }
 
     @Override
@@ -223,27 +219,27 @@ public abstract class AbstractInstructionSet implements InstructionSet {
     }
 
     @Override
-    public void callNewArray(@NotNull final TypeName arrayType, final int knownDims) {
+    public final void callNewArray(@NotNull final TypeName arrayType, final int knownDims) {
         _callInsn(Instructions.newArrayInsn(arrayType, knownDims));
     }
 
     @Override
-    public void callNewArray(@NotNull final Type arrayType, final int knownDims) {
+    public final void callNewArray(@NotNull final Type arrayType, final int knownDims) {
         _callInsn(Instructions.newArrayInsn(Types.of(arrayType), knownDims));
     }
 
     @Override
-    public void callNewArray(@NotNull final TypeName arrayType) {
+    public final void callNewArray(@NotNull final TypeName arrayType) {
         _callInsn(Instructions.newArrayInsn(arrayType, arrayType.getDimensions()));
     }
 
     @Override
-    public void callThrow() {
+    public final void callThrow() {
         _callInsn(Instructions.throwInsn());
     }
 
     @Override
-    public void callNewArray(@NotNull final Type arrayType) {
+    public final void callNewArray(@NotNull final Type arrayType) {
         val name = Types.of(arrayType);
 
         _callInsn(Instructions.newArrayInsn(name, name.getDimensions()));
@@ -256,13 +252,13 @@ public abstract class AbstractInstructionSet implements InstructionSet {
     }
 
     @Override
-    public void callInstanceOf(@NotNull final Type type) {
+    public final void callInstanceOf(@NotNull final Type type) {
         _callInsn(Instructions.instanceOfInsn(Types.of(type)));
 
     }
 
     @Override
-    public void callInstanceOf(@NotNull final TypeName name) {
+    public final void callInstanceOf(@NotNull final TypeName name) {
         _callInsn(Instructions.instanceOfInsn(name));
     }
 
