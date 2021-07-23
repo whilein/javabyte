@@ -28,19 +28,28 @@ import lombok.val;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Type;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.List;
 
 /**
  * @author whilein
  */
-@FieldDefaults(level = AccessLevel.PROTECTED, makeFinal = true)
+@FieldDefaults(level = AccessLevel.PROTECTED)
 @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
 public abstract class AbstractInstructionSet implements InstructionSet {
 
-    List<Instruction> instructions;
+    Deque<Instruction> inserted;
+
+    final List<Instruction> instructions;
 
     protected final void _callInsn(final Instruction instruction) {
-        instructions.add(instruction);
+        (inserted == null ? instructions : inserted).add(instruction);
+    }
+
+    @Override
+    public void whenCompile(final @NonNull Runnable runnable) {
+        _callInsn(context -> runnable.run());
     }
 
     @Override
@@ -75,9 +84,19 @@ public abstract class AbstractInstructionSet implements InstructionSet {
 
     @Override
     public void compile(final @NonNull CompileContext ctx) {
+        inserted = new ArrayDeque<>();
+
         for (val instruction : instructions) {
             instruction.compile(ctx);
+
+            Instruction insertedEntry;
+
+            while ((insertedEntry = inserted.poll()) != null) {
+                insertedEntry.compile(ctx);
+            }
         }
+
+        inserted = null;
     }
 
     @Override

@@ -28,6 +28,8 @@ import java.lang.reflect.Type;
  */
 public interface InstructionSet extends Instruction {
 
+    void whenCompile(@NotNull Runnable runnable);
+
     void callInsn(@NotNull Instruction instruction);
     void callSout();
 

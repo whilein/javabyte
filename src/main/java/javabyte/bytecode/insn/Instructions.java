@@ -185,14 +185,6 @@ public final class Instructions {
         );
     }
 
-    private static final class Init extends AbstractInstructionSet {
-
-        private Init(final List<Instruction> instructions) {
-            super(instructions);
-        }
-
-    }
-
     @FieldDefaults(level = AccessLevel.PRIVATE)
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     private static final class InitInsnImpl implements InitInsn {
@@ -217,7 +209,7 @@ public final class Instructions {
             mv.visitInsn(DUP);
 
             if (this.init != null) {
-                val init = new Init(new ArrayList<>());
+                val init = SimpleInstructionSet.create();
                 this.init.accept(init);
 
                 init.compile(ctx);
