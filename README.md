@@ -46,7 +46,7 @@ Javabyte - Simple library that helps you to create new classes
     <dependency>
         <groupId>io.github.whilein</groupId>
         <artifactId>javabyte</artifactId>
-        <version>1.0.0</version>
+        <version>1.1.0</version>
     </dependency>
 </dependencies>
 ```
@@ -54,7 +54,7 @@ Javabyte - Simple library that helps you to create new classes
 ### Gradle
 ```groovy
 dependencies {
-    implementation 'io.github.whilein:javabyte:1.0.0'
+    implementation 'io.github.whilein:javabyte:1.1.0'
 }
 ```
 
