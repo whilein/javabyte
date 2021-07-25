@@ -96,8 +96,14 @@ public class Types {
             DOUBLE
     };
 
-    public final Wildcard WILDCARD_ANY
-            = new WildcardImpl(null, null);
+    public final Wildcard WILDCARD_ANY = new WildcardImpl(null, null);
+
+    public boolean isWrapper(final @NonNull TypeName subject) {
+        for (val wrapper : WRAPPERS)
+            if (wrapper.equals(subject))
+                return true;
+        return false;
+    }
 
     public @NotNull ExactTypeName getWrapper(final int primitive) {
         return WRAPPERS[primitive];

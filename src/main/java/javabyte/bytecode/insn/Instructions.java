@@ -1544,12 +1544,9 @@ public final class Instructions {
         public void compile(final @NonNull CompileContext ctx) {
             val stack = ctx.popStack();
 
-            if (stack.isPrimitive()) {
-                throw new IllegalStateException("Stack item should not be a primitive!");
-            }
-
-            if (stack.isArray()) {
-                throw new IllegalStateException("Cannot unbox an array");
+            if (!Types.isWrapper(stack) || stack.isPrimitive() || stack.isArray()) {
+                ctx.pushStack(stack);
+                return;
             }
 
             final String methodName;
