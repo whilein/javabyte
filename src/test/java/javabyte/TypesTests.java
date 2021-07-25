@@ -34,6 +34,9 @@ import static org.junit.jupiter.api.Assertions.*;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 class TypesTests {
 
+    static ExactTypeName intWrapperClass;
+    static ExactTypeName floatWrapperClass;
+
     static ExactTypeName intClass;
     static ExactTypeName intArray;
     static ExactTypeName stringArray;
@@ -43,12 +46,21 @@ class TypesTests {
 
     @BeforeAll
     static void init() {
+        intWrapperClass = Types.of(Integer.class);
+        floatWrapperClass = Types.of(Float.class);
         intClass = Types.of(int.class);
         intArray = Types.of(int[].class);
         stringArray = Types.of(String[].class);
         colClass = Types.of(Collection.class);
         colOfStrings = colClass.parameterized(String.class);
         colOfStringsArray = colOfStrings.dimensions(1);
+    }
+
+    @Test
+    void isWrapper() {
+        assertTrue(Types.isWrapper(intWrapperClass));
+        assertTrue(Types.isWrapper(floatWrapperClass));
+        assertFalse(Types.isWrapper(intClass));
     }
 
     @Test
