@@ -820,19 +820,20 @@ public final class Instructions {
                 compile.popStack();
                 compile.popStack();
 
-                val component = compile.callArrayLoad(iterable);
+                final TypeName component = compile.callArrayLoad(iterable);
+                final Local local;
 
                 if (elementType != null && !component.equals(elementType)) {
                     compile.callCast(component, elementType);
                     compile.pushStack(elementType);
-                    compile.pushLocal(elementLocal, elementType);
+                    local = compile.pushLocal(elementLocal, elementType);
                 } else {
                     compile.pushStack(component);
-                    compile.pushLocal(elementLocal, component);
+                    local = compile.pushLocal(elementLocal, component);
                 }
 
                 compile.popStack();
-                mv.visitVarInsn(component.toType().getOpcode(ISTORE), elementLocal.getValue());
+                mv.visitVarInsn(component.toType().getOpcode(ISTORE), local.getOffset());
 
                 body.compile(compile);
 
