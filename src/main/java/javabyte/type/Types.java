@@ -90,8 +90,8 @@ public class Types {
 
     private final ExactTypeName[] PRIMITIVES = {
             VOID, BOOL,
-            BYTE, CHAR,
-            SHORT, INT,
+            BYTE, SHORT,
+            CHAR, INT,
             LONG, FLOAT,
             DOUBLE
     };
