@@ -124,6 +124,10 @@ public final class Instructions {
         return new JumpInsn(opcode, position);
     }
 
+    public @NotNull Instruction jumpIfEqualsInsn(final @NonNull Position position) {
+        return new JumpIfEqualsInsn(position);
+    }
+
     public @NotNull Instruction visitInsn(final @NonNull Position position) {
         return new VisitInsn(position);
     }
@@ -558,6 +562,69 @@ public final class Instructions {
         }
     }
 
+    @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+    private static final class JumpIfEqualsInsn implements Instruction {
+
+        Position position;
+
+        @Override
+        public void compile(final @NonNull CompileContext ctx) {
+            val first = ctx.popStack();
+            val second = ctx.popStack();
+
+            if (first.getPrimitive() != second.getPrimitive()) {
+                throw new IllegalStateException("Cannot compare " + first + " and " + second);
+            }
+
+            val mv = ctx.getMethodVisitor();
+
+            if (first.isPrimitive()) {
+                switch (first.getPrimitive()) {
+                    case Types.BOOL_TYPE:
+                    case Types.BYTE_TYPE:
+                    case Types.SHORT_TYPE:
+                    case Types.CHAR_TYPE:
+                    case Types.INT_TYPE:
+                        position.jump(mv, IF_ICMPEQ);
+                        break;
+                    case Types.LONG_TYPE:
+                        ctx.pushStack(Types.INT);
+                        mv.visitInsn(LCMP);
+                        ctx.popStack();
+                        position.jump(mv, IFEQ);
+                        break;
+                    case Types.FLOAT_TYPE:
+                        ctx.pushStack(Types.INT);
+                        mv.visitInsn(FCMPL);
+                        ctx.popStack();
+                        position.jump(mv, IFEQ);
+                        break;
+                    case Types.DOUBLE_TYPE:
+                        ctx.pushStack(Types.INT);
+                        mv.visitInsn(DCMPL);
+                        ctx.popStack();
+                        position.jump(mv, IFEQ);
+                        break;
+                }
+            } else {
+                mv.visitMethodInsn(
+                        INVOKEVIRTUAL,
+                        "java/lang/Object",
+                        "equals", "(Ljava/lang/Object;)Z", false
+                );
+
+                ctx.pushStack(Types.INT);
+                position.jump(mv, IFNE);
+                ctx.popStack();
+            }
+        }
+
+        @Override
+        public String toString() {
+            return "[IFEQUALS \"" + position + "\"]";
+        }
+    }
 
     @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
