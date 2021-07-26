@@ -47,6 +47,9 @@ public interface CompileContext {
     void visitString(@NotNull String value);
     void visitNull();
 
+    void dup();
+    void swap();
+
     void callCast(@NotNull TypeName from, @NotNull TypeName to);
     @NotNull TypeName callArrayLoad(@NotNull TypeName array);
 

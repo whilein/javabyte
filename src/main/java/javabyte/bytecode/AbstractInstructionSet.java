@@ -63,6 +63,11 @@ public abstract class AbstractInstructionSet implements InstructionSet {
     }
 
     @Override
+    public final void swap() {
+        _callInsn(Instructions.swapInsn());
+    }
+
+    @Override
     public final @NotNull InitInsn callInit(
             final @NonNull Type type
     ) {

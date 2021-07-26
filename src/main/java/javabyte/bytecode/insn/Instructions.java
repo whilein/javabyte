@@ -84,6 +84,10 @@ public final class Instructions {
         return DupInsn.INSTANCE;
     }
 
+    public @NotNull Instruction swapInsn() {
+        return SwapInsn.INSTANCE;
+    }
+
     public @NotNull Instruction pushNullInsn() {
         return PushNullInsn.INSTANCE;
     }
@@ -490,6 +494,23 @@ public final class Instructions {
     }
 
     @NoArgsConstructor(access = AccessLevel.PRIVATE)
+    private static final class SwapInsn implements Instruction {
+
+        public static Instruction INSTANCE = new SwapInsn();
+
+        @Override
+        public void compile(final @NonNull CompileContext ctx) {
+            ctx.getMethodVisitor().visitInsn(SWAP);
+            ctx.swap();
+        }
+
+        @Override
+        public String toString() {
+            return "[SWAP]";
+        }
+    }
+
+    @NoArgsConstructor(access = AccessLevel.PRIVATE)
     private static final class DupInsn implements Instruction {
 
         public static Instruction INSTANCE = new DupInsn();
@@ -497,9 +518,7 @@ public final class Instructions {
         @Override
         public void compile(final @NonNull CompileContext ctx) {
             ctx.getMethodVisitor().visitInsn(DUP);
-            val old = ctx.popStack();
-            ctx.pushStack(old);
-            ctx.pushStack(old);
+            ctx.dup();
         }
 
         @Override

@@ -35,6 +35,7 @@ public interface InstructionSet extends Instruction {
 
     void pop();
     void dup();
+    void swap();
 
     void visit(@NotNull Position position);
     void jump(@NotNull JumpOpcode opcode, @NotNull Position position);

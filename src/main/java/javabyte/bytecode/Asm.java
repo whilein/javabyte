@@ -240,6 +240,21 @@ public class Asm {
         }
 
         @Override
+        public void dup() {
+            val stack = popStack();
+            pushStack(stack);
+            pushStack(stack);
+        }
+
+        @Override
+        public void swap() {
+            val first = popStack();
+            val second = popStack();
+            pushStack(first);
+            pushStack(second);
+        }
+
+        @Override
         public void jump(final int opcode, final @NotNull Position position) {
             position.jump(methodVisitor, opcode);
         }
