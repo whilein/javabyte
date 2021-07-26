@@ -420,6 +420,8 @@ public class Asm {
 
         @Override
         public void callCast(final @NonNull TypeName from, final @NonNull TypeName to) {
+            if (from.equals(to)) return;
+
             if (!from.isArray()
                     && from.isPrimitive() && to.isPrimitive()
                     && from.getPrimitive() != Types.BOOL_TYPE
