@@ -374,13 +374,11 @@ public final class Instructions {
         public void compile(final @NonNull CompileContext ctx) {
             val stack = ctx.popStack();
 
-            if (index.isInitialized()) {
-                ctx.replaceLocal(index, stack);
-            } else {
-                ctx.pushLocal(index, stack);
-            }
+            val local = index.isInitialized()
+                    ? ctx.replaceLocal(index, stack)
+                    : ctx.pushLocal(index, stack);
 
-            ctx.getMethodVisitor().visitVarInsn(stack.toType().getOpcode(ISTORE), index.getValue());
+            ctx.getMethodVisitor().visitVarInsn(stack.toType().getOpcode(ISTORE), local.getOffset());
         }
 
         @Override
