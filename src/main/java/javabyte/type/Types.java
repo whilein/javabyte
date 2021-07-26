@@ -25,10 +25,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.*;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author whilein
@@ -77,7 +74,8 @@ public class Types {
             NUMBER          = Types._putCache(Number.class),
             OBJECT          = Types._putCache(Object.class),
             ITERABLE        = Types._putCache(Iterable.class),
-            ITERATOR        = Types._putCache(Iterator.class);
+            ITERATOR        = Types._putCache(Iterator.class),
+            COLLECTION      = Types._putCache(Collection.class);
     // @formatter:on
 
     private final ExactTypeName[] WRAPPERS = {

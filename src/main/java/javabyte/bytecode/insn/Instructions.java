@@ -791,6 +791,8 @@ public final class Instructions {
         TypeName elementType;
 
         LocalIndex counterLocal;
+        LocalIndex lengthLocal;
+
         LocalIndex iterableIndex;
 
         @Override
@@ -807,37 +809,40 @@ public final class Instructions {
                 iterable = compile.popStack();
                 iterableIndex = Asm.index();
 
-                if (iterable.isArray()) {
+                if (iterable.isArray() || lengthLocal != null) {
                     compile.pushLocal(iterableIndex, iterable);
                     mv.visitVarInsn(ASTORE, iterableIndex.getValue());
                 }
             }
 
             if (iterable.isArray()) {
-                val position = counterLocal != null
+                val counter = counterLocal != null
                         ? compile.pushLocal(counterLocal, Types.INT)
                         : compile.pushLocal(Types.INT);
 
                 compile.visitInt(0);
                 compile.pushStack(Types.INT);
                 compile.popStack();
-                mv.visitVarInsn(ISTORE, position.getOffset());
+                mv.visitVarInsn(ISTORE, counter.getOffset());
 
-                val end = compile.pushLocal(Types.INT);
+                val length = lengthLocal != null
+                        ? compile.pushLocal(lengthLocal, Types.INT)
+                        : compile.pushLocal(Types.INT);
+
                 compile.pushStack(iterable);
                 mv.visitVarInsn(ALOAD, iterableIndex.getValue());
                 compile.popStack();
                 compile.pushStack(Types.INT);
                 mv.visitInsn(ARRAYLENGTH);
                 compile.popStack();
-                mv.visitVarInsn(ISTORE, end.getOffset());
+                mv.visitVarInsn(ISTORE, length.getOffset());
 
                 mv.visitLabel(body.insideLoop);
 
                 compile.pushStack(Types.INT);
                 compile.pushStack(Types.INT);
-                mv.visitVarInsn(ILOAD, position.getOffset());
-                mv.visitVarInsn(ILOAD, end.getOffset());
+                mv.visitVarInsn(ILOAD, counter.getOffset());
+                mv.visitVarInsn(ILOAD, length.getOffset());
 
                 compile.popStack();
                 compile.popStack();
@@ -847,7 +852,7 @@ public final class Instructions {
                 compile.pushStack(Types.INT);
 
                 mv.visitVarInsn(ALOAD, iterableIndex.getValue());
-                mv.visitVarInsn(ILOAD, position.getOffset());
+                mv.visitVarInsn(ILOAD, counter.getOffset());
 
                 compile.popStack();
                 compile.popStack();
@@ -874,10 +879,14 @@ public final class Instructions {
                 compile.popLocal(); // element
 
                 mv.visitLabel(body.continueLoop);
-                mv.visitIincInsn(position.getOffset(), 1);
+                mv.visitIincInsn(counter.getOffset(), 1);
             } else {
                 val counter = counterLocal != null
                         ? compile.pushLocal(counterLocal, Types.INT)
+                        : null;
+
+                val length = lengthLocal != null
+                        ? compile.pushLocal(lengthLocal, Types.INT)
                         : null;
 
                 if (counter != null) {
@@ -890,19 +899,36 @@ public final class Instructions {
 
                 if (iterableIndex.isInitialized()) {
                     // load from local
-                    mv.visitVarInsn(ALOAD, iterableIndex.getValue());
+                    val iterableLocal = compile.getLocal(iterableIndex);
+
+                    if (length != null) {
+                        compile.pushStack(iterableLocal.getName());
+
+                        mv.visitVarInsn(ALOAD, iterableLocal.getOffset());
+
+                        compile.visitMethodInsn(
+                                MethodOpcode.INTERFACE, Types.COLLECTION, "size",
+                                Signatures.methodSignature(Types.INT)
+                        );
+
+                        compile.popStack();
+
+                        mv.visitVarInsn(ISTORE, length.getOffset());
+                    }
+
+                    compile.pushStack(iterableLocal.getName());
+                    mv.visitVarInsn(ALOAD, iterableLocal.getOffset());
 
                     iteratorIndex = Asm.index();
                 } else {
                     // already in stack
+                    compile.pushStack(iterable);
                     iteratorIndex = iterableIndex;
                 }
 
-                mv.visitMethodInsn(
-                        INVOKEINTERFACE,
-                        Types.ITERABLE.getInternalName(),
-                        "iterator", "()" + Types.ITERATOR.getDescriptor(),
-                        true
+                compile.visitMethodInsn(
+                        MethodOpcode.INTERFACE, Types.ITERABLE, "iterator",
+                        Signatures.methodSignature(Types.ITERATOR)
                 );
 
                 compile.pushLocal(iteratorIndex, Types.ITERABLE);
@@ -988,6 +1014,15 @@ public final class Instructions {
             }
 
             return counterLocal;
+        }
+
+        @Override
+        public @NotNull LocalIndex getLengthLocal() {
+            if (lengthLocal == null) {
+                lengthLocal = Asm.index();
+            }
+
+            return lengthLocal;
         }
     }
 
