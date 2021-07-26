@@ -82,8 +82,8 @@ public class Types {
 
     private final ExactTypeName[] WRAPPERS = {
             VOID_OBJ, BOOL_OBJ,
-            BYTE_OBJ, CHAR_OBJ,
-            SHORT_OBJ, INT_OBJ,
+            BYTE_OBJ, SHORT_OBJ,
+            CHAR_OBJ, INT_OBJ,
             LONG_OBJ, FLOAT_OBJ,
             DOUBLE_OBJ
     };
