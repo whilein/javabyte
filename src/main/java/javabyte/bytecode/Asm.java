@@ -442,6 +442,7 @@ public class Asm {
                                 methodVisitor.visitInsn(I2L);
                                 break;
                         }
+                        break;
                     case Types.FLOAT_TYPE:
                         switch (to.getPrimitive()) {
                             case Types.BYTE_TYPE:
@@ -466,6 +467,7 @@ public class Asm {
                                 methodVisitor.visitInsn(F2L);
                                 break;
                         }
+                        break;
                     case Types.DOUBLE_TYPE:
                         switch (to.getPrimitive()) {
                             case Types.BYTE_TYPE:
@@ -490,6 +492,7 @@ public class Asm {
                                 methodVisitor.visitInsn(D2L);
                                 break;
                         }
+                        break;
                     case Types.LONG_TYPE:
                         switch (to.getPrimitive()) {
                             case Types.BYTE_TYPE:
@@ -514,6 +517,7 @@ public class Asm {
                                 methodVisitor.visitInsn(L2D);
                                 break;
                         }
+                        break;
                 }
             } else if (!from.isPrimitive() && !to.isPrimitive()) {
                 methodVisitor.visitTypeInsn(CHECKCAST, to.isArray() ? to.getDescriptor() : to.getInternalName());
