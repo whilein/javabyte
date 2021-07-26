@@ -422,11 +422,9 @@ public class Asm {
         public void callCast(final @NonNull TypeName from, final @NonNull TypeName to) {
             if (from.equals(to)) return;
 
-            if (!from.isArray()
-                    && from.isPrimitive() && to.isPrimitive()
-                    && from.getPrimitive() != Types.BOOL_TYPE
-                    && to.getPrimitive() != Types.BOOL_TYPE) {
+            if (from.isPrimitive() && to.isPrimitive()) {
                 switch (from.getPrimitive()) {
+                    case Types.BOOL_TYPE:
                     case Types.BYTE_TYPE:
                     case Types.SHORT_TYPE:
                     case Types.CHAR_TYPE:
@@ -457,6 +455,7 @@ public class Asm {
                                 methodVisitor.visitInsn(F2I);
                                 methodVisitor.visitInsn(I2S);
                                 break;
+                            case Types.BOOL_TYPE:
                             case Types.INT_TYPE:
                                 methodVisitor.visitInsn(F2I);
                                 break;
@@ -482,6 +481,7 @@ public class Asm {
                                 methodVisitor.visitInsn(D2I);
                                 methodVisitor.visitInsn(I2S);
                                 break;
+                            case Types.BOOL_TYPE:
                             case Types.INT_TYPE:
                                 methodVisitor.visitInsn(D2I);
                                 break;
@@ -507,6 +507,7 @@ public class Asm {
                                 methodVisitor.visitInsn(L2I);
                                 methodVisitor.visitInsn(I2S);
                                 break;
+                            case Types.BOOL_TYPE:
                             case Types.INT_TYPE:
                                 methodVisitor.visitInsn(L2I);
                                 break;
