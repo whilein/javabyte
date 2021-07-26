@@ -42,7 +42,7 @@ final class CastTests {
     @Test
     @DisplayName("CastFloatToByte")
     void castFloatToByte() {
-        val cast = cast(CastFloatToByte.class, float.class, byte.class);
+        val cast = generate(CastFloatToByte.class);
         val value = 100F;
         val expect = (byte) value;
 
@@ -52,7 +52,7 @@ final class CastTests {
     @Test
     @DisplayName("CastFloatToShort")
     void castFloatToShort() {
-        val cast = cast(CastFloatToShort.class, float.class, short.class);
+        val cast = generate(CastFloatToShort.class);
         val value = 100F;
         val expect = (short) value;
 
@@ -62,7 +62,7 @@ final class CastTests {
     @Test
     @DisplayName("CastFloatToInt")
     void castFloatToInt() {
-        val cast = cast(CastFloatToInt.class, float.class, int.class);
+        val cast = generate(CastFloatToInt.class);
         val value = 100F;
         val expect = (int) value;
 
@@ -72,7 +72,7 @@ final class CastTests {
     @Test
     @DisplayName("CastFloatToLong")
     void castFloatToLong() {
-        val cast = cast(CastFloatToLong.class, float.class, long.class);
+        val cast = generate(CastFloatToLong.class);
         val value = 100F;
         val expect = (long) value;
 
@@ -82,7 +82,7 @@ final class CastTests {
     @Test
     @DisplayName("CastFloatToDouble")
     void castFloatToDouble() {
-        val cast = cast(CastFloatToDouble.class, float.class, double.class);
+        val cast = generate(CastFloatToDouble.class);
         val value = 100F;
         val expect = (double) value;
 
@@ -92,7 +92,7 @@ final class CastTests {
     @Test
     @DisplayName("CastDoubleToByte")
     void castDoubleToByte() {
-        val cast = cast(CastDoubleToByte.class, double.class, byte.class);
+        val cast = generate(CastDoubleToByte.class);
         val value = 100D;
         val expect = (byte) value;
 
@@ -102,7 +102,7 @@ final class CastTests {
     @Test
     @DisplayName("CastDoubleToShort")
     void castDoubleToShort() {
-        val cast = cast(CastDoubleToShort.class, double.class, short.class);
+        val cast = generate(CastDoubleToShort.class);
         val value = 100D;
         val expect = (short) value;
 
@@ -112,7 +112,7 @@ final class CastTests {
     @Test
     @DisplayName("CastDoubleToInt")
     void castDoubleToInt() {
-        val cast = cast(CastDoubleToInt.class, double.class, int.class);
+        val cast = generate(CastDoubleToInt.class);
         val value = 100D;
         val expect = (int) value;
 
@@ -122,7 +122,7 @@ final class CastTests {
     @Test
     @DisplayName("CastDoubleToLong")
     void castDoubleToLong() {
-        val cast = cast(CastDoubleToLong.class, double.class, long.class);
+        val cast = generate(CastDoubleToLong.class);
         val value = 100D;
         val expect = (long) value;
 
@@ -132,7 +132,7 @@ final class CastTests {
     @Test
     @DisplayName("CastDoubleToFloat")
     void castDoubleToFloat() {
-        val cast = cast(CastDoubleToFloat.class, double.class, float.class);
+        val cast = generate(CastDoubleToFloat.class);
         val value = 100D;
         val expect = (float) value;
 
@@ -142,7 +142,7 @@ final class CastTests {
     @Test
     @DisplayName("CastLongToByte")
     void castLongToByte() {
-        val cast = cast(CastLongToByte.class, long.class, byte.class);
+        val cast = generate(CastLongToByte.class);
         val value = 100L;
         val expect = (byte) value;
 
@@ -152,7 +152,7 @@ final class CastTests {
     @Test
     @DisplayName("CastLongToShort")
     void castLongToShort() {
-        val cast = cast(CastLongToShort.class, long.class, short.class);
+        val cast = generate(CastLongToShort.class);
         val value = 100L;
         val expect = (short) value;
 
@@ -162,7 +162,7 @@ final class CastTests {
     @Test
     @DisplayName("CastLongToInt")
     void castLongToInt() {
-        val cast = cast(CastLongToInt.class, long.class, int.class);
+        val cast = generate(CastLongToInt.class);
         val value = 100L;
         val expect = (int) value;
 
@@ -172,7 +172,7 @@ final class CastTests {
     @Test
     @DisplayName("CastLongToFloat")
     void castLongToFloat() {
-        val cast = cast(CastLongToFloat.class, long.class, float.class);
+        val cast = generate(CastLongToFloat.class);
         val value = 100L;
         val expect = (float) value;
 
@@ -182,7 +182,7 @@ final class CastTests {
     @Test
     @DisplayName("CastLongToDouble")
     void castLongToDouble() {
-        val cast = cast(CastLongToDouble.class, long.class, double.class);
+        val cast = generate(CastLongToDouble.class);
         val value = 100L;
         val expect = (double) value;
 
@@ -192,7 +192,7 @@ final class CastTests {
     @Test
     @DisplayName("CastIntToByte")
     void castIntToByte() {
-        val cast = cast(CastIntToByte.class, int.class, byte.class);
+        val cast = generate(CastIntToByte.class);
         val value = 100;
         val expect = (byte) value;
 
@@ -202,7 +202,7 @@ final class CastTests {
     @Test
     @DisplayName("CastIntToShort")
     void castIntToShort() {
-        val cast = cast(CastIntToShort.class, int.class, short.class);
+        val cast = generate(CastIntToShort.class);
         val value = 100;
         val expect = (short) value;
 
@@ -212,7 +212,7 @@ final class CastTests {
     @Test
     @DisplayName("CastIntToLong")
     void castIntToLong() {
-        val cast = cast(CastIntToLong.class, int.class, long.class);
+        val cast = generate(CastIntToLong.class);
         val value = 100;
         val expect = (long) value;
 
@@ -222,7 +222,7 @@ final class CastTests {
     @Test
     @DisplayName("CastIntToFloat")
     void castIntToFloat() {
-        val cast = cast(CastIntToFloat.class, int.class, float.class);
+        val cast = generate(CastIntToFloat.class);
         val value = 100;
         val expect = (float) value;
 
@@ -232,7 +232,7 @@ final class CastTests {
     @Test
     @DisplayName("CastIntToDouble")
     void castIntToDouble() {
-        val cast = cast(CastIntToDouble.class, int.class, double.class);
+        val cast = generate(CastIntToDouble.class);
         val value = 100;
         val expect = (double) value;
 
@@ -242,7 +242,7 @@ final class CastTests {
     @Test
     @DisplayName("CastShortToByte")
     void castShortToByte() {
-        val cast = cast(CastShortToByte.class, short.class, byte.class);
+        val cast = generate(CastShortToByte.class);
         val value = (short) 100;
         val expect = (byte) value;
 
@@ -252,7 +252,7 @@ final class CastTests {
     @Test
     @DisplayName("CastShortToInt")
     void castShortToInt() {
-        val cast = cast(CastShortToInt.class, short.class, int.class);
+        val cast = generate(CastShortToInt.class);
         val value = (short) 100;
         val expect = (int) value;
 
@@ -262,7 +262,7 @@ final class CastTests {
     @Test
     @DisplayName("CastShortToLong")
     void castShortToLong() {
-        val cast = cast(CastShortToLong.class, short.class, long.class);
+        val cast = generate(CastShortToLong.class);
         val value = (short) 100;
         val expect = (long) value;
 
@@ -272,7 +272,7 @@ final class CastTests {
     @Test
     @DisplayName("CastShortToFloat")
     void castShortToFloat() {
-        val cast = cast(CastShortToFloat.class, short.class, float.class);
+        val cast = generate(CastShortToFloat.class);
         val value = (short) 100;
         val expect = (float) value;
 
@@ -282,7 +282,7 @@ final class CastTests {
     @Test
     @DisplayName("CastShortToDouble")
     void castShortToDouble() {
-        val cast = cast(CastShortToDouble.class, short.class, double.class);
+        val cast = generate(CastShortToDouble.class);
         val value = (short) 100;
         val expect = (double) value;
 
@@ -292,7 +292,7 @@ final class CastTests {
     @Test
     @DisplayName("CastByteToShort")
     void castByteToShort() {
-        val cast = cast(CastByteToShort.class, byte.class, short.class);
+        val cast = generate(CastByteToShort.class);
         val value = (byte) 100;
         val expect = (short) value;
 
@@ -302,7 +302,7 @@ final class CastTests {
     @Test
     @DisplayName("CastByteToInt")
     void castByteToInt() {
-        val cast = cast(CastByteToInt.class, byte.class, int.class);
+        val cast = generate(CastByteToInt.class);
         val value = (byte) 100;
         val expect = (int) value;
 
@@ -312,7 +312,7 @@ final class CastTests {
     @Test
     @DisplayName("CastByteToLong")
     void castByteToLong() {
-        val cast = cast(CastByteToLong.class, byte.class, long.class);
+        val cast = generate(CastByteToLong.class);
         val value = (byte) 100;
         val expect = (long) value;
 
@@ -322,7 +322,7 @@ final class CastTests {
     @Test
     @DisplayName("CastByteToFloat")
     void castByteToFloat() {
-        val cast = cast(CastByteToFloat.class, byte.class, float.class);
+        val cast = generate(CastByteToFloat.class);
         val value = (byte) 100;
         val expect = (float) value;
 
@@ -332,7 +332,7 @@ final class CastTests {
     @Test
     @DisplayName("CastByteToDouble")
     void castByteToDouble() {
-        val cast = cast(CastByteToDouble.class, byte.class, double.class);
+        val cast = generate(CastByteToDouble.class);
         val value = (byte) 100;
         val expect = (double) value;
 
@@ -340,20 +340,18 @@ final class CastTests {
     }
 
     @SneakyThrows
-    private <T> T cast(final Class<T> castInterface, final Class<?> from, final Class<?> to) {
+    private <T> T generate(final Class<T> castInterface) {
         val type = Javabyte.make(testName);
         type.setPublicFinal();
         type.addInterface(castInterface);
 
         val method = type.addMethod("cast");
         method.setPublic();
-        method.setReturnType(to);
-        method.addParameter(from);
-        method.setOverrides(castInterface);
+        method.copySignatureFrom(castInterface);
 
         val code = method.getBytecode();
         code.loadLocal(1);
-        code.callCast(to);
+        code.callCast(method.getReturnType());
         code.callReturn();
 
         return type.load(TestClassLoader.create())

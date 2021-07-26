@@ -40,14 +40,14 @@ final class UnboxTests {
 
     @Test
     void unboxBoolean() {
-        val unbox = unbox(UnboxBoolean.class, boolean.class, Boolean.class);
+        val unbox = generate(UnboxBoolean.class);
         assertEquals(Boolean.TRUE, unbox.unbox(true));
         assertEquals(Boolean.FALSE, unbox.unbox(false));
     }
 
     @Test
     void unboxByte() {
-        val unbox = unbox(UnboxByte.class, byte.class, Byte.class);
+        val unbox = generate(UnboxByte.class);
 
         val valueToBox = (byte) 100;
         assertEquals(valueToBox, unbox.unbox(valueToBox));
@@ -55,7 +55,7 @@ final class UnboxTests {
 
     @Test
     void unboxShort() {
-        val unbox = unbox(UnboxShort.class, short.class, Short.class);
+        val unbox = generate(UnboxShort.class);
 
         val valueToBox = (short) 100;
         assertEquals(valueToBox, unbox.unbox(valueToBox));
@@ -63,7 +63,7 @@ final class UnboxTests {
 
     @Test
     void unboxChar() {
-        val unbox = unbox(UnboxChar.class, char.class, Character.class);
+        val unbox = generate(UnboxChar.class);
 
         val valueToBox = (char) 100;
         assertEquals(valueToBox, unbox.unbox(valueToBox));
@@ -71,7 +71,7 @@ final class UnboxTests {
 
     @Test
     void unboxInt() {
-        val unbox = unbox(UnboxInt.class, int.class, Integer.class);
+        val unbox = generate(UnboxInt.class);
 
         val valueToBox = 100;
         assertEquals(valueToBox, unbox.unbox(valueToBox));
@@ -79,7 +79,7 @@ final class UnboxTests {
 
     @Test
     void unboxLong() {
-        val unbox = unbox(UnboxLong.class, long.class, Long.class);
+        val unbox = generate(UnboxLong.class);
 
         val valueToBox = 100L;
         assertEquals(valueToBox, unbox.unbox(valueToBox));
@@ -87,7 +87,7 @@ final class UnboxTests {
 
     @Test
     void unboxDouble() {
-        val unbox = unbox(UnboxDouble.class, double.class, Double.class);
+        val unbox = generate(UnboxDouble.class);
 
         val valueToBox = 100D;
         assertEquals(valueToBox, unbox.unbox(valueToBox));
@@ -95,7 +95,7 @@ final class UnboxTests {
 
     @Test
     void unboxFloat() {
-        val unbox = unbox(UnboxFloat.class, float.class, Float.class);
+        val unbox = generate(UnboxFloat.class);
 
         val valueToBox = 100F;
         assertEquals(valueToBox, unbox.unbox(valueToBox));
@@ -103,16 +103,14 @@ final class UnboxTests {
 
 
     @SneakyThrows
-    private <T> T unbox(final Class<T> unboxInterface, final Class<?> primitive, final Class<?> wrapper) {
+    private <T> T generate(final Class<T> unboxInterface) {
         val type = Javabyte.make(testName);
         type.setPublicFinal();
         type.addInterface(unboxInterface);
 
         val method = type.addMethod("unbox");
         method.setPublic();
-        method.setReturnType(primitive);
-        method.addParameter(wrapper);
-        method.setOverrides(unboxInterface);
+        method.copySignatureFrom(unboxInterface);
 
         val code = method.getBytecode();
         code.loadLocal(1);

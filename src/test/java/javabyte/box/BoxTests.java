@@ -42,7 +42,7 @@ final class BoxTests {
     @Test
     @DisplayName("BoxBoolean")
     void boxBoolean() {
-        val box = box(BoxBoolean.class, boolean.class, Boolean.class);
+        val box = generate(BoxBoolean.class);
         assertEquals(Boolean.TRUE, box.box(true));
         assertEquals(Boolean.FALSE, box.box(false));
     }
@@ -50,7 +50,7 @@ final class BoxTests {
     @Test
     @DisplayName("BoxByte")
     void boxByte() {
-        val box = box(BoxByte.class, byte.class, Byte.class);
+        val box = generate(BoxByte.class);
 
         val valueToBox = (byte) 100;
         assertEquals(valueToBox, box.box(valueToBox));
@@ -59,7 +59,7 @@ final class BoxTests {
     @Test
     @DisplayName("BoxShort")
     void boxShort() {
-        val box = box(BoxShort.class, short.class, Short.class);
+        val box = generate(BoxShort.class);
 
         val valueToBox = (short) 100;
         assertEquals(valueToBox, box.box(valueToBox));
@@ -68,7 +68,7 @@ final class BoxTests {
     @Test
     @DisplayName("BoxChar")
     void boxChar() {
-        val box = box(BoxChar.class, char.class, Character.class);
+        val box = generate(BoxChar.class);
 
         val valueToBox = (char) 100;
         assertEquals(valueToBox, box.box(valueToBox));
@@ -77,7 +77,7 @@ final class BoxTests {
     @Test
     @DisplayName("BoxInt")
     void boxInt() {
-        val box = box(BoxInt.class, int.class, Integer.class);
+        val box = generate(BoxInt.class);
 
         val valueToBox = 100;
         assertEquals(valueToBox, box.box(valueToBox));
@@ -86,7 +86,7 @@ final class BoxTests {
     @Test
     @DisplayName("BoxLong")
     void boxLong() {
-        val box = box(BoxLong.class, long.class, Long.class);
+        val box = generate(BoxLong.class);
 
         val valueToBox = 100L;
         assertEquals(valueToBox, box.box(valueToBox));
@@ -95,7 +95,7 @@ final class BoxTests {
     @Test
     @DisplayName("BoxDouble")
     void boxDouble() {
-        val box = box(BoxDouble.class, double.class, Double.class);
+        val box = generate(BoxDouble.class);
 
         val valueToBox = 100D;
         assertEquals(valueToBox, box.box(valueToBox));
@@ -104,23 +104,21 @@ final class BoxTests {
     @Test
     @DisplayName("BoxFloat")
     void boxFloat() {
-        val box = box(BoxFloat.class, float.class, Float.class);
+        val box = generate(BoxFloat.class);
 
         val valueToBox = 100F;
         assertEquals(valueToBox, box.box(valueToBox));
     }
 
     @SneakyThrows
-    private <T> T box(final Class<T> boxInterface, final Class<?> primitive, final Class<?> wrapper) {
+    private <T> T generate(final Class<T> boxInterface) {
         val type = Javabyte.make(testName);
         type.setPublicFinal();
         type.addInterface(boxInterface);
 
         val method = type.addMethod("box");
         method.setPublic();
-        method.setReturnType(wrapper);
-        method.addParameter(primitive);
-        method.setOverrides(boxInterface);
+        method.copySignatureFrom(boxInterface);
 
         val code = method.getBytecode();
         code.loadLocal(1);
