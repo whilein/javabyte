@@ -34,6 +34,7 @@ public interface IterateOverInsn extends Instruction {
     @NotNull IterateOverInsn element(@NotNull TypeName type);
     @NotNull IterateOverInsn element(@NotNull Type type);
 
+    @NotNull LocalIndex getCounterLocal();
     @NotNull LocalIndex getElementLocal();
     @NotNull LoopBranch getBody();
 

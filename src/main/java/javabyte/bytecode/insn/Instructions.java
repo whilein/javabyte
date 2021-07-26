@@ -770,6 +770,8 @@ public final class Instructions {
         final LoopBranchImpl body;
 
         TypeName elementType;
+
+        LocalIndex counterLocal;
         LocalIndex iterableIndex;
 
         @Override
@@ -793,7 +795,10 @@ public final class Instructions {
             }
 
             if (iterable.isArray()) {
-                val position = compile.pushLocal(Types.INT);
+                val position = counterLocal != null
+                        ? compile.pushLocal(counterLocal, Types.INT)
+                        : compile.pushLocal(Types.INT);
+
                 compile.visitInt(0);
                 compile.pushStack(Types.INT);
                 compile.popStack();
@@ -852,6 +857,16 @@ public final class Instructions {
                 mv.visitLabel(body.continueLoop);
                 mv.visitIincInsn(position.getOffset(), 1);
             } else {
+                val counter = counterLocal != null
+                        ? compile.pushLocal(counterLocal, Types.INT)
+                        : null;
+
+                if (counter != null) {
+                    compile.pushStack(Types.INT);
+                    compile.visitInt(0);
+                    mv.visitVarInsn(ISTORE, counter.getOffset());
+                }
+
                 final LocalIndex iteratorIndex;
 
                 if (iterableIndex.isInitialized()) {
@@ -904,10 +919,15 @@ public final class Instructions {
                 mv.visitVarInsn(ASTORE, elementLocal.getValue());
                 body.compile(compile);
 
+                if (counter != null) compile.popLocal(); // counter
                 compile.popLocal(); // iterator
                 compile.popLocal(); // element
 
                 mv.visitLabel(body.continueLoop);
+
+                if (counter != null) {
+                    mv.visitIincInsn(counter.getOffset(), 1);
+                }
             }
 
             mv.visitJumpInsn(GOTO, body.insideLoop);
@@ -940,6 +960,15 @@ public final class Instructions {
             this.elementType = Types.of(type);
 
             return this;
+        }
+
+        @Override
+        public @NotNull LocalIndex getCounterLocal() {
+            if (counterLocal == null) {
+                counterLocal = Asm.index();
+            }
+
+            return counterLocal;
         }
     }
 
