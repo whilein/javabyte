@@ -39,6 +39,7 @@ public interface InstructionSet extends Instruction {
     void visit(@NotNull Position position);
     void jump(@NotNull JumpOpcode opcode, @NotNull Position position);
     void jumpIfEquals(@NotNull Position position);
+    void jumpIfNotEquals(@NotNull Position position);
 
     void loadLocal(int index);
     void loadLocal(@NotNull LocalIndex index);

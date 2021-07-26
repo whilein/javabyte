@@ -143,6 +143,11 @@ public abstract class AbstractInstructionSet implements InstructionSet {
     }
 
     @Override
+    public final void jumpIfNotEquals(@NotNull final Position position) {
+        _callInsn(Instructions.jumpIfNotEqualsInsn(position));
+    }
+
+    @Override
     public final void loadLocal(final @NonNull LocalIndex index) {
         _callInsn(Instructions.loadLocalInsn(index));
     }

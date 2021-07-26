@@ -125,7 +125,11 @@ public final class Instructions {
     }
 
     public @NotNull Instruction jumpIfEqualsInsn(final @NonNull Position position) {
-        return new JumpIfEqualsInsn(position);
+        return new JumpIfEqualsInsn(position, false);
+    }
+
+    public @NotNull Instruction jumpIfNotEqualsInsn(final @NonNull Position position) {
+        return new JumpIfEqualsInsn(position, true);
     }
 
     public @NotNull Instruction visitInsn(final @NonNull Position position) {
@@ -565,6 +569,7 @@ public final class Instructions {
     private static final class JumpIfEqualsInsn implements Instruction {
 
         Position position;
+        boolean inverted;
 
         @Override
         public void compile(final @NonNull CompileContext ctx) {
@@ -578,42 +583,45 @@ public final class Instructions {
             val mv = ctx.getMethodVisitor();
 
             if (first.isPrimitive()) {
+                final int INT_JUMP = inverted ? IF_ICMPNE : IF_ICMPEQ;
+                final int JUMP = inverted ? IFNE : IFEQ;
+
                 switch (first.getPrimitive()) {
                     case Types.BOOL_TYPE:
                     case Types.BYTE_TYPE:
                     case Types.SHORT_TYPE:
                     case Types.CHAR_TYPE:
                     case Types.INT_TYPE:
-                        position.jump(mv, IF_ICMPEQ);
+                        position.jump(mv, INT_JUMP);
                         break;
                     case Types.LONG_TYPE:
                         ctx.pushStack(Types.INT);
                         mv.visitInsn(LCMP);
                         ctx.popStack();
-                        position.jump(mv, IFEQ);
+                        position.jump(mv, JUMP);
                         break;
                     case Types.FLOAT_TYPE:
                         ctx.pushStack(Types.INT);
                         mv.visitInsn(FCMPL);
                         ctx.popStack();
-                        position.jump(mv, IFEQ);
+                        position.jump(mv, JUMP);
                         break;
                     case Types.DOUBLE_TYPE:
                         ctx.pushStack(Types.INT);
                         mv.visitInsn(DCMPL);
                         ctx.popStack();
-                        position.jump(mv, IFEQ);
+                        position.jump(mv, JUMP);
                         break;
                 }
             } else {
                 mv.visitMethodInsn(
-                        INVOKEVIRTUAL,
-                        "java/lang/Object",
-                        "equals", "(Ljava/lang/Object;)Z", false
+                        INVOKESTATIC,
+                        "java/util/Objects",
+                        "equals", "(Ljava/lang/Object;Ljava/lang/Object;)Z", false
                 );
 
                 ctx.pushStack(Types.INT);
-                position.jump(mv, IFNE);
+                position.jump(mv, inverted ? IFEQ : IFNE);
                 ctx.popStack();
             }
         }
