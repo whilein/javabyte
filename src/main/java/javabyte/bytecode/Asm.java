@@ -523,7 +523,7 @@ public class Asm {
             } else if (!from.isPrimitive() && !to.isPrimitive()) {
                 methodVisitor.visitTypeInsn(CHECKCAST, to.isArray() ? to.getDescriptor() : to.getInternalName());
             } else {
-                throw new IllegalStateException("Cannot cast " + stack + " to " + to);
+                throw new IllegalStateException("Cannot cast " + from + " to " + to);
             }
         }
 
