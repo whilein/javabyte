@@ -32,6 +32,10 @@ public interface MakeMethod extends MakeExecutable {
 
     void setSignature(@NotNull MethodSignature signature);
 
+    void copySignatureFrom(
+            @NotNull Class<?> type
+    );
+
     void setOverrides(
             @NotNull Class<?> type
     );

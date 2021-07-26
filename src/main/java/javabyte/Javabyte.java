@@ -1068,10 +1068,7 @@ public class Javabyte {
             this.returnType = Types.of(type);
         }
 
-        @Override
-        public void setOverrides(
-                final @NonNull Class<?> type
-        ) {
+        private Method getSameMethod(final Class<?> type) {
             val methods = Arrays.stream(type.getDeclaredMethods())
                     .filter(method -> method.getName().equals(name))
                     .collect(Collectors.toList());
@@ -1088,7 +1085,21 @@ public class Javabyte {
                         + ": The class has multiple methods with name " + name);
             }
 
-            val method = methods.get(0);
+            return methods.get(0);
+        }
+
+        @Override
+        public void copySignatureFrom(final @NonNull Class<?> type) {
+            val method = getSameMethod(type);
+            setReturnType(method.getReturnType());
+            setParameterTypes(method.getParameterTypes());
+        }
+
+        @Override
+        public void setOverrides(
+                final @NonNull Class<?> type
+        ) {
+            val method = getSameMethod(type);
             _setOverrides(type, method.getReturnType(), method.getParameterTypes());
         }
 
