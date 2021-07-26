@@ -14,11 +14,8 @@
  *    limitations under the License.
  */
 
-package javabyte;
+package javabyte.type;
 
-import javabyte.type.ExactTypeName;
-import javabyte.type.ParameterizedTypeName;
-import javabyte.type.Types;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
 import org.junit.jupiter.api.BeforeAll;
