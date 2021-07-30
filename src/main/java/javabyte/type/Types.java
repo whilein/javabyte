@@ -107,6 +107,10 @@ public class Types {
         return WRAPPERS[primitive];
     }
 
+    public @NotNull ExactTypeName getPrimitive(final int ordinal) {
+        return PRIMITIVES[ordinal];
+    }
+
     public @NotNull ExactTypeName getPrimitive(final @NonNull TypeName wrapper) {
         for (int i = 0, j = WRAPPERS.length; i < j; i++)
             if (WRAPPERS[i].equals(wrapper))
