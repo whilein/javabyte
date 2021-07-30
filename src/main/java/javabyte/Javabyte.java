@@ -823,7 +823,9 @@ public class Javabyte {
                 ctx.visitMethodInsn(MethodOpcode.STATIC, Types.of(Arrays.class),
                         methodName, signature);
             } else if (type.isPrimitive() || type.equals(Types.STRING)) {
-                argument = type;
+                argument = type.equals(Types.BYTE) || type.equals(Types.SHORT)
+                        ? Types.INT
+                        : type;
             } else {
                 argument = Types.OBJECT;
             }
@@ -851,8 +853,6 @@ public class Javabyte {
         }
 
         private void initMethod() {
-            val sb = Types.STRING_BUILDER;
-
             val code = handle.getBytecode();
             code.callInit(StringBuilder.class);
 
@@ -927,8 +927,7 @@ public class Javabyte {
                     mv.visitLdcInsn(prevString ? "']" : "]");
                 }
 
-                ctx.visitMethodInsn(MethodOpcode.VIRTUAL, sb, "append",
-                        Signatures.methodSignature(sb, Types.STRING));
+                append(ctx, Types.STRING);
             });
 
             code.methodInsn(MethodOpcode.VIRTUAL, "toString")
