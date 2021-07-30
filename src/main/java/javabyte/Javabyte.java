@@ -34,6 +34,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.UtilityClass;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Unmodifiable;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 
@@ -435,6 +436,27 @@ public class Javabyte {
         @Override
         public @NotNull MakeField addField(final @NonNull String name, final @NonNull Type type) {
             return _addField(name, Types.of(type));
+        }
+
+        @Override
+        public @Unmodifiable @NotNull List<@NotNull MakeMethod> getMethods() {
+            return Collections.unmodifiableList(executables.stream()
+                    .filter(method -> method instanceof MakeMethod)
+                    .map(method -> (MakeMethod) method)
+                    .collect(Collectors.toList()));
+        }
+
+        @Override
+        public @Unmodifiable @NotNull List<@NotNull MakeConstructor> getConstructors() {
+            return Collections.unmodifiableList(executables.stream()
+                    .filter(method -> method instanceof MakeConstructor)
+                    .map(method -> (MakeConstructor) method)
+                    .collect(Collectors.toList()));
+        }
+
+        @Override
+        public @Unmodifiable @NotNull List<@NotNull MakeField> getFields() {
+            return Collections.unmodifiableList(new ArrayList<>(fields));
         }
 
         @Override

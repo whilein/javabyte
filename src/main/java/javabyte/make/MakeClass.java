@@ -20,6 +20,7 @@ import javabyte.Version;
 import javabyte.type.ExactTypeName;
 import javabyte.type.TypeName;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Unmodifiable;
 
 import java.io.File;
 import java.io.IOException;
@@ -41,29 +42,43 @@ public interface MakeClass extends MakeElement {
     @NotNull MakeConstructor addConstructor();
 
     @NotNull MakeMethod addMethod(@NotNull String name);
+
     @NotNull MakeInnerClass addInner(@NotNull String name);
 
     @NotNull MakeField addField(@NotNull String name, @NotNull TypeName type);
+
     @NotNull MakeField addField(@NotNull String name, @NotNull Type type);
 
+    @Unmodifiable @NotNull List<@NotNull MakeField> getFields();
+
+    @Unmodifiable @NotNull List<@NotNull MakeMethod> getMethods();
+
+    @Unmodifiable @NotNull List<@NotNull MakeConstructor> getConstructors();
+
     @NotNull MakeToString addToString();
+
     @NotNull MakeHashCodeAndEquals addHashCodeAndEquals();
 
     @NotNull Version getVersion();
+
     @NotNull ExactTypeName getName();
 
     void setSuperName(@NotNull Type type);
+
     void setSuperName(@NotNull TypeName name);
 
     @NotNull TypeName getSuperName();
 
     void addInterface(@NotNull TypeName name);
+
     void addInterface(@NotNull Type type);
 
     void setInterfaces(@NotNull TypeName @NotNull ... interfaces);
+
     void setInterfaces(@NotNull Collection<@NotNull TypeName> interfaces);
 
     void setInterfaceTypes(@NotNull Type @NotNull ... interfaces);
+
     void setInterfaceTypes(@NotNull Collection<@NotNull Type> interfaces);
 
     @NotNull List<@NotNull TypeName> getInterfaces();
@@ -71,7 +86,9 @@ public interface MakeClass extends MakeElement {
     @NotNull Class<?> load(@NotNull ClassLoader loader);
 
     void writeClass(@NotNull OutputStream os) throws IOException;
+
     void writeTo(@NotNull File directory) throws IOException;
+
     void writeTo(@NotNull Path directory) throws IOException;
 
     byte @NotNull [] writeAsBytes();
