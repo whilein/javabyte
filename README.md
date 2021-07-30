@@ -71,7 +71,7 @@ MakeMethod run = type.addMethod("run"); // create method run
 // set public modifier
 run.setPublic();
 
-Bytecode runCode = run.getBytecode();
+InstructionSet runCode = run.getBytecode();
 
 // push string into stack
 runCode.pushString("Hello world! :3");
@@ -112,7 +112,7 @@ apply.setReturnType(Integer.class);
 apply.setParameterTypes(Integer.class, Integer.class);
 apply.setOverrides(BiFunction.class);
 
-Bytecode applyCode = apply.getBytecode();
+InstructionSet applyCode = apply.getBytecode();
 applyCode.loadLocal(1); // push local 1 (Integer) into stack
 applyCode.callUnbox(); // convert Integer to int
 applyCode.loadLocal(2); // push local 2 (Integer) into stack

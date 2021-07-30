@@ -19,7 +19,7 @@ package javabyte.compare;
 import javabyte.EqualityStrategy;
 import javabyte.Javabyte;
 import javabyte.TestClassLoader;
-import javabyte.bytecode.Asm;
+import javabyte.bytecode.Bytecode;
 import javabyte.opcode.JumpOpcode;
 import lombok.SneakyThrows;
 import lombok.val;
@@ -132,8 +132,8 @@ final class CompareTests {
         code.loadLocal(1);
         code.loadLocal(2);
 
-        val position = Asm.position();
-        val endPosition = Asm.position();
+        val position = Bytecode.position();
+        val endPosition = Bytecode.position();
         code.jumpIfNotEquals(strategy, position);
         code.pushInt(1);
         code.jump(JumpOpcode.GOTO, endPosition);

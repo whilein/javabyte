@@ -16,7 +16,7 @@
 
 package javabyte.make;
 
-import javabyte.bytecode.Bytecode;
+import javabyte.bytecode.InstructionSet;
 import javabyte.signature.MethodSignature;
 import javabyte.type.ExactTypeName;
 import javabyte.type.TypeName;
@@ -35,7 +35,7 @@ public interface MakeExecutable extends MakeClassElement {
 
     @NotNull TypeName getReturnType();
 
-    @NotNull Bytecode getBytecode();
+    @NotNull InstructionSet getBytecode();
 
     @NotNull MethodSignature getSignature();
 

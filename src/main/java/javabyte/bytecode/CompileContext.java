@@ -28,8 +28,7 @@ import org.objectweb.asm.MethodVisitor;
  */
 public interface CompileContext {
 
-    void requireStack(@NotNull TypeName @NotNull ... types);
-    void requireStrictStack(@NotNull TypeName @NotNull ... types);
+    @NotNull Stack getStack();
 
     void jump(int opcode, @NotNull Position position);
 
@@ -47,14 +46,10 @@ public interface CompileContext {
     void visitString(@NotNull String value);
     void visitNull();
 
-    void dup();
-    void swap();
-
     void callCast(@NotNull TypeName from, @NotNull TypeName to);
     @NotNull TypeName callArrayLoad(@NotNull TypeName array);
 
-    void pushStack(@NotNull TypeName name);
-    @NotNull TypeName popStack();
+
 
     @NotNull Local replaceLocal(@NotNull LocalIndex index, @NotNull TypeName name);
     @NotNull Local pushLocal(@NotNull LocalIndex index, @NotNull TypeName name);

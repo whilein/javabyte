@@ -178,12 +178,12 @@ public abstract class AbstractInstructionSet implements InstructionSet {
 
     @Override
     public final void loadLocal(final int index) {
-        _callInsn(Instructions.loadLocalInsn(Asm.indexOf(index)));
+        _callInsn(Instructions.loadLocalInsn(Bytecode.indexOf(index)));
     }
 
     @Override
     public final void storeLocal(final int index) {
-        _callInsn(Instructions.storeLocalInsn(Asm.indexOf(index)));
+        _callInsn(Instructions.storeLocalInsn(Bytecode.indexOf(index)));
     }
 
     @Override
@@ -193,7 +193,7 @@ public abstract class AbstractInstructionSet implements InstructionSet {
 
     @Override
     public final @NotNull LocalIndex storeLocal() {
-        val localIndex = Asm.index();
+        val localIndex = Bytecode.index();
 
         _callInsn(Instructions.storeLocalInsn(localIndex));
 

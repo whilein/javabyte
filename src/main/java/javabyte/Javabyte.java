@@ -16,14 +16,11 @@
 
 package javabyte;
 
-import javabyte.bytecode.Asm;
 import javabyte.bytecode.Bytecode;
-import javabyte.bytecode.CompileContext;
+import javabyte.bytecode.ExecutableInstructionSet;
+import javabyte.bytecode.InstructionSet;
 import javabyte.make.*;
-import javabyte.opcode.CompareOpcode;
-import javabyte.opcode.FieldOpcode;
-import javabyte.opcode.JumpOpcode;
-import javabyte.opcode.MethodOpcode;
+import javabyte.opcode.*;
 import javabyte.signature.MethodSignature;
 import javabyte.signature.Signatures;
 import javabyte.type.ExactTypeName;
@@ -345,13 +342,13 @@ public class Javabyte {
         }
 
         private MakeConstructorImpl _initConstructor(final boolean isStatic) {
-            return new MakeConstructorImpl(Asm.bytecode(), this,
+            return new MakeConstructorImpl(Bytecode.bytecode(), this,
                     isStatic ? "<clinit>" : "<init>", Types.VOID,
                     new ArrayList<>(), new ArrayList<>(), isStatic);
         }
 
         private MakeMethodImpl _initMethod(final String name) {
-            return new MakeMethodImpl(Asm.bytecode(), this,
+            return new MakeMethodImpl(Bytecode.bytecode(), this,
                     name, Types.VOID, new ArrayList<>(), new ArrayList<>());
         }
 
@@ -599,8 +596,8 @@ public class Javabyte {
         private void initEquals() {
             val code = equals.getBytecode();
 
-            val afterEqualTest = Asm.position();
-            val afterInstanceTest = Asm.position();
+            val afterEqualTest = Bytecode.position();
+            val afterInstanceTest = Bytecode.position();
 
             code.loadLocal(1);
             code.loadLocal(0);
@@ -624,7 +621,7 @@ public class Javabyte {
                 val fields = getFields();
 
                 if (!fields.isEmpty() || includeSuper) {
-                    val afterComparisons = Asm.position();
+                    val afterComparisons = Bytecode.position();
 
                     code.loadLocal(1);
                     code.callCast(type.name);
@@ -717,49 +714,36 @@ public class Javabyte {
         private void initHashCode() {
             val code = hashCode.getBytecode();
 
-            code.callInsn(ctx -> {
-                val mv = ctx.getMethodVisitor();
+            code.whenCompile(() -> {
                 val fields = getFields();
 
                 if (fields.isEmpty() && !includeSuper) {
-                    ctx.pushStack(Types.INT);
-                    mv.visitInsn(Opcodes.ICONST_0);
+                    code.pushInt(0);
                 } else {
                     val includeSuper = this.includeSuper && !type.superName.equals(Types.OBJECT);
 
                     for (int i = 0, j = fields.size() + (includeSuper ? 1 : 0); i < j; i++) {
-                        mv.visitIntInsn(Opcodes.BIPUSH, 31);
-                        ctx.pushStack(Types.INT);
+                        code.pushInt(31);
                     }
 
                     boolean shouldMultiply = false;
 
                     if (includeSuper) {
-                        ctx.pushStack(type.name);
-                        mv.visitVarInsn(Opcodes.ALOAD, 0);
-
-                        ctx.visitMethodInsn(MethodOpcode.SPECIAL, type.superName, "hashCode",
-                                Signatures.methodSignature(int.class));
-
-                        ctx.popStack();
-                        ctx.popStack();
-                        mv.visitInsn(Opcodes.IADD);
-                        ctx.pushStack(Types.INT);
+                        code.loadLocal(0);
+                        code.methodInsn(MethodOpcode.SPECIAL, "hashCode").inSuper().descriptor(int.class);
+                        code.callMath(MathOpcode.IADD);
                         shouldMultiply = true;
                     }
 
                     for (val field : fields) {
                         if (shouldMultiply) {
-                            mv.visitInsn(Opcodes.IMUL);
+                            code.callMath(MathOpcode.IMUL);
                         }
 
                         val fieldType = field.getType();
 
-                        ctx.pushStack(type.name);
-                        mv.visitVarInsn(Opcodes.ALOAD, 0);
-                        mv.visitFieldInsn(Opcodes.GETFIELD, type.name.getInternalName(),
-                                field.getName(), fieldType.getDescriptor());
-                        ctx.pushStack(fieldType);
+                        code.loadLocal(0);
+                        code.fieldInsn(FieldOpcode.GET, field.getName()).inCurrent().descriptor(fieldType);
 
                         if (fieldType.isArray()) {
                             val component = fieldType.getComponent();
@@ -773,24 +757,27 @@ public class Javabyte {
 
                             val methodName = component.isArray() ? "deepHashCode" : "hashCode";
 
-                            ctx.visitMethodInsn(MethodOpcode.STATIC, Types.of(Arrays.class),
-                                    methodName, signature);
+                            code.methodInsn(MethodOpcode.STATIC, methodName)
+                                    .descriptor(signature)
+                                    .in(Arrays.class);
                         } else if (fieldType.isPrimitive()) {
                             switch (fieldType.getPrimitive()) {
                                 case Types.BOOL_TYPE:
                                 case Types.FLOAT_TYPE:
                                 case Types.DOUBLE_TYPE:
                                 case Types.LONG_TYPE:
-                                    ctx.visitMethodInsn(MethodOpcode.STATIC, Types.getWrapper(fieldType),
-                                            "hashCode", Signatures.methodSignature(Types.INT, fieldType));
+                                    code.methodInsn(MethodOpcode.STATIC, "hashCode")
+                                            .descriptor(Signatures.methodSignature(Types.INT, fieldType))
+                                            .in(Types.getWrapper(fieldType));
                                     break;
                             }
                         } else {
-                            ctx.visitMethodInsn(MethodOpcode.STATIC, Types.of(Objects.class),
-                                    "hashCode", Signatures.methodSignature(Types.INT, fieldType));
+                            code.methodInsn(MethodOpcode.STATIC, "hashCode")
+                                    .descriptor(Signatures.methodSignature(Types.INT, fieldType))
+                                    .in(Objects.class);
                         }
 
-                        mv.visitInsn(Opcodes.IADD);
+                        code.callMath(MathOpcode.IADD);
 
                         shouldMultiply = true;
                     }
@@ -823,7 +810,7 @@ public class Javabyte {
 
         boolean includeSuper;
 
-        private void append(final CompileContext ctx, final TypeName type) {
+        private void append(final InstructionSet code, final TypeName type) {
             val sb = Types.STRING_BUILDER;
 
             final TypeName argument;
@@ -842,8 +829,7 @@ public class Javabyte {
 
                 val methodName = component.isArray() ? "deepToString" : "toString";
 
-                ctx.visitMethodInsn(MethodOpcode.STATIC, Types.of(Arrays.class),
-                        methodName, signature);
+                code.methodInsn(MethodOpcode.STATIC, methodName).in(Arrays.class).descriptor(signature);
             } else if (type.isPrimitive() || type.equals(Types.STRING)) {
                 argument = type.equals(Types.BYTE) || type.equals(Types.SHORT)
                         ? Types.INT
@@ -852,8 +838,9 @@ public class Javabyte {
                 argument = Types.OBJECT;
             }
 
-            ctx.visitMethodInsn(MethodOpcode.VIRTUAL, sb, "append",
-                    Signatures.methodSignature(sb, argument));
+            code.methodInsn(MethodOpcode.VIRTUAL, "append")
+                    .descriptor(Signatures.methodSignature(sb, argument))
+                    .in(StringBuilder.class);
         }
 
         private List<MakeField> getFields() {
@@ -878,24 +865,23 @@ public class Javabyte {
             val code = handle.getBytecode();
             code.callInit(StringBuilder.class);
 
-            code.callInsn(ctx -> {
+            code.whenCompile(() -> {
                 val fields = getFields();
 
                 val label = this.label == null
                         ? this.type.name.getSimpleName()
                         : this.label;
 
-                val mv = ctx.getMethodVisitor();
-                ctx.pushStack(Types.STRING);
-
                 if (fields.isEmpty() && !includeSuper) {
-                    mv.visitLdcInsn(label);
+                    code.pushString(label);
                 } else {
                     boolean separator = false;
                     boolean prevString = false;
 
                     for (val field : fields) {
-                        val isString = Types.STRING.equals(field.getType());
+                        val fieldType = field.getType();
+
+                        val isString = Types.STRING.equals(fieldType);
 
                         val fieldLabel = new StringBuilder();
                         if (prevString) fieldLabel.append('\'');
@@ -904,22 +890,14 @@ public class Javabyte {
                         fieldLabel.append(field.getName());
                         fieldLabel.append('=');
                         if (isString) fieldLabel.append('\'');
-                        ctx.pushStack(Types.STRING);
-                        mv.visitLdcInsn(fieldLabel.toString());
+                        code.pushString(fieldLabel.toString());
 
-                        append(ctx, Types.STRING);
+                        append(code, Types.STRING);
 
-                        val fieldType = field.getType();
+                        code.loadLocal(0);
+                        code.fieldInsn(FieldOpcode.GET, field.getName()).inCurrent().descriptor(fieldType);
 
-                        ctx.pushStack(type.name);
-                        mv.visitVarInsn(Opcodes.ALOAD, 0);
-
-                        ctx.popStack();
-                        mv.visitFieldInsn(Opcodes.GETFIELD, type.name.getInternalName(),
-                                field.getName(), fieldType.getDescriptor());
-                        ctx.pushStack(fieldType);
-
-                        append(ctx, fieldType);
+                        append(code, fieldType);
 
                         prevString = isString;
                         separator = true;
@@ -930,33 +908,28 @@ public class Javabyte {
                         if (prevString) fieldLabel.append('\'');
                         if (separator) fieldLabel.append(", ");
                         fieldLabel.append("@super=");
-                        ctx.pushStack(Types.STRING);
-                        mv.visitLdcInsn(fieldLabel.toString());
+                        code.pushString(fieldLabel.toString());
 
-                        append(ctx, Types.STRING);
 
-                        ctx.pushStack(type.superName);
-                        mv.visitVarInsn(Opcodes.ALOAD, 0);
+                        append(code, Types.STRING);
 
-                        ctx.visitMethodInsn(MethodOpcode.SPECIAL, type.superName, "toString",
-                                Signatures.methodSignature(Types.STRING));
+                        code.loadLocal(0);
+                        code.methodInsn(MethodOpcode.SPECIAL, "toString").inSuper().descriptor(String.class);
 
-                        append(ctx, type.superName);
+                        append(code, Types.STRING);
                         prevString = false;
                     }
 
-                    ctx.pushStack(Types.STRING);
-                    mv.visitLdcInsn(prevString ? "']" : "]");
+                    code.pushString(prevString ? "']" : "]");
                 }
 
-                append(ctx, Types.STRING);
+                append(code, Types.STRING);
             });
 
             code.methodInsn(MethodOpcode.VIRTUAL, "toString")
                     .in(StringBuilder.class)
                     .descriptor(String.class);
             code.callReturn();
-            code.pop();
         }
 
         @Override
@@ -1032,7 +1005,7 @@ public class Javabyte {
         boolean isStatic;
 
         private MakeConstructorImpl(
-                final Bytecode bytecode,
+                final ExecutableInstructionSet bytecode,
                 final MakeClass declaringClass,
                 final String name,
                 final TypeName returnType,
@@ -1062,7 +1035,7 @@ public class Javabyte {
     private static final class MakeMethodImpl extends MakeExecutableImpl implements MakeMethod {
 
         private MakeMethodImpl(
-                final Bytecode bytecode,
+                final ExecutableInstructionSet bytecode,
                 final MakeClass declaringClass,
                 final String name,
                 final TypeName returnType,
@@ -1179,7 +1152,7 @@ public class Javabyte {
     private static abstract class MakeExecutableImpl extends AbstractMakeElement implements MakeExecutable {
 
         @Getter
-        final Bytecode bytecode;
+        final ExecutableInstructionSet bytecode;
 
         @Getter
         final MakeClass declaringClass;

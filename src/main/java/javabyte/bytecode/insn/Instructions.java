@@ -37,6 +37,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static javabyte.bytecode.Bytecode.INT;
+import static javabyte.bytecode.Bytecode.REF;
 import static org.objectweb.asm.Opcodes.*;
 
 /**
@@ -193,7 +195,7 @@ public final class Instructions {
 
     public @NotNull IterateOverInsn iterateOverInsn(final @NonNull InstructionSet parent) {
         return new IterateOverInsnImpl(
-                Asm.index(),
+                Bytecode.index(),
                 new LoopBranchImpl(parent, new ArrayList<>(), new Label(), new Label(), new Label())
         );
     }
@@ -209,14 +211,16 @@ public final class Instructions {
 
         @Override
         public void compile(final @NonNull CompileContext ctx) {
+            val stack = ctx.getStack();
+            
             val parameters = this.parameters != null
                     ? this.parameters
                     : new TypeName[0];
 
             val mv = ctx.getMethodVisitor();
 
-            ctx.pushStack(Types.OBJECT);
-            ctx.pushStack(Types.OBJECT);
+            stack.push(Types.OBJECT);
+            stack.push(Types.OBJECT);
 
             mv.visitTypeInsn(NEW, type.getInternalName());
             mv.visitInsn(DUP);
@@ -228,11 +232,11 @@ public final class Instructions {
                 init.compile(ctx);
             }
 
-            ctx.popStack();
-            ctx.popStack();
+            stack.pop();
+            stack.pop();
 
             for (int i = 0; i < parameters.length; i++) {
-                ctx.popStack();
+                stack.pop();
             }
 
             mv.visitMethodInsn(
@@ -240,7 +244,7 @@ public final class Instructions {
                     Signatures.methodSignature(Types.VOID, parameters).getDescriptor(), false
             );
 
-            ctx.pushStack(type);
+            stack.push(type);
         }
 
         @Override
@@ -277,24 +281,28 @@ public final class Instructions {
 
         @Override
         public void compile(final @NonNull CompileContext ctx) {
-            val mv = ctx.getMethodVisitor();
-            val stack = ctx.popStack();
+            val stack = ctx.getStack();
+            stack.ensureSize(1);
 
-            val descriptor = stack.isPrimitive()
-                    ? stack.getDescriptor()
+            val mv = ctx.getMethodVisitor();
+            val item = stack.pop();
+            val itemType = item.getType();
+
+            val descriptor = itemType.isPrimitive()
+                    ? itemType.getDescriptor()
                     : "Ljava/lang/Object;";
 
             mv.visitFieldInsn(GETSTATIC, "java/lang/System", "out",
                     "Ljava/io/PrintStream;");
 
-            ctx.pushStack(Types.of("java/lang/PrintStream"));
+            stack.push(Types.of("java/lang/PrintStream"));
 
             mv.visitInsn(SWAP);
 
             mv.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println",
                     "(" + descriptor + ")V", false);
 
-            ctx.popStack();
+            stack.pop();
 
         }
 
@@ -348,8 +356,11 @@ public final class Instructions {
         public void compile(final @NonNull CompileContext ctx) {
             val mv = ctx.getMethodVisitor();
 
+            val stack = ctx.getStack();
+            stack.ensure(INT, knownDims);
+
             for (int i = 0; i < knownDims; i++) {
-                ctx.popStack();
+                stack.pop();
             }
 
             val component = name.getComponent();
@@ -363,7 +374,7 @@ public final class Instructions {
                 mv.visitIntInsn(NEWARRAY, arrayCode);
             }
 
-            ctx.pushStack(name);
+            stack.push(name);
         }
 
         @Override
@@ -381,13 +392,16 @@ public final class Instructions {
 
         @Override
         public void compile(final @NonNull CompileContext ctx) {
-            val stack = ctx.popStack();
+            val stack = ctx.getStack();
+
+            val item = stack.pop();
+            val itemType = item.getType();
 
             val local = index.isInitialized()
-                    ? ctx.replaceLocal(index, stack)
-                    : ctx.pushLocal(index, stack);
+                    ? ctx.replaceLocal(index, itemType)
+                    : ctx.pushLocal(index, itemType);
 
-            ctx.getMethodVisitor().visitVarInsn(stack.toType().getOpcode(ISTORE), local.getOffset());
+            ctx.getMethodVisitor().visitVarInsn(itemType.toType().getOpcode(ISTORE), local.getOffset());
         }
 
         @Override
@@ -404,12 +418,14 @@ public final class Instructions {
 
         @Override
         public void compile(final @NonNull CompileContext ctx) {
+            val stack = ctx.getStack();
+
             val local = ctx.getLocal(index);
             val localName = local.getName();
             val localType = localName.toType();
 
             ctx.getMethodVisitor().visitVarInsn(localType.getOpcode(ILOAD), local.getOffset());
-            ctx.pushStack(localName);
+            stack.push(localName);
         }
 
         @Override
@@ -427,26 +443,28 @@ public final class Instructions {
 
         @Override
         public void compile(final @NonNull CompileContext ctx) {
-            final TypeName type;
+            val stack = ctx.getStack();
+
+            final StackItem type;
 
             switch (opcode) {
                 default:
                 case LCMP:
-                    type = Types.LONG;
+                    type = Bytecode.LONG;
                     break;
                 case FCMPL: case FCMPG:
-                    type = Types.FLOAT;
+                    type = Bytecode.FLOAT;
                     break;
                 case DCMPL: case DCMPG:
-                    type = Types.DOUBLE;
+                    type = Bytecode.DOUBLE;
                     break;
             }
 
-            ctx.requireStrictStack(type, type);
-            ctx.popStack();
-            ctx.popStack();
+            stack.ensure(type, 2);
+            stack.pop();
+            stack.pop();
             ctx.getMethodVisitor().visitInsn(opcode.getOpcode());
-            ctx.pushStack(Types.INT);
+            stack.push(Types.INT);
         }
 
         @Override
@@ -463,29 +481,31 @@ public final class Instructions {
 
         @Override
         public void compile(final @NonNull CompileContext ctx) {
-            final TypeName type;
+            val stack = ctx.getStack();
+
+            final StackItem type;
 
             switch (opcode) {
                 default:
                 case IADD: case ISUB: case IMUL: case IDIV: case IREM: case INEG:
-                    type = Types.INT;
+                    type = Bytecode.INT;
                     break;
                 case LADD: case LSUB: case LMUL: case LDIV: case LREM: case LNEG:
-                    type = Types.LONG;
+                    type = Bytecode.LONG;
                     break;
                 case FADD: case FSUB: case FMUL: case FDIV: case FREM: case FNEG:
-                    type = Types.FLOAT;
+                    type = Bytecode.FLOAT;
                     break;
                 case DADD: case DSUB: case DMUL: case DDIV: case DREM: case DNEG:
-                    type = Types.DOUBLE;
+                    type = Bytecode.DOUBLE;
                     break;
             }
 
-            ctx.requireStrictStack(type, type);
-            ctx.popStack();
-            ctx.popStack();
+            stack.ensure(type, type);
+            stack.pop();
+            stack.pop();
             ctx.getMethodVisitor().visitInsn(opcode.getOpcode());
-            ctx.pushStack(type);
+            stack.push(type);
         }
 
         @Override
@@ -502,7 +522,7 @@ public final class Instructions {
         @Override
         public void compile(final @NonNull CompileContext ctx) {
             ctx.getMethodVisitor().visitInsn(SWAP);
-            ctx.swap();
+            ctx.getStack().swap();
         }
 
         @Override
@@ -519,7 +539,7 @@ public final class Instructions {
         @Override
         public void compile(final @NonNull CompileContext ctx) {
             ctx.getMethodVisitor().visitInsn(DUP);
-            ctx.dup();
+            ctx.getStack().dup();
         }
 
         @Override
@@ -536,7 +556,7 @@ public final class Instructions {
         @Override
         public void compile(final @NonNull CompileContext ctx) {
             ctx.getMethodVisitor().visitInsn(POP);
-            ctx.popStack();
+            ctx.getStack().pop();
         }
 
         @Override
@@ -555,8 +575,11 @@ public final class Instructions {
             if (ctx.getExecutable().getReturnType().equals(Types.VOID)) {
                 ctx.getMethodVisitor().visitInsn(RETURN);
             } else {
-                val stack = ctx.popStack();
-                ctx.getMethodVisitor().visitInsn(stack.toType().getOpcode(IRETURN));
+                val stack = ctx.getStack();
+                val item = stack.pop();
+                val itemType = item.getType();
+
+                ctx.getMethodVisitor().visitInsn(itemType.toType().getOpcode(IRETURN));
             }
         }
 
@@ -594,8 +617,13 @@ public final class Instructions {
 
         @Override
         public void compile(final @NonNull CompileContext ctx) {
-            TypeName first = ctx.popStack();
-            TypeName second = ctx.popStack();
+            val stack = ctx.getStack();
+
+            val firstItem = stack.pop();
+            val secondItem = stack.pop();
+
+            val first = firstItem.getType();
+            val second = secondItem.getType();
 
             val mv = ctx.getMethodVisitor();
 
@@ -605,30 +633,17 @@ public final class Instructions {
                 final int INT_JUMP = inverted ? IF_ICMPNE : IF_ICMPEQ;
                 final int JUMP = inverted ? IFNE : IFEQ;
 
-                switch (first.getPrimitive()) {
-                    case Types.BOOL_TYPE:
-                    case Types.BYTE_TYPE:
-                    case Types.SHORT_TYPE:
-                    case Types.CHAR_TYPE:
-                    case Types.INT_TYPE:
-                        position.jump(mv, INT_JUMP);
-                        break;
-                    case Types.LONG_TYPE:
-                        mv.visitInsn(LCMP);
-                        position.jump(mv, JUMP);
-                        break;
-                    case Types.FLOAT_TYPE:
-                        ctx.pushStack(Types.INT);
-                        mv.visitInsn(FCMPL);
-                        ctx.popStack();
-                        position.jump(mv, JUMP);
-                        break;
-                    case Types.DOUBLE_TYPE:
-                        ctx.pushStack(Types.INT);
-                        mv.visitInsn(DCMPL);
-                        ctx.popStack();
-                        position.jump(mv, JUMP);
-                        break;
+                if (firstItem.equals(Bytecode.INT)) {
+                    position.jump(mv, INT_JUMP);
+                } else if (firstItem.equals(Bytecode.LONG)) {
+                    mv.visitInsn(LCMP);
+                    position.jump(mv, JUMP);
+                } else if (firstItem.equals(Bytecode.FLOAT)) {
+                    mv.visitInsn(FCMPL);
+                    position.jump(mv, JUMP);
+                } else if (firstItem.equals(Bytecode.DOUBLE)) {
+                    mv.visitInsn(DCMPL);
+                    position.jump(mv, JUMP);
                 }
             } else if (!first.isPrimitive() && !second.isPrimitive()) {
                 if (strategy == EqualityStrategy.CONTENTS && first.isArray() && second.isArray()) {
@@ -680,9 +695,9 @@ public final class Instructions {
                     );
                 }
 
-                ctx.pushStack(Types.INT);
+                stack.push(Types.INT);
                 position.jump(mv, inverted ? IFEQ : IFNE);
-                ctx.popStack();
+                stack.pop();
             } else {
                 throw new IllegalStateException("Cannot compare " + first + " and " + second);
             }
@@ -703,6 +718,8 @@ public final class Instructions {
 
         @Override
         public void compile(final @NonNull CompileContext ctx) {
+            val stack = ctx.getStack();
+
             switch (opcode) {
                 case IF_ICMPEQ:
                 case IF_ICMPNE:
@@ -712,8 +729,9 @@ public final class Instructions {
                 case IF_ICMPLE:
                 case IF_ACMPEQ:
                 case IF_ACMPNE:
-                    ctx.popStack();
-                    ctx.popStack();
+                    stack.ensureSize(2);
+                    stack.pop();
+                    stack.pop();
                     break;
                 case IFEQ:
                 case IFNE:
@@ -721,7 +739,8 @@ public final class Instructions {
                 case IFGE:
                 case IFGT:
                 case IFLE:
-                    ctx.popStack();
+                    stack.ensure(Bytecode.INT);
+                    stack.pop();
                     break;
             }
 
@@ -770,12 +789,12 @@ public final class Instructions {
 
         @Override
         public @NotNull Position getContinue() {
-            return Asm.position(continueLoop);
+            return Bytecode.position(continueLoop);
         }
 
         @Override
         public @NotNull Position getBreak() {
-            return Asm.position(afterLoop);
+            return Bytecode.position(afterLoop);
         }
 
         @Override
@@ -839,102 +858,103 @@ public final class Instructions {
         LocalIndex iterableIndex;
 
         @Override
-        public void compile(final @NonNull CompileContext compile) {
+        public void compile(final @NonNull CompileContext ctx) {
             final TypeName iterable;
             final LocalIndex iterableIndex;
 
-            val mv = compile.getMethodVisitor();
-
+            val mv = ctx.getMethodVisitor();
+            val stack = ctx.getStack();
+            
             if (this.iterableIndex != null) {
-                iterable = compile.getLocal(this.iterableIndex.getValue()).getName();
+                iterable = ctx.getLocal(this.iterableIndex.getValue()).getName();
                 iterableIndex = this.iterableIndex;
             } else {
-                iterable = compile.popStack();
-                iterableIndex = Asm.index();
+                iterable = stack.pop().getType();
+                iterableIndex = Bytecode.index();
 
                 if (iterable.isArray() || lengthLocal != null) {
-                    compile.pushLocal(iterableIndex, iterable);
+                    ctx.pushLocal(iterableIndex, iterable);
                     mv.visitVarInsn(ASTORE, iterableIndex.getValue());
                 }
             }
 
             if (iterable.isArray()) {
                 val counter = counterLocal != null
-                        ? compile.pushLocal(counterLocal, Types.INT)
-                        : compile.pushLocal(Types.INT);
+                        ? ctx.pushLocal(counterLocal, Types.INT)
+                        : ctx.pushLocal(Types.INT);
 
-                compile.visitInt(0);
-                compile.pushStack(Types.INT);
-                compile.popStack();
+                ctx.visitInt(0);
+                stack.push(Types.INT);
+                stack.pop();
                 mv.visitVarInsn(ISTORE, counter.getOffset());
 
                 val length = lengthLocal != null
-                        ? compile.pushLocal(lengthLocal, Types.INT)
-                        : compile.pushLocal(Types.INT);
+                        ? ctx.pushLocal(lengthLocal, Types.INT)
+                        : ctx.pushLocal(Types.INT);
 
-                compile.pushStack(iterable);
+                stack.push(iterable);
                 mv.visitVarInsn(ALOAD, iterableIndex.getValue());
-                compile.popStack();
-                compile.pushStack(Types.INT);
+                stack.pop();
+                stack.push(Types.INT);
                 mv.visitInsn(ARRAYLENGTH);
-                compile.popStack();
+                stack.pop();
                 mv.visitVarInsn(ISTORE, length.getOffset());
 
                 mv.visitLabel(body.insideLoop);
 
-                compile.pushStack(Types.INT);
-                compile.pushStack(Types.INT);
+                stack.push(Types.INT);
+                stack.push(Types.INT);
                 mv.visitVarInsn(ILOAD, counter.getOffset());
                 mv.visitVarInsn(ILOAD, length.getOffset());
 
-                compile.popStack();
-                compile.popStack();
+                stack.pop();
+                stack.pop();
                 mv.visitJumpInsn(IF_ICMPGE, body.afterLoop);
 
-                compile.pushStack(iterable);
-                compile.pushStack(Types.INT);
+                stack.push(iterable);
+                stack.push(Types.INT);
 
                 mv.visitVarInsn(ALOAD, iterableIndex.getValue());
                 mv.visitVarInsn(ILOAD, counter.getOffset());
 
-                compile.popStack();
-                compile.popStack();
+                stack.pop();
+                stack.pop();
 
-                final TypeName component = compile.callArrayLoad(iterable);
+                final TypeName component = ctx.callArrayLoad(iterable);
                 final Local local;
 
                 if (elementType != null && !component.equals(elementType)) {
-                    compile.callCast(component, elementType);
-                    compile.pushStack(elementType);
-                    local = compile.pushLocal(elementLocal, elementType);
+                    ctx.callCast(component, elementType);
+                    stack.push(elementType);
+                    local = ctx.pushLocal(elementLocal, elementType);
                 } else {
-                    compile.pushStack(component);
-                    local = compile.pushLocal(elementLocal, component);
+                    stack.push(component);
+                    local = ctx.pushLocal(elementLocal, component);
                 }
 
-                compile.popStack();
+                stack.pop();
                 mv.visitVarInsn(component.toType().getOpcode(ISTORE), local.getOffset());
 
-                body.compile(compile);
+                body.compile(ctx);
 
-                compile.popLocal(); // position
-                compile.popLocal(); // length
-                compile.popLocal(); // element
+                ctx.popLocal(); // position
+                ctx.popLocal(); // length
+                ctx.popLocal(); // element
 
                 mv.visitLabel(body.continueLoop);
                 mv.visitIincInsn(counter.getOffset(), 1);
             } else {
                 val counter = counterLocal != null
-                        ? compile.pushLocal(counterLocal, Types.INT)
+                        ? ctx.pushLocal(counterLocal, Types.INT)
                         : null;
 
                 val length = lengthLocal != null
-                        ? compile.pushLocal(lengthLocal, Types.INT)
+                        ? ctx.pushLocal(lengthLocal, Types.INT)
                         : null;
 
                 if (counter != null) {
-                    compile.pushStack(Types.INT);
-                    compile.visitInt(0);
+                    stack.push(Types.INT);
+                    ctx.visitInt(0);
                     mv.visitVarInsn(ISTORE, counter.getOffset());
                 }
 
@@ -942,39 +962,39 @@ public final class Instructions {
 
                 if (iterableIndex.isInitialized()) {
                     // load from local
-                    val iterableLocal = compile.getLocal(iterableIndex);
+                    val iterableLocal = ctx.getLocal(iterableIndex);
 
                     if (length != null) {
-                        compile.pushStack(iterableLocal.getName());
+                        stack.push(iterableLocal.getName());
 
                         mv.visitVarInsn(ALOAD, iterableLocal.getOffset());
 
-                        compile.visitMethodInsn(
+                        ctx.visitMethodInsn(
                                 MethodOpcode.INTERFACE, Types.COLLECTION, "size",
                                 Signatures.methodSignature(Types.INT)
                         );
 
-                        compile.popStack();
+                        stack.pop();
 
                         mv.visitVarInsn(ISTORE, length.getOffset());
                     }
 
-                    compile.pushStack(iterableLocal.getName());
+                    stack.push(iterableLocal.getName());
                     mv.visitVarInsn(ALOAD, iterableLocal.getOffset());
 
-                    iteratorIndex = Asm.index();
+                    iteratorIndex = Bytecode.index();
                 } else {
                     // already in stack
-                    compile.pushStack(iterable);
+                    stack.push(iterable);
                     iteratorIndex = iterableIndex;
                 }
 
-                compile.visitMethodInsn(
+                ctx.visitMethodInsn(
                         MethodOpcode.INTERFACE, Types.ITERABLE, "iterator",
                         Signatures.methodSignature(Types.ITERATOR)
                 );
 
-                compile.pushLocal(iteratorIndex, Types.ITERABLE);
+                ctx.pushLocal(iteratorIndex, Types.ITERABLE);
                 mv.visitVarInsn(ASTORE, iteratorIndex.getValue());
 
                 mv.visitLabel(body.insideLoop);
@@ -999,17 +1019,17 @@ public final class Instructions {
 
                 if (elementType != null) {
                     mv.visitTypeInsn(CHECKCAST, elementType.getInternalName());
-                    compile.pushLocal(elementLocal, elementType);
+                    ctx.pushLocal(elementLocal, elementType);
                 } else {
-                    compile.pushLocal(elementLocal, Types.OBJECT);
+                    ctx.pushLocal(elementLocal, Types.OBJECT);
                 }
 
                 mv.visitVarInsn(ASTORE, elementLocal.getValue());
-                body.compile(compile);
+                body.compile(ctx);
 
-                if (counter != null) compile.popLocal(); // counter
-                compile.popLocal(); // iterator
-                compile.popLocal(); // element
+                if (counter != null) ctx.popLocal(); // counter
+                ctx.popLocal(); // iterator
+                ctx.popLocal(); // element
 
                 mv.visitLabel(body.continueLoop);
 
@@ -1031,7 +1051,7 @@ public final class Instructions {
 
         @Override
         public @NotNull IterateOverInsn source(final int index) {
-            this.iterableIndex = Asm.indexOf(index);
+            this.iterableIndex = Bytecode.indexOf(index);
 
             return this;
         }
@@ -1053,7 +1073,7 @@ public final class Instructions {
         @Override
         public @NotNull LocalIndex getCounterLocal() {
             if (counterLocal == null) {
-                counterLocal = Asm.index();
+                counterLocal = Bytecode.index();
             }
 
             return counterLocal;
@@ -1062,7 +1082,7 @@ public final class Instructions {
         @Override
         public @NotNull LocalIndex getLengthLocal() {
             if (lengthLocal == null) {
-                lengthLocal = Asm.index();
+                lengthLocal = Bytecode.index();
             }
 
             return lengthLocal;
@@ -1111,7 +1131,7 @@ public final class Instructions {
 
         @Override
         public @NotNull Position getBreak() {
-            return Asm.position(endLabel);
+            return Bytecode.position(endLabel);
         }
     }
 
@@ -1177,6 +1197,7 @@ public final class Instructions {
         }
 
         private void _ecj(final CompileContext ctx) {
+            val stack = ctx.getStack();
             val mv = ctx.getMethodVisitor();
 
             final Local switchItemLocal;
@@ -1187,19 +1208,19 @@ public final class Instructions {
                 val name = switchItemLocal.getName();
 
                 mv.visitVarInsn(name.toType().getOpcode(ILOAD), switchItemLocal.getOffset());
-                ctx.pushStack(name);
+                stack.push(name);
             } else {
-                val switchItem = ctx.popStack();
+                val switchItem = stack.pop();
 
-                ctx.pushStack(switchItem);
+                stack.push(switchItem);
                 mv.visitInsn(DUP);
 
-                switchItemLocal = ctx.pushLocal(Asm.index(), switchItem);
+                switchItemLocal = ctx.pushLocal(Bytecode.index(), switchItem.getType());
                 mv.visitVarInsn(ASTORE, switchItemLocal.getOffset());
             }
 
-            ctx.popStack();
-            ctx.pushStack(Types.INT);
+            stack.pop();
+            stack.push(Types.INT);
 
             mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "hashCode",
                     "()I", false);
@@ -1226,7 +1247,7 @@ public final class Instructions {
             for (int i = 0, j = hashBranches.length; i < j; i++)
                 hashBranches[i] = new Label();
 
-            ctx.popStack();
+            stack.pop();
 
             if (nHashLabels > 1 && isTableSwitchInsn(lo, hi, nHashLabels)) {
                 val table = new Label[hi - lo + 1];
@@ -1256,21 +1277,21 @@ public final class Instructions {
                 mv.visitLabel(hashBranches[hashCounter]);
 
                 for (val branch : branches) {
-                    ctx.pushStack(Types.STRING);
-                    ctx.pushStack(Types.STRING);
+                    stack.push(Types.STRING);
+                    stack.push(Types.STRING);
 
                     mv.visitVarInsn(ALOAD, switchItemLocal.getOffset());
                     mv.visitLdcInsn(branch);
 
-                    ctx.popStack();
-                    ctx.popStack();
+                    stack.pop();
+                    stack.pop();
 
-                    ctx.pushStack(Types.INT);
+                    stack.push(Types.INT);
 
                     mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "equals",
                             "(Ljava/lang/Object;)Z", false);
 
-                    ctx.popStack();
+                    stack.pop();
 
                     mv.visitJumpInsn(IFNE, this.branches.get(branch).getLabel());
                 }
@@ -1292,6 +1313,7 @@ public final class Instructions {
         }
 
         private void _javac(final CompileContext ctx) {
+            val stack = ctx.getStack();
             val mv = ctx.getMethodVisitor();
 
             final Local switchItemLocal;
@@ -1299,25 +1321,25 @@ public final class Instructions {
             if (source != null && source.isInitialized()) {
                 switchItemLocal = ctx.getLocal(source);
             } else {
-                val switchItem = ctx.popStack();
+                val switchItem = stack.pop();
 
-                switchItemLocal = ctx.pushLocal(Asm.index(), switchItem);
+                switchItemLocal = ctx.pushLocal(Bytecode.index(), switchItem.getType());
                 mv.visitVarInsn(ASTORE, switchItemLocal.getOffset());
             }
 
             ctx.visitInt(-1); // push switch index
-            ctx.pushStack(Types.INT);
+            stack.push(Types.INT);
 
-            val switchIndexLocal = ctx.pushLocal(Asm.index(), Types.INT);
+            val switchIndexLocal = ctx.pushLocal(Bytecode.index(), Types.INT);
             mv.visitVarInsn(ISTORE, switchIndexLocal.getOffset());
-            ctx.popStack(); // pop switch index
+            stack.pop(); // pop switch index
 
-            ctx.pushStack(Types.STRING); // push switch subject
+            stack.push(Types.STRING); // push switch subject
 
             mv.visitVarInsn(ALOAD, switchItemLocal.getOffset());
 
-            ctx.popStack(); // pop switch subject
-            ctx.pushStack(Types.INT); // push switch subject hashCode
+            stack.pop(); // pop switch subject
+            stack.push(Types.INT); // push switch subject hashCode
 
             mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "hashCode",
                     "()I", false);
@@ -1366,7 +1388,7 @@ public final class Instructions {
                 mv.visitLookupSwitchInsn(endFirstSwitchLabel, hashArray, hashBranches);
             }
 
-            ctx.popStack();
+            stack.pop();
 
             int hashCounter = 0;
             int counter = 0;
@@ -1382,31 +1404,31 @@ public final class Instructions {
                 for (val branch : branches) {
                     mv.visitLabel(hashIfBranches[counter]);
 
-                    ctx.pushStack(Types.STRING);
-                    ctx.pushStack(Types.STRING);
+                    stack.push(Types.STRING);
+                    stack.push(Types.STRING);
 
                     mv.visitVarInsn(ALOAD, switchItemLocal.getOffset());
                     mv.visitLdcInsn(branch);
 
-                    ctx.popStack();
-                    ctx.popStack();
+                    stack.pop();
+                    stack.pop();
 
-                    ctx.pushStack(Types.INT);
+                    stack.push(Types.INT);
 
                     mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "equals",
                             "(Ljava/lang/Object;)Z", false);
 
-                    ctx.popStack();
+                    stack.pop();
 
                     mv.visitJumpInsn(IFEQ, counter == hashIfBranches.length - 1
                             ? endFirstSwitchLabel
                             : hashIfBranches[counter + 1]);
 
                     ctx.visitInt(counter);
-                    ctx.pushStack(Types.INT);
+                    stack.push(Types.INT);
 
                     mv.visitVarInsn(ISTORE, switchIndexLocal.getOffset());
-                    ctx.popStack();
+                    stack.pop();
 
                     mv.visitJumpInsn(GOTO, endFirstSwitchLabel);
 
@@ -1419,7 +1441,7 @@ public final class Instructions {
             mv.visitLabel(endFirstSwitchLabel);
             mv.visitVarInsn(ILOAD, switchIndexLocal.getOffset());
 
-            ctx.pushStack(Types.INT);
+            stack.push(Types.INT);
 
             if (nLabels > 1) {
                 val branches = new Label[nLabels];
@@ -1442,7 +1464,7 @@ public final class Instructions {
                         new Label[]{firstBranch});
             }
 
-            ctx.popStack();
+            stack.pop();
 
             ctx.popLocal(); // pop index
             ctx.popLocal(); // pop item
@@ -1458,7 +1480,7 @@ public final class Instructions {
 
         @Override
         public @NotNull StringsSwitchInsn source(final int value) {
-            this.source = Asm.indexOf(value);
+            this.source = Bytecode.indexOf(value);
             return this;
         }
 
@@ -1517,16 +1539,17 @@ public final class Instructions {
         }
 
         @Override
-        public void compile(final @NonNull CompileContext compile) {
-            val mv = compile.getMethodVisitor();
+        public void compile(final @NonNull CompileContext ctx) {
+            val stack = ctx.getStack();
+            val mv = ctx.getMethodVisitor();
 
             if (source != null && source.isInitialized()) {
-                val local = compile.getLocal(source);
+                val local = ctx.getLocal(source);
                 mv.visitVarInsn(local.getName().toType().getOpcode(ILOAD), local.getOffset());
-                compile.pushStack(local.getName());
+                stack.push(local.getName());
             }
 
-            compile.popStack();
+            stack.pop();
 
             val defaultLabel = defaultBranch.getLabel();
 
@@ -1562,16 +1585,16 @@ public final class Instructions {
             }
 
             for (val branch : branches.values()) {
-                branch.compile(compile);
+                branch.compile(ctx);
             }
 
-            defaultBranch.compile(compile);
+            defaultBranch.compile(ctx);
             mv.visitLabel(endLabel);
         }
 
         @Override
         public @NotNull IntsSwitchInsn source(final int value) {
-            this.source = Asm.indexOf(value);
+            this.source = Bytecode.indexOf(value);
             return this;
         }
 
@@ -1612,7 +1635,7 @@ public final class Instructions {
         TypeName descriptor;
 
         @Override
-        public void compile(final @NonNull CompileContext compile) {
+        public void compile(final @NonNull CompileContext ctx) {
             if (owner == null) {
                 throw new IllegalStateException("You should to specify owner using FieldInsn#in method!");
             }
@@ -1620,22 +1643,24 @@ public final class Instructions {
             if (descriptor == null) {
                 throw new IllegalStateException("You should to specify descriptor using FieldInsn#descriptor method!");
             }
+            
+            val stack = ctx.getStack();
 
             if (opcode == FieldOpcode.PUT || opcode == FieldOpcode.PUT_STATIC) {
-                compile.popStack(); // pop new field value
+                stack.pop(); // pop new field value
             }
 
             if (opcode == FieldOpcode.PUT || opcode == FieldOpcode.GET) {
-                compile.popStack(); // pop instance
+                stack.pop(); // pop instance
             }
 
-            compile.getMethodVisitor().visitFieldInsn(
-                    opcode.getOpcode(), owner.apply(compile).getInternalName(),
+            ctx.getMethodVisitor().visitFieldInsn(
+                    opcode.getOpcode(), owner.apply(ctx).getInternalName(),
                     name, descriptor.getDescriptor()
             );
 
             if (opcode == FieldOpcode.GET || opcode == FieldOpcode.GET_STATIC)
-                compile.pushStack(descriptor);
+                stack.push(descriptor);
         }
 
         @Override
@@ -1742,16 +1767,18 @@ public final class Instructions {
 
         @Override
         public void compile(final @NonNull CompileContext ctx) {
-            val stack = ctx.popStack();
+            val stack = ctx.getStack();
 
-            if (!Types.isWrapper(stack) || stack.isPrimitive() || stack.isArray()) {
-                ctx.pushStack(stack);
+            val item = stack.pop().getType();
+
+            if (!Types.isWrapper(item) || item.isPrimitive() || item.isArray()) {
+                stack.push(item);
                 return;
             }
 
             final String methodName;
 
-            val primitive = Types.getPrimitive(stack);
+            val primitive = Types.getPrimitive(item);
 
             switch (primitive.getPrimitive()) {
                 case Types.BOOL_TYPE:
@@ -1779,14 +1806,14 @@ public final class Instructions {
                     methodName = "doubleValue";
                     break;
                 default:
-                    throw new IllegalStateException("Unsupported type: " + stack);
+                    throw new IllegalStateException("Unsupported type: " + item);
             }
 
-            ctx.getMethodVisitor().visitMethodInsn(INVOKEVIRTUAL, stack.getInternalName(), methodName,
+            ctx.getMethodVisitor().visitMethodInsn(INVOKEVIRTUAL, item.getInternalName(), methodName,
                     "()" + primitive.getDescriptor(),
                     false);
 
-            ctx.pushStack(primitive);
+            stack.push(primitive);
         }
 
         @Override
@@ -1802,20 +1829,23 @@ public final class Instructions {
 
         @Override
         public void compile(final @NonNull CompileContext ctx) {
-            val stack = ctx.popStack();
+            val stack = ctx.getStack();
+            stack.ensureSize(1);
 
-            if (!stack.isPrimitive() || stack.isArray()) {
-                ctx.pushStack(stack);
+            val item = stack.pop().getType();
+
+            if (!item.isPrimitive() || item.isArray()) {
+                stack.push(item);
                 return;
             }
 
-            val wrapper = Types.getWrapper(stack);
+            val wrapper = Types.getWrapper(item);
 
             ctx.getMethodVisitor().visitMethodInsn(INVOKESTATIC, wrapper.getInternalName(), "valueOf",
-                    "(" + stack.getDescriptor() + ")" + wrapper.getDescriptor(),
+                    "(" + item.getDescriptor() + ")" + wrapper.getDescriptor(),
                     false);
 
-            ctx.pushStack(wrapper);
+            stack.push(wrapper);
         }
 
         @Override
@@ -1832,7 +1862,7 @@ public final class Instructions {
 
         @Override
         public void compile(final @NonNull CompileContext ctx) {
-            ctx.pushStack(Types.OBJECT);
+            ctx.getStack().push(Types.OBJECT);
             ctx.visitNull();
         }
 
@@ -1850,7 +1880,7 @@ public final class Instructions {
 
         @Override
         public void compile(final @NonNull CompileContext ctx) {
-            ctx.pushStack(type);
+            ctx.getStack().push(type);
 
             if (type.isPrimitive()) {
                 switch (type.getPrimitive()) {
@@ -1886,7 +1916,7 @@ public final class Instructions {
 
         @Override
         public void compile(final @NonNull CompileContext ctx) {
-            ctx.pushStack(Types.STRING);
+            ctx.getStack().push(Types.STRING);
             ctx.visitString(value);
         }
 
@@ -1905,7 +1935,7 @@ public final class Instructions {
 
         @Override
         public void compile(final @NonNull CompileContext ctx) {
-            ctx.pushStack(Types.FLOAT);
+            ctx.getStack().push(Bytecode.FLOAT);
             ctx.visitFloat(value);
         }
 
@@ -1923,7 +1953,7 @@ public final class Instructions {
 
         @Override
         public void compile(final @NonNull CompileContext ctx) {
-            ctx.pushStack(Types.DOUBLE);
+            ctx.getStack().push(Bytecode.DOUBLE);
             ctx.visitDouble(value);
         }
 
@@ -1941,7 +1971,7 @@ public final class Instructions {
 
         @Override
         public void compile(final @NonNull CompileContext ctx) {
-            ctx.pushStack(Types.INT);
+            ctx.getStack().push(Bytecode.INT);
             ctx.visitInt(value);
         }
 
@@ -1959,7 +1989,7 @@ public final class Instructions {
 
         @Override
         public void compile(final @NonNull CompileContext ctx) {
-            ctx.pushStack(Types.LONG);
+            ctx.getStack().push(Bytecode.LONG);
             ctx.visitLong(value);
         }
 
@@ -1976,10 +2006,12 @@ public final class Instructions {
 
         @Override
         public void compile(final @NonNull CompileContext ctx) {
-            ctx.popStack(); // index
+            val stack = ctx.getStack();
+            stack.ensure(INT, Bytecode.REF);
+            stack.pop(); // index
 
-            val array = ctx.popStack();
-            ctx.pushStack(ctx.callArrayLoad(array));
+            val array = stack.pop();
+            stack.push(ctx.callArrayLoad(array.getType()));
         }
 
         @Override
@@ -1995,9 +2027,11 @@ public final class Instructions {
 
         @Override
         public void compile(final @NonNull CompileContext ctx) {
-            ctx.popStack();
+            val stack = ctx.getStack();
+
+            stack.pop();
             ctx.getMethodVisitor().visitInsn(ARRAYLENGTH);
-            ctx.pushStack(Types.INT);
+            stack.push(INT);
         }
 
         @Override
@@ -2013,7 +2047,10 @@ public final class Instructions {
 
         @Override
         public void compile(final @NonNull CompileContext ctx) {
-            ctx.popStack();
+            val stack = ctx.getStack();
+            stack.ensure(REF);
+            stack.pop();
+
             ctx.getMethodVisitor().visitInsn(ATHROW);
         }
 
@@ -2030,11 +2067,14 @@ public final class Instructions {
 
         @Override
         public void compile(final @NonNull CompileContext ctx) {
-            val mv = ctx.getMethodVisitor();
+            val stack = ctx.getStack();
+            stack.ensure(REF);
+            stack.pop();
 
-            ctx.popStack();
+            val mv = ctx.getMethodVisitor();
             mv.visitTypeInsn(INSTANCEOF, name.getInternalName());
-            ctx.pushStack(Types.INT);
+
+            stack.push(INT);
         }
 
         @Override
@@ -2050,8 +2090,11 @@ public final class Instructions {
 
         @Override
         public void compile(final @NonNull CompileContext ctx) {
-            ctx.callCast(ctx.popStack(), name);
-            ctx.pushStack(name);
+            val stack = ctx.getStack();
+            stack.ensureSize(1);
+
+            ctx.callCast(stack.pop().getType(), name);
+            stack.push(name);
         }
 
         @Override
