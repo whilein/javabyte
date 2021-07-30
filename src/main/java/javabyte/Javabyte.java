@@ -1096,6 +1096,12 @@ public class Javabyte {
         }
 
         @Override
+        public void copySignatureFrom(final @NonNull Method method) {
+            setReturnType(method.getReturnType());
+            setParameterTypes(method.getParameterTypes());
+        }
+
+        @Override
         public void setOverrides(
                 final @NonNull Class<?> type
         ) {

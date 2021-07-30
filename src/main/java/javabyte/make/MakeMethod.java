@@ -20,6 +20,7 @@ import javabyte.signature.MethodSignature;
 import javabyte.type.TypeName;
 import org.jetbrains.annotations.NotNull;
 
+import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 
 /**
@@ -28,12 +29,17 @@ import java.lang.reflect.Type;
 public interface MakeMethod extends MakeExecutable {
 
     void setReturnType(@NotNull TypeName type);
+
     void setReturnType(@NotNull Type type);
 
     void setSignature(@NotNull MethodSignature signature);
 
     void copySignatureFrom(
             @NotNull Class<?> type
+    );
+
+    void copySignatureFrom(
+            @NotNull Method method
     );
 
     void setOverrides(
