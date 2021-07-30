@@ -63,6 +63,8 @@ public interface MakeExecutable extends MakeClassElement {
     void setParameters(@NotNull Collection<@NotNull TypeName> names);
     void setParameters(@NotNull TypeName @NotNull ... names);
 
+    int getParameterCount();
+
     /**
      * Return modifiable list of parameters
      * @return Parameters

@@ -1179,6 +1179,11 @@ public class Javabyte {
         Overrides overrides;
 
         @Override
+        public int getParameterCount() {
+            return parameters.size();
+        }
+
+        @Override
         public final @NotNull MethodSignature getSignature() {
             return Signatures.methodSignature(returnType, parameters.toArray(new TypeName[0]));
         }
