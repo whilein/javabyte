@@ -46,7 +46,7 @@ final class ContainsTests {
     @Test
     @DisplayName("ContainsInArray")
     void containsInArray() {
-        val contains = contains(ContainsInArray.class, String[].class, String.class);
+        val contains = generate(ContainsInArray.class, String[].class, String.class);
 
         val array = "ABCDEF1234567890".split("");
 
@@ -60,7 +60,7 @@ final class ContainsTests {
     @Test
     @DisplayName("ContainsInByteArray")
     void containsInByteArray() {
-        val contains = contains(ContainsInByteArray.class, byte[].class, byte.class);
+        val contains = generate(ContainsInByteArray.class, byte[].class, byte.class);
 
         val array = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
 
@@ -74,7 +74,7 @@ final class ContainsTests {
     @Test
     @DisplayName("ContainsInShortArray")
     void containsInShortArray() {
-        val contains = contains(ContainsInShortArray.class, short[].class, short.class);
+        val contains = generate(ContainsInShortArray.class, short[].class, short.class);
 
         val array = new short[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
 
@@ -88,7 +88,7 @@ final class ContainsTests {
     @Test
     @DisplayName("ContainsInIntArray")
     void containsInIntArray() {
-        val contains = contains(ContainsInIntArray.class, int[].class, int.class);
+        val contains = generate(ContainsInIntArray.class, int[].class, int.class);
 
         val array = new int[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
 
@@ -102,7 +102,7 @@ final class ContainsTests {
     @Test
     @DisplayName("ContainsInLongArray")
     void containsInLongArray() {
-        val contains = contains(ContainsInLongArray.class, long[].class, long.class);
+        val contains = generate(ContainsInLongArray.class, long[].class, long.class);
 
         val array = new long[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
 
@@ -116,7 +116,7 @@ final class ContainsTests {
     @Test
     @DisplayName("ContainsInFloatArray")
     void containsInFloatArray() {
-        val contains = contains(ContainsInFloatArray.class, float[].class, float.class);
+        val contains = generate(ContainsInFloatArray.class, float[].class, float.class);
 
         val array = new float[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
 
@@ -130,7 +130,7 @@ final class ContainsTests {
     @Test
     @DisplayName("ContainsInDoubleArray")
     void containsInDoubleArray() {
-        val contains = contains(ContainsInDoubleArray.class, double[].class, double.class);
+        val contains = generate(ContainsInDoubleArray.class, double[].class, double.class);
 
         val array = new double[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
 
@@ -144,7 +144,7 @@ final class ContainsTests {
     @Test
     @DisplayName("ContainsInList")
     void containsInList() {
-        val contains = contains(ContainsInList.class, List.class, String.class);
+        val contains = generate(ContainsInList.class, List.class, String.class);
 
         val array = Arrays.asList("ABCDEF1234567890".split(""));
 
@@ -156,7 +156,7 @@ final class ContainsTests {
     }
 
     @SneakyThrows
-    private <T> T contains(final Class<T> containsInterface, final Class<?> iterable, final Class<?> element) {
+    private <T> T generate(final Class<T> containsInterface, final Class<?> iterable, final Class<?> element) {
         val type = Javabyte.make(testName);
         type.setPublicFinal();
         type.addInterface(containsInterface);
