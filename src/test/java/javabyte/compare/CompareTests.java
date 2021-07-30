@@ -28,8 +28,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 
-import java.io.File;
-
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -143,8 +141,6 @@ final class CompareTests {
         code.pushInt(0);
         code.visit(endPosition);
         code.callReturn();
-
-        type.writeTo(new File("out"));
 
         return type.load(TestClassLoader.create())
                 .asSubclass(compareInterface)

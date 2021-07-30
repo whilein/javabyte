@@ -29,7 +29,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 
-import java.io.File;
 import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -94,8 +93,6 @@ final class FeatureTests {
         code.callReturn();
 
         initializer.accept(type);
-
-        type.writeTo(new File("out"));
 
         return type.load(TestClassLoader.create())
                 .getDeclaredConstructor(boolean.class, byte.class, short.class, char.class, int.class,
