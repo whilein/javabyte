@@ -16,6 +16,7 @@
 
 package javabyte.bytecode.insn;
 
+import javabyte.EqualityStrategy;
 import javabyte.bytecode.*;
 import javabyte.bytecode.branch.CaseBranch;
 import javabyte.bytecode.branch.LoopBranch;
@@ -128,12 +129,12 @@ public final class Instructions {
         return new JumpInsn(opcode, position);
     }
 
-    public @NotNull Instruction jumpIfEqualsInsn(final @NonNull Position position) {
-        return new JumpIfEqualsInsn(position, false);
-    }
-
-    public @NotNull Instruction jumpIfNotEqualsInsn(final @NonNull Position position) {
-        return new JumpIfEqualsInsn(position, true);
+    public @NotNull Instruction jumpIfEqualsInsn(
+            final @NonNull EqualityStrategy strategy,
+            final @NonNull Position position,
+            final boolean inverted
+    ) {
+        return new JumpIfEqualsInsn(strategy, position, inverted);
     }
 
     public @NotNull Instruction visitInsn(final @NonNull Position position) {
@@ -587,21 +588,20 @@ public final class Instructions {
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     private static final class JumpIfEqualsInsn implements Instruction {
 
+        EqualityStrategy strategy;
         Position position;
         boolean inverted;
 
         @Override
         public void compile(final @NonNull CompileContext ctx) {
-            val first = ctx.popStack();
-            val second = ctx.popStack();
-
-            if (first.getPrimitive() != second.getPrimitive()) {
-                throw new IllegalStateException("Cannot compare " + first + " and " + second);
-            }
+            TypeName first = ctx.popStack();
+            TypeName second = ctx.popStack();
 
             val mv = ctx.getMethodVisitor();
 
-            if (first.isPrimitive()) {
+            if (first.isPrimitive() && second.isPrimitive()) {
+                ctx.callCast(second, first);
+
                 final int INT_JUMP = inverted ? IF_ICMPNE : IF_ICMPEQ;
                 final int JUMP = inverted ? IFNE : IFEQ;
 
@@ -614,9 +614,7 @@ public final class Instructions {
                         position.jump(mv, INT_JUMP);
                         break;
                     case Types.LONG_TYPE:
-                        ctx.pushStack(Types.INT);
                         mv.visitInsn(LCMP);
-                        ctx.popStack();
                         position.jump(mv, JUMP);
                         break;
                     case Types.FLOAT_TYPE:
@@ -632,16 +630,61 @@ public final class Instructions {
                         position.jump(mv, JUMP);
                         break;
                 }
-            } else {
-                mv.visitMethodInsn(
-                        INVOKESTATIC,
-                        "java/util/Objects",
-                        "equals", "(Ljava/lang/Object;Ljava/lang/Object;)Z", false
-                );
+            } else if (!first.isPrimitive() && !second.isPrimitive()) {
+                if (strategy == EqualityStrategy.CONTENTS && first.isArray() && second.isArray()) {
+                    val cmpf = first.getComponent();
+                    val cmps = second.getComponent();
+
+                    if (cmpf.isPrimitive() && cmps.isPrimitive() && !cmps.equals(cmpf)) {
+                        throw new IllegalStateException("Cannot compare two primitive arrays with types "
+                                + cmpf + " and " + cmps);
+                    }
+
+                    if (cmpf.isPrimitive() != cmps.isPrimitive()) {
+                        throw new IllegalStateException("Cannot compare two arrays, "
+                                + "because one of them is primitive and second is not: "
+                                + cmpf + " ~ " + cmps);
+                    }
+
+                    if (cmpf.isPrimitive()) {
+                        val descriptor = "([" + cmpf.getDescriptor() + "[" + cmps.getDescriptor() + ")Z";
+
+                        mv.visitMethodInsn(
+                                INVOKESTATIC,
+                                "java/util/Arrays",
+                                "equals", descriptor, false
+                        );
+                    } else {
+                        val name = cmpf.isArray() && cmps.isArray() ? "deepEquals" : "equals";
+
+                        mv.visitMethodInsn(
+                                INVOKESTATIC,
+                                "java/util/Arrays",
+                                name, "([Ljava/lang/Object;[Ljava/lang/Object;)Z", false
+                        );
+                    }
+                } else if (strategy == EqualityStrategy.REF) {
+                    position.jump(mv, inverted ? IF_ACMPNE : IF_ACMPEQ);
+                    return;
+                } else if (strategy == EqualityStrategy.SAFE){
+                    mv.visitMethodInsn(
+                            INVOKESTATIC,
+                            "java/util/Objects",
+                            "equals", "(Ljava/lang/Object;Ljava/lang/Object;)Z", false
+                    );
+                } else {
+                    mv.visitMethodInsn(
+                            INVOKEVIRTUAL,
+                            "java/lang/Object",
+                            "equals", "(Ljava/lang/Object;)Z", false
+                    );
+                }
 
                 ctx.pushStack(Types.INT);
                 position.jump(mv, inverted ? IFEQ : IFNE);
                 ctx.popStack();
+            } else {
+                throw new IllegalStateException("Cannot compare " + first + " and " + second);
             }
         }
 
@@ -1761,12 +1804,9 @@ public final class Instructions {
         public void compile(final @NonNull CompileContext ctx) {
             val stack = ctx.popStack();
 
-            if (!stack.isPrimitive()) {
-                throw new IllegalStateException("Stack item should be a primitive!");
-            }
-
-            if (stack.isArray()) {
-                throw new IllegalStateException("Cannot box an array");
+            if (!stack.isPrimitive() || stack.isArray()) {
+                ctx.pushStack(stack);
+                return;
             }
 
             val wrapper = Types.getWrapper(stack);

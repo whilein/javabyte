@@ -16,6 +16,7 @@
 
 package javabyte.bytecode;
 
+import javabyte.EqualityStrategy;
 import javabyte.bytecode.insn.*;
 import javabyte.opcode.*;
 import javabyte.type.TypeName;
@@ -142,16 +143,34 @@ public abstract class AbstractInstructionSet implements InstructionSet {
         _callInsn(Instructions.jumpInsn(opcode, position));
     }
 
-    @Override
-    public final void jumpIfEquals(@NotNull final Position position) {
-        _callInsn(Instructions.jumpIfEqualsInsn(position));
+    private void _jumpIfEquals(
+            final EqualityStrategy strategy,
+            final Position position,
+            final boolean inverted
+    ) {
+        _callInsn(Instructions.jumpIfEqualsInsn(strategy, position, inverted));
     }
 
     @Override
-    public final void jumpIfNotEquals(@NotNull final Position position) {
-        _callInsn(Instructions.jumpIfNotEqualsInsn(position));
+    public final void jumpIfEquals(final @NonNull Position position) {
+        _jumpIfEquals(EqualityStrategy.DEFAULT, position, false);
     }
 
+    @Override
+    public final void jumpIfNotEquals(final @NonNull Position position) {
+        _jumpIfEquals(EqualityStrategy.DEFAULT, position, true);
+    }
+
+    @Override
+    public final void jumpIfEquals(final @NonNull EqualityStrategy strategy, final @NonNull Position position) {
+        _jumpIfEquals(strategy, position, false);
+    }
+
+    @Override
+    public final void jumpIfNotEquals(final @NonNull EqualityStrategy strategy, final @NonNull Position position) {
+        _jumpIfEquals(strategy, position, true);
+    }
+    
     @Override
     public final void loadLocal(final @NonNull LocalIndex index) {
         _callInsn(Instructions.loadLocalInsn(index));
@@ -253,17 +272,17 @@ public abstract class AbstractInstructionSet implements InstructionSet {
     }
 
     @Override
-    public final void callNewArray(@NotNull final TypeName arrayType, final int knownDims) {
+    public final void callNewArray(final @NonNull TypeName arrayType, final int knownDims) {
         _callInsn(Instructions.newArrayInsn(arrayType, knownDims));
     }
 
     @Override
-    public final void callNewArray(@NotNull final Type arrayType, final int knownDims) {
+    public final void callNewArray(final @NonNull Type arrayType, final int knownDims) {
         _callInsn(Instructions.newArrayInsn(Types.of(arrayType), knownDims));
     }
 
     @Override
-    public final void callNewArray(@NotNull final TypeName arrayType) {
+    public final void callNewArray(final @NonNull TypeName arrayType) {
         _callInsn(Instructions.newArrayInsn(arrayType, arrayType.getDimensions()));
     }
 
@@ -273,7 +292,7 @@ public abstract class AbstractInstructionSet implements InstructionSet {
     }
 
     @Override
-    public final void callNewArray(@NotNull final Type arrayType) {
+    public final void callNewArray(final @NonNull Type arrayType) {
         val name = Types.of(arrayType);
 
         _callInsn(Instructions.newArrayInsn(name, name.getDimensions()));
@@ -286,13 +305,13 @@ public abstract class AbstractInstructionSet implements InstructionSet {
     }
 
     @Override
-    public final void callInstanceOf(@NotNull final Type type) {
+    public final void callInstanceOf(final @NonNull Type type) {
         _callInsn(Instructions.instanceOfInsn(Types.of(type)));
 
     }
 
     @Override
-    public final void callInstanceOf(@NotNull final TypeName name) {
+    public final void callInstanceOf(final @NonNull TypeName name) {
         _callInsn(Instructions.instanceOfInsn(name));
     }
 

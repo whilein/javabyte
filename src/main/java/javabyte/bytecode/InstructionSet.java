@@ -16,6 +16,7 @@
 
 package javabyte.bytecode;
 
+import javabyte.EqualityStrategy;
 import javabyte.bytecode.insn.*;
 import javabyte.opcode.*;
 import javabyte.type.TypeName;
@@ -41,6 +42,8 @@ public interface InstructionSet extends Instruction {
     void jump(@NotNull JumpOpcode opcode, @NotNull Position position);
     void jumpIfEquals(@NotNull Position position);
     void jumpIfNotEquals(@NotNull Position position);
+    void jumpIfEquals(@NotNull EqualityStrategy strategy, @NotNull Position position);
+    void jumpIfNotEquals(@NotNull EqualityStrategy strategy, @NotNull Position position);
 
     void loadLocal(int index);
     void loadLocal(@NotNull LocalIndex index);
