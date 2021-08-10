@@ -39,7 +39,9 @@ public enum JumpOpcode {
     IF_ICMPLE(164),
     IF_ACMPEQ(165),
     IF_ACMPNE(166),
-    GOTO(167);
+    GOTO(167),
+    IFNULL(198),
+    IFNONNULL(199);
 
     int opcode;
 }

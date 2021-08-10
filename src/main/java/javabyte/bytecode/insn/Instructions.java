@@ -17,29 +17,83 @@
 package javabyte.bytecode.insn;
 
 import javabyte.EqualityStrategy;
-import javabyte.bytecode.*;
+import javabyte.bytecode.AbstractInstructionSet;
+import javabyte.bytecode.Bytecode;
+import javabyte.bytecode.CompileContext;
+import javabyte.bytecode.InstructionSet;
+import javabyte.bytecode.Local;
+import javabyte.bytecode.LocalIndex;
+import javabyte.bytecode.Position;
+import javabyte.bytecode.SimpleInstructionSet;
+import javabyte.bytecode.StackItem;
 import javabyte.bytecode.branch.CaseBranch;
 import javabyte.bytecode.branch.LoopBranch;
-import javabyte.opcode.*;
+import javabyte.opcode.CompareOpcode;
+import javabyte.opcode.FieldOpcode;
+import javabyte.opcode.JumpOpcode;
+import javabyte.opcode.MathOpcode;
+import javabyte.opcode.MethodOpcode;
+import javabyte.opcode.StringsSwitchImplementation;
 import javabyte.signature.MethodSignature;
 import javabyte.signature.Signatures;
 import javabyte.type.TypeName;
 import javabyte.type.Types;
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.UtilityClass;
+import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import org.objectweb.asm.Label;
 
 import java.lang.reflect.Type;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static javabyte.bytecode.Bytecode.INT;
 import static javabyte.bytecode.Bytecode.REF;
-import static org.objectweb.asm.Opcodes.*;
+import static org.objectweb.asm.Opcodes.ALOAD;
+import static org.objectweb.asm.Opcodes.ANEWARRAY;
+import static org.objectweb.asm.Opcodes.ARRAYLENGTH;
+import static org.objectweb.asm.Opcodes.ASTORE;
+import static org.objectweb.asm.Opcodes.ATHROW;
+import static org.objectweb.asm.Opcodes.CHECKCAST;
+import static org.objectweb.asm.Opcodes.DCMPL;
+import static org.objectweb.asm.Opcodes.DUP;
+import static org.objectweb.asm.Opcodes.FCMPL;
+import static org.objectweb.asm.Opcodes.GETSTATIC;
+import static org.objectweb.asm.Opcodes.GOTO;
+import static org.objectweb.asm.Opcodes.IFEQ;
+import static org.objectweb.asm.Opcodes.IFNE;
+import static org.objectweb.asm.Opcodes.IF_ACMPEQ;
+import static org.objectweb.asm.Opcodes.IF_ACMPNE;
+import static org.objectweb.asm.Opcodes.IF_ICMPEQ;
+import static org.objectweb.asm.Opcodes.IF_ICMPGE;
+import static org.objectweb.asm.Opcodes.IF_ICMPNE;
+import static org.objectweb.asm.Opcodes.ILOAD;
+import static org.objectweb.asm.Opcodes.INSTANCEOF;
+import static org.objectweb.asm.Opcodes.INVOKEINTERFACE;
+import static org.objectweb.asm.Opcodes.INVOKESPECIAL;
+import static org.objectweb.asm.Opcodes.INVOKESTATIC;
+import static org.objectweb.asm.Opcodes.INVOKEVIRTUAL;
+import static org.objectweb.asm.Opcodes.IRETURN;
+import static org.objectweb.asm.Opcodes.ISTORE;
+import static org.objectweb.asm.Opcodes.LCMP;
+import static org.objectweb.asm.Opcodes.NEW;
+import static org.objectweb.asm.Opcodes.NEWARRAY;
+import static org.objectweb.asm.Opcodes.POP;
+import static org.objectweb.asm.Opcodes.RETURN;
+import static org.objectweb.asm.Opcodes.SWAP;
 
 /**
  * @author whilein
@@ -740,6 +794,11 @@ public final class Instructions {
                 case IFGT:
                 case IFLE:
                     stack.ensure(Bytecode.INT);
+                    stack.pop();
+                    break;
+                case IFNULL:
+                case IFNONNULL:
+                    stack.ensure(Bytecode.REF);
                     stack.pop();
                     break;
             }
