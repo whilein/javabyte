@@ -19,17 +19,34 @@ package javabyte;
 import javabyte.bytecode.Bytecode;
 import javabyte.bytecode.ExecutableInstructionSet;
 import javabyte.bytecode.InstructionSet;
-import javabyte.make.*;
-import javabyte.opcode.*;
+import javabyte.make.MakeClass;
+import javabyte.make.MakeConstructor;
+import javabyte.make.MakeElement;
+import javabyte.make.MakeExecutable;
+import javabyte.make.MakeField;
+import javabyte.make.MakeHashCodeAndEquals;
+import javabyte.make.MakeInnerClass;
+import javabyte.make.MakeMethod;
+import javabyte.make.MakeToString;
+import javabyte.opcode.CompareOpcode;
+import javabyte.opcode.FieldOpcode;
+import javabyte.opcode.JumpOpcode;
+import javabyte.opcode.MathOpcode;
+import javabyte.opcode.MethodOpcode;
 import javabyte.signature.MethodSignature;
 import javabyte.signature.Signatures;
 import javabyte.type.ExactTypeName;
 import javabyte.type.TypeName;
 import javabyte.type.TypeParameter;
 import javabyte.type.Types;
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.UtilityClass;
+import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Unmodifiable;
 import org.objectweb.asm.ClassWriter;
@@ -45,7 +62,12 @@ import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.ProtectionDomain;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -483,7 +505,7 @@ public class Javabyte {
         }
 
         @Override
-        public void setInterfaces(final @NonNull Collection<@NotNull TypeName> interfaces) {
+        public void setInterfaces(final @NonNull Collection<? extends @NotNull TypeName> interfaces) {
             this.interfaces.clear();
             this.interfaces.addAll(interfaces);
         }
@@ -494,7 +516,7 @@ public class Javabyte {
         }
 
         @Override
-        public void setInterfaceTypes(final @NonNull Collection<@NotNull Type> interfaces) {
+        public void setInterfaceTypes(final @NonNull Collection<? extends @NotNull Type> interfaces) {
             _setInterfaces(interfaces.stream().map(Types::of).collect(Collectors.toList()));
         }
 
@@ -1193,7 +1215,7 @@ public class Javabyte {
         }
 
         @Override
-        public final void setExceptionTypes(final @NonNull Collection<@NotNull Class<?>> types) {
+        public final void setExceptionTypes(final @NonNull Collection<? extends @NotNull Class<?>> types) {
             _setExceptions(types.stream().map(Types::of).collect(Collectors.toList()));
         }
 
@@ -1203,7 +1225,7 @@ public class Javabyte {
         }
 
         @Override
-        public final void setExceptions(final @NonNull Collection<@NotNull ExactTypeName> names) {
+        public final void setExceptions(final @NonNull Collection<? extends @NotNull ExactTypeName> names) {
             _setExceptions(names);
         }
 
@@ -1243,7 +1265,7 @@ public class Javabyte {
         }
 
         @Override
-        public final void setParameterTypes(final @NonNull Collection<@NotNull Type> types) {
+        public final void setParameterTypes(final @NonNull Collection<? extends @NotNull Type> types) {
             this._setParameters(types.stream().map(Types::of).collect(Collectors.toList()));
         }
 
@@ -1253,7 +1275,7 @@ public class Javabyte {
         }
 
         @Override
-        public final void setParameters(final @NonNull Collection<@NotNull TypeName> parameters) {
+        public final void setParameters(final @NonNull Collection<? extends @NotNull TypeName> parameters) {
             _setParameters(parameters);
         }
 
@@ -1262,12 +1284,12 @@ public class Javabyte {
             _setParameters(Arrays.asList(parameters));
         }
 
-        protected void _setParameters(final Collection<TypeName> parameters) {
+        protected void _setParameters(final Collection<? extends TypeName> parameters) {
             this.parameters.clear();
             this.parameters.addAll(parameters);
         }
 
-        protected void _setExceptions(final Collection<ExactTypeName> exceptions) {
+        protected void _setExceptions(final Collection<? extends ExactTypeName> exceptions) {
             this.exceptions.clear();
             this.exceptions.addAll(exceptions);
         }

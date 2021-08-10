@@ -75,11 +75,11 @@ public interface MakeClass extends MakeElement {
 
     void setInterfaces(@NotNull TypeName @NotNull ... interfaces);
 
-    void setInterfaces(@NotNull Collection<@NotNull TypeName> interfaces);
+    void setInterfaces(@NotNull Collection<? extends @NotNull TypeName> interfaces);
 
     void setInterfaceTypes(@NotNull Type @NotNull ... interfaces);
 
-    void setInterfaceTypes(@NotNull Collection<@NotNull Type> interfaces);
+    void setInterfaceTypes(@NotNull Collection<? extends @NotNull Type> interfaces);
 
     @NotNull List<@NotNull TypeName> getInterfaces();
 
